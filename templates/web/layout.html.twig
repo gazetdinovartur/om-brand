@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f5efe4">
+    <title>{% block title %}{{ settings.name }} · веб-системы{% endblock %}</title>
+    <meta name="description" content="{{ settings.tagline|default('Прикладные веб-системы для бизнеса, проектов и частных специалистов') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23e8a849' opacity='0.8'/></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+<body class="site-body">
+    <div class="solstice-glow" aria-hidden="true"></div>
+
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <a class="site-brand" href="{{ path('web_home') }}">
+                {% if settings.avatarPath %}
+                    <img class="site-brand__avatar" src="{{ asset('uploads/avatars/' ~ settings.avatarPath) }}" alt="">
+                {% else %}
+                    <span class="site-brand__avatar site-brand__avatar--placeholder">{{ settings.name|slice(0, 1) }}</span>
+                {% endif %}
+                <span class="site-brand__text">
+                    <strong>{{ settings.name }}</strong>
+                    {% if settings.city %}<small>{{ settings.city }}</small>{% endif %}
+                </span>
+            </a>
+            <nav class="site-nav" aria-label="Навигация">
+                <a class="site-nav__link" href="#about">Обо мне</a>
+                <a class="site-nav__link" href="#contact">Связаться</a>
+            </nav>
+        </div>
+    </header>
+
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="container mt-3">
+                <div class="site-alert site-alert--{{ label }}" role="alert">{{ message }}</div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <main class="site-main">
+        {% block body %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container site-footer__inner">
+            <div class="site-footer__grid">
+                {% if blocksBySlug.footer_legal is defined %}
+                    <div>
+                        <h3 class="site-footer__title">{{ blocksBySlug.footer_legal.title }}</h3>
+                        <p class="site-footer__text">{{ blocksBySlug.footer_legal.body|nl2br }}</p>
+                    </div>
+                {% endif %}
+                {% if blocksBySlug.footer_excludes is defined %}
+                    <div>
+                        <h3 class="site-footer__title">{{ blocksBySlug.footer_excludes.title }}</h3>
+                        <ul class="site-footer__list">
+                            {% for item in blocksBySlug.footer_excludes.items|default([]) %}
+                                <li>{{ item.text }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="site-footer__bottom">
+                <p class="site-footer__copy">© {{ 'now'|date('Y') }} {{ settings.name }}</p>
+                {% if settings.telegramUrl or settings.githubUrl %}
+                    <div class="site-footer__links">
+                        {% if settings.telegramUrl %}<a href="{{ settings.telegramUrl }}" rel="noopener">Telegram</a>{% endif %}
+                        {% if settings.githubUrl %}<a href="{{ settings.githubUrl }}" rel="noopener">GitHub</a>{% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </footer>
+
+    <a class="site-fab" href="#contact">Рассказать о задаче</a>
+
+    <script src="{{ asset('js/site.js') }}" defer></script>
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

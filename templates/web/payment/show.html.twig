@@ -1,0 +1,31 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}Оплата · {{ offer.title }}{% endblock %}
+
+{% block body %}
+    <section class="section section--payment">
+        <div class="container narrow">
+            <div class="payment-card">
+                <p class="payment-card__eyebrow">Оплата</p>
+                <h1 class="payment-card__title">{{ offer.title }}</h1>
+
+                {% if inquiry %}
+                    <p class="payment-card__meta">Для {{ inquiry.name }}</p>
+                {% endif %}
+
+                <p class="payment-card__amount">{{ offer.amountRubles|number_format(0, ',', ' ') }} ₽</p>
+
+                {% if offer.status.value == 'paid' %}
+                    <p class="payment-card__status payment-card__status--paid">Оплата получена. Спасибо!</p>
+                {% elseif offer.status.value == 'cancelled' %}
+                    <p class="payment-card__status">Ссылка отменена. Напишите, если нужна новая.</p>
+                {% elseif offer.sberPaymentUrl %}
+                    <a class="btn btn-primary btn-block" href="{{ offer.sberPaymentUrl }}" rel="noopener">Оплатить через СБП</a>
+                    <p class="payment-card__hint">После оплаты я свяжусь с вами и отправлю чек.</p>
+                {% else %}
+                    <p class="payment-card__status">Ссылка на оплату готовится. Если что — напишите напрямую.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

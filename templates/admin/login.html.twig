@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Вход · админка</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}" rel="stylesheet">
+</head>
+<body class="site-body site-body--admin-login">
+    <div class="solstice-glow" aria-hidden="true"></div>
+
+    <main class="admin-login">
+        <form method="post" class="admin-login__form">
+            <div>
+                <h1>Вход</h1>
+                <p class="admin-login__intro">Админка · Артур</p>
+            </div>
+
+            {% if error %}
+                <div class="site-alert site-alert--error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
+
+            <label>
+                Email
+                <input type="email" name="_username" value="{{ last_username }}" required autofocus autocomplete="username">
+            </label>
+            <label>
+                Пароль
+                <input type="password" name="_password" required autocomplete="current-password">
+            </label>
+
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+            <button type="submit" class="btn btn-primary btn-block">Войти</button>
+
+            <a class="admin-login__back" href="{{ path('web_home') }}">← На сайт</a>
+        </form>
+    </main>
+</body>
+</html>

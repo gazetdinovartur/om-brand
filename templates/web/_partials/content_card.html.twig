@@ -1,0 +1,21 @@
+{% macro tile(item, compact = false) %}
+    <article class="card{% if compact %} card--compact card--compact-tile{% else %} card--tile{% endif %}">
+        {% if item.title|default('') is not empty %}
+            <h3 class="card__title">{{ item.title }}</h3>
+            <p class="card__text">{{ item.text }}</p>
+        {% else %}
+            <p class="card__text card__text--solo">{{ item.text }}</p>
+        {% endif %}
+    </article>
+{% endmacro %}
+
+{% macro catalog(item) %}
+    <article class="card card--catalog">
+        {% if item.title|default('') is not empty %}
+            <h3 class="card__title">{{ item.title }}</h3>
+        {% endif %}
+        {% if item.text|default('') is not empty %}
+            <p class="card__text">{{ item.text }}</p>
+        {% endif %}
+    </article>
+{% endmacro %}

@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+:root {
+    --font-family-sans-serif: "Montserrat", system-ui, sans-serif;
+    --font-family-base: "Montserrat", system-ui, sans-serif;
+}
+
+body.ea,
+.ea-body,
+.ea-content {
+    font-family: "Montserrat", system-ui, sans-serif !important;
+}
+
+.ea-content-title,
+.ea-main h1,
+.ea-main h2,
+.ea-main h3 {
+    font-family: "Montserrat", system-ui, sans-serif !important;
+}
+
+/* Поля формы одинаковой ширины */
+.ea-edit .form-widget,
+.ea-new .form-widget,
+.ea-edit .form-control,
+.ea-new .form-control,
+.ea-edit textarea,
+.ea-new textarea,
+.ea-edit select,
+.ea-new select {
+    width: 100%;
+    max-width: 100%;
+}
+
+.ea-edit .field-group,
+.ea-new .field-group {
+    width: 100%;
+}
+
+/* Коллекция элементов контента */
+.field-collection .field-collection-item {
+    background: #faf7f2;
+    border: 1px solid rgba(31, 26, 20, 0.08);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.field-collection .field-collection-item .form-widget,
+.field-collection .field-collection-item input,
+.field-collection .field-collection-item textarea {
+    width: 100%;
+}
+
+.field-collection .field-collection-add-button .btn {
+    font-weight: 600;
+}
+
+.content-block-item-title-row.d-none {
+    display: none !important;
+}

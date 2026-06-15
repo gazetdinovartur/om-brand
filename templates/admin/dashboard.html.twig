@@ -1,0 +1,14 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Панель{% endblock %}
+
+{% block main %}
+    <div class="admin-home">
+        <p>Добро пожаловать. Здесь заявки, контент сайта и ссылки на оплату.</p>
+        <ul>
+            <li><a href="{{ ea_url().setController('App\\Admin\\InquiryCrudController').setAction('index') }}">Заявки</a></li>
+            <li><a href="{{ ea_url().setController('App\\Admin\\ContentBlockCrudController').setAction('index') }}">Контент</a></li>
+            <li><a href="{{ ea_url().setController('App\\Admin\\SiteSettingsCrudController').setAction('index') }}">Настройки</a></li>
+        </ul>
+    </div>
+{% endblock %}
