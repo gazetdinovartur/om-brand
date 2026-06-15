@@ -8,10 +8,16 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     app.uploads_directory: '%kernel.project_dir%/public/uploads'
+    app.private_uploads_directory: '%kernel.project_dir%/var/private/uploads'
     env(TELEGRAM_BOT_TOKEN): ''
     env(TELEGRAM_CHAT_ID): ''
-    env(ADMIN_EMAIL): 'admin@localhost'
-    env(ADMIN_PASSWORD): 'admin'
+    env(TURNSTILE_SITE_KEY): ''
+    env(TURNSTILE_SECRET_KEY): ''
+    env(MAILER_DSN): 'null://null'
+    env(APP_SITE_URL): ''
+    env(ADMIN_EMAIL): ''
+    env(ADMIN_PASSWORD): ''
+    app.site_url: ''
 
 services:
     _defaults:
@@ -21,6 +27,11 @@ services:
     App\:
         resource: '../src/'
 
+    App\Seo\SeoMetadataFactory:
+        arguments:
+            $siteUrl: '%env(default:app.site_url:APP_SITE_URL)%'
+            $projectDir: '%kernel.project_dir%'
+
     App\Service\InquiryAttachmentStorage:
         arguments:
-            $uploadsDirectory: '%app.uploads_directory%'
+            $uploadsDirectory: '%app.private_uploads_directory%'

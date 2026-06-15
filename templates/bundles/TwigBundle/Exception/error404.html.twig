@@ -1,0 +1,15 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}Страница не найдена · {{ siteName }}{% endblock %}
+
+{% block body %}
+    <section class="section section--soft">
+        <div class="container narrow text-center">
+            <h1 class="section__title">Такой страницы нет</h1>
+            <p class="section__text">Возможно, ссылка устарела или была введена с опечаткой</p>
+            <p class="hero__actions" style="margin-top: 1.5rem;">
+                <a class="btn btn-primary" href="{{ path('web_home') }}">На главную</a>
+            </p>
+        </div>
+    </section>
+{% endblock %}

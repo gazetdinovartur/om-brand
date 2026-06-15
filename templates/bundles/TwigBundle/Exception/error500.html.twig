@@ -1,0 +1,16 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}Ошибка сервера · {{ siteName }}{% endblock %}
+
+{% block body %}
+    <section class="section section--soft">
+        <div class="container narrow text-center">
+            <p class="section__subtitle">500</p>
+            <h1 class="section__title">Что-то пошло не так</h1>
+            <p class="section__text">Мы уже знаем о проблеме. Попробуйте обновить страницу чуть позже или напишите через форму на главной</p>
+            <p class="hero__actions" style="margin-top: 1.5rem;">
+                <a class="btn btn-primary" href="{{ path('web_home') }}">На главную</a>
+            </p>
+        </div>
+    </section>
+{% endblock %}

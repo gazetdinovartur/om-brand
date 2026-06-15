@@ -57,6 +57,9 @@ class Inquiry
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $adminNote = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $privacyConsentAt = null;
+
     /** @var Collection<int, PaymentOffer> */
     #[ORM\OneToMany(targetEntity: PaymentOffer::class, mappedBy: 'inquiry', orphanRemoval: true)]
     private Collection $paymentOffers;
@@ -198,6 +201,18 @@ class Inquiry
     public function setAdminNote(?string $adminNote): static
     {
         $this->adminNote = $adminNote;
+
+        return $this;
+    }
+
+    public function getPrivacyConsentAt(): ?\DateTimeImmutable
+    {
+        return $this->privacyConsentAt;
+    }
+
+    public function setPrivacyConsentAt(?\DateTimeImmutable $privacyConsentAt): static
+    {
+        $this->privacyConsentAt = $privacyConsentAt;
 
         return $this;
     }

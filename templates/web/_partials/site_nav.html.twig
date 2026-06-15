@@ -1,0 +1,21 @@
+<nav class="site-nav site-nav--desktop" aria-label="Навигация по странице">
+    {% for item in navAnchors|default([]) %}
+        <a class="site-nav__link" href="{{ navPrefix ~ item.href }}">{{ item.label }}</a>
+    {% endfor %}
+</nav>
+
+<button type="button" class="site-nav-toggle" aria-expanded="false" aria-controls="site-nav-panel" data-nav-toggle>
+    <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Меню</span>
+</button>
+
+<div class="site-nav-panel" id="site-nav-panel" data-nav-panel hidden>
+    <div class="site-nav-panel__inner">
+        <nav class="site-nav site-nav--mobile" aria-label="Мобильная навигация">
+            {% for item in navAnchors|default([]) %}
+                <a class="site-nav-panel__link" href="{{ navPrefix ~ item.href }}" data-nav-link>{{ item.label }}</a>
+            {% endfor %}
+        </nav>
+    </div>
+</div>
+<div class="site-nav-backdrop" data-nav-backdrop hidden></div>

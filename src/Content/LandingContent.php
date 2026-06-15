@@ -9,13 +9,115 @@ final class LandingContent
     /** Текст в hero — от первого лица, один раз на экране. */
     public static function heroLead(): string
     {
-        return 'Занимаюсь разработкой прикладных веб-систем для бизнеса, проектов и частных специалистов.';
+        return 'Занимаюсь разработкой прикладных веб-систем для бизнеса, проектов и частных специалистов';
     }
 
     /** Кратко для meta description и админки, не дублирует hero. */
     public static function metaTagline(): string
     {
         return 'Прикладные веб-системы для бизнеса, проектов и частных специалистов';
+    }
+
+    /** Заголовок вкладки и Open Graph. */
+    public static function metaTitle(?string $personName = null): string
+    {
+        $name = $personName ?? self::personName();
+
+        return sprintf('%s — %s', $name, self::headerSubtitle());
+    }
+
+    /** Meta description: чуть информативнее tagline для сниппета. */
+    public static function metaDescription(): string
+    {
+        return self::metaTagline().'. Консультации, проектирование и разработка веб-систем под вашу задачу.';
+    }
+
+    /** @return list<string> */
+    public static function metaKeywords(): array
+    {
+        return [
+            'разработчик веб-систем',
+            'веб-разработка',
+            'автоматизация бизнеса',
+            'разработка сайта',
+            'личный кабинет',
+            'интернет-магазин',
+            'интеграции',
+            'Екатеринбург',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function knowsAbout(): array
+    {
+        return [
+            'Веб-разработка',
+            'Прикладные веб-системы',
+            'Автоматизация бизнес-процессов',
+            'UX проектирование',
+            'PHP',
+            'Symfony',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function serviceTypes(): array
+    {
+        return [
+            'Разработка веб-систем',
+            'Консультации по проектам',
+            'Аудит веб-сервисов',
+            'Техническое сопровождение',
+        ];
+    }
+
+    public static function serviceName(?string $personName = null): string
+    {
+        return sprintf('%s — разработка веб-систем', $personName ?? self::personName());
+    }
+
+    public static function areaServed(): string
+    {
+        return 'RU';
+    }
+
+    /** Подпись под именем в шапке сайта. */
+    public static function headerSubtitle(): string
+    {
+        return 'разработчик веб-систем';
+    }
+
+    /** Имя на сайте: шапка, hero, title вкладки. */
+    public static function personName(): string
+    {
+        return 'Артур Газетдинов';
+    }
+
+    /** Неформальное имя для подписи в футере. */
+    public static function alsoKnownAs(): string
+    {
+        return 'Лун';
+    }
+
+    /**
+     * @return list<array{href: string, label: string}>
+     */
+    public static function navigationAnchors(bool $hasCases = false): array
+    {
+        $items = [
+            ['href' => '#approach', 'label' => 'Подход'],
+            ['href' => '#services', 'label' => 'Решения'],
+            ['href' => '#process', 'label' => 'Процесс'],
+            ['href' => '#formats', 'label' => 'Форматы'],
+        ];
+
+        if ($hasCases) {
+            $items[] = ['href' => '#cases', 'label' => 'Кейсы'];
+        }
+
+        $items[] = ['href' => '#contact', 'label' => 'Связаться'];
+
+        return $items;
     }
 
     /** @return list<array{slug: string, type: ContentBlockType, title: string, subtitle: ?string, body: ?string, items: ?array<int, array<string, string>>, sortOrder: int}> */
@@ -25,8 +127,8 @@ final class LandingContent
             [
                 'slug' => 'hero',
                 'type' => ContentBlockType::Hero,
-                'title' => 'Артур',
-                'subtitle' => '35 лет · Екатеринбург',
+                'title' => self::personName(),
+                'subtitle' => self::headerSubtitle(),
                 'body' => self::heroLead(),
                 'items' => null,
                 'sortOrder' => 10,
@@ -61,9 +163,9 @@ final class LandingContent
             [
                 'slug' => 'specialization',
                 'type' => ContentBlockType::Text,
-                'title' => 'На чём я специализируюсь',
+                'title' => 'Мой подход',
                 'subtitle' => null,
-                'body' => "На удобных и простых решениях конкретных задач бизнеса. Создаю веб-системы, которые помогают организовать процессы и автоматизировать рутинные действия.\n\nПри разработке уделяю внимание пользовательским сценариям, структуре интерфейсов и пути пользователя от первой задачи до результата.",
+                'body' => "Сначала я разбираю, как человек проходит путь от задачи до результата. Потом проектирую интерфейс — и только после этого пишу код\n\nТак получается инструмент, которым можно пользоваться с первого раза — без инструкций, обучения и звонков «куда нажать». Даже если вы далеки от IT",
                 'items' => null,
                 'sortOrder' => 40,
             ],
@@ -79,7 +181,7 @@ final class LandingContent
                     ['title' => 'Личный кабинет', 'text' => 'для клиентов и сотрудников'],
                     ['title' => 'Обучение', 'text' => 'платформа для курсов и образовательных проектов'],
                     ['title' => 'Мероприятия', 'text' => 'продажа билетов и регистрация участников'],
-                    ['title' => 'Интеграции', 'text' => 'платёжные системы и мессенджеры'],
+                    ['title' => 'Интеграции', 'text' => 'платёжные системы, vk/tg боты, ai-ассистенты'],
                     ['title' => 'API', 'text' => 'для мобильного приложения'],
                 ],
                 'sortOrder' => 50,
@@ -89,7 +191,7 @@ final class LandingContent
                 'type' => ContentBlockType::Text,
                 'title' => 'Своё решение',
                 'subtitle' => null,
-                'body' => 'Если готового решения не существует или оно неудобно для вашей работы — разработаем собственное. Своё индивидуальное — пришедшее в мир специально для вас. В создании таких решений сейчас моя страсть и мой интерес. В реализации встречи своим уникальным способом, и чтобы это было для большего.',
+                'body' => 'Если готового решения не существует или оно неудобно для вашей работы — разработаем собственное. Индивидуальное, созданное под вашу задачу. В таких проектах сейчас моя главная заинтересованность — найти ваш способ работы и сделать инструмент, который действительно высвобождает ваше внимание',
                 'items' => null,
                 'sortOrder' => 60,
             ],
@@ -129,7 +231,7 @@ final class LandingContent
                 'type' => ContentBlockType::Form,
                 'title' => 'Расскажите о задаче',
                 'subtitle' => 'Можно просто прийти с задачей, идеей или затруднением',
-                'body' => 'Если вы не уверены, нужен ли вам сайт, CRM, бот или что-то ещё — это нормально. Вместе разберёмся, что именно происходит сейчас, какие есть варианты решения и нужен ли вообще новый инструмент.',
+                'body' => 'Если вы не уверены, нужен ли вам сайт, CRM, бот или что-то ещё — это нормально. Вместе разберёмся, что именно происходит сейчас, какие есть варианты решения и нужен ли вообще новый инструмент',
                 'items' => null,
                 'sortOrder' => 90,
             ],

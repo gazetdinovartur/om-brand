@@ -8,13 +8,12 @@ services:
     volumes:
       - .:/app
     working_dir: /app
+    env_file:
+      - .env
+      - .env.local
     environment:
       APP_ENV: dev
-      APP_SECRET: dev_secret_change_me
-      DATABASE_URL: mysql://site:site@mysql:3306/site?serverVersion=8.0&charset=utf8mb4
-      DEFAULT_URI: http://localhost:8085
-      TELEGRAM_BOT_TOKEN: ""
-      TELEGRAM_CHAT_ID: ""
+      DEFAULT_URI: http://nginx
     depends_on:
       mysql:
         condition: service_healthy
@@ -31,17 +30,20 @@ services:
 
   mysql:
     image: mysql:8.0
+    env_file:
+      - .env
+      - .env.local
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: site
-      MYSQL_USER: site
-      MYSQL_PASSWORD: site
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-site}
+      MYSQL_USER: ${MYSQL_USER:-site}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-site}
     ports:
       - "33085:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-usite", "-psite"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER:-site}", "-p${MYSQL_PASSWORD:-site}"]
       interval: 5s
       timeout: 5s
       retries: 10

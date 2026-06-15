@@ -1,5 +1,6 @@
 {% extends 'web/layout.html.twig' %}
 {% import 'web/_partials/content_card.html.twig' as contentCard %}
+{% import 'web/_partials/avatar_image.html.twig' as avatarImage %}
 
 {% block body %}
     {% set hero = blocksBySlug.hero|default(null) %}
@@ -25,17 +26,23 @@
                         <p class="hero__lead">{{ heroLead }}</p>
                     {% endif %}
                 {% endif %}
-                <a class="btn btn-primary" href="#contact">Рассказать о задаче</a>
             </div>
             <div class="hero__visual">
-                {% if settings.avatarPath %}
-                    <img class="hero__avatar" src="{{ asset('uploads/avatars/' ~ settings.avatarPath) }}" alt="{{ settings.name }}">
-                {% else %}
-                    <div class="hero__avatar hero__avatar--placeholder" aria-hidden="true">
-                        <span>{{ settings.name|slice(0, 1) }}</span>
-                        <div class="hero__sun-ring"></div>
-                    </div>
-                {% endif %}
+                <div class="hero__avatar-frame">
+                    {% if settings.avatarPath %}
+                        {{ avatarImage.avatar(settings.avatarPath, siteName, 'hero__avatar', true) }}
+                    {% else %}
+                        <div class="hero__avatar hero__avatar--placeholder" aria-hidden="true">
+                            <span>{{ settings.name|slice(0, 1) }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="hero__sun-ring" aria-hidden="true"></div>
+                </div>
+            </div>
+        </div>
+        <div class="hero__actions">
+            <div class="container">
+                <a class="btn btn-primary" href="#contact">Рассказать о задаче</a>
             </div>
         </div>
         <div class="hero__arc" aria-hidden="true"></div>
@@ -51,7 +58,7 @@
     {% endif %}
 
     {% if pains %}
-        <section class="section">
+        <section class="section" id="pains">
             <div class="container">
                 <div class="section__head">
                     <h2 class="section__title">{{ pains.title }}</h2>
@@ -61,7 +68,7 @@
                     {% for item in pains.items|default([]) %}
                         <li class="checklist__item">
                             <span class="checklist__mark" aria-hidden="true"></span>
-                            <span>{{ item.text }}</span>
+                            <span class="checklist__text">{{ item.text }}</span>
                         </li>
                     {% endfor %}
                 </ul>
@@ -70,8 +77,8 @@
     {% endif %}
 
     {% if specialization %}
-        <section class="section section--soft">
-            <div class="container narrow">
+        <section class="section section--soft" id="approach">
+            <div class="container narrow text-center">
                 <h2 class="section__title">{{ specialization.title }}</h2>
                 {% set specializationParts = specialization.body|split('\n\n') %}
                 <p class="section__text">{{ specializationParts[0] }}</p>
@@ -83,9 +90,9 @@
     {% endif %}
 
     {% if services %}
-        <section class="section">
+        <section class="section" id="services">
             <div class="container">
-                <h2 class="section__title">{{ services.title }}</h2>
+                <h2 class="section__title text-center">{{ services.title }}</h2>
                 <div class="cards cards--catalog">
                     {% for item in services.items|default([]) %}
                         {{ contentCard.catalog(item) }}
@@ -96,8 +103,8 @@
     {% endif %}
 
     {% if philosophy %}
-        <section class="section section--accent">
-            <div class="container narrow">
+        <section class="section section--accent" id="philosophy">
+            <div class="container narrow text-center">
                 <h2 class="section__title section__title--light">{{ philosophy.title }}</h2>
                 <p class="section__text section__text--light">{{ philosophy.body }}</p>
             </div>
@@ -105,7 +112,7 @@
     {% endif %}
 
     {% if process %}
-        <section class="section">
+        <section class="section" id="process">
             <div class="container">
                 <div class="section__head">
                     <h2 class="section__title">{{ process.title }}</h2>
@@ -115,7 +122,7 @@
                     {% for item in process.items|default([]) %}
                         <li class="steps__item">
                             <span class="steps__num">{{ loop.index }}</span>
-                            <div>
+                            <div class="steps__body">
                                 <h3 class="steps__title">{{ item.title }}</h3>
                                 <p class="steps__text">{{ item.text }}</p>
                             </div>
@@ -127,9 +134,12 @@
     {% endif %}
 
     {% if workFormats %}
-        <section class="section section--soft">
+        <section class="section section--soft" id="formats">
             <div class="container">
-                <h2 class="section__title">{{ workFormats.title }}</h2>
+                <div class="section__head text-center">
+                    <h2 class="section__title">{{ workFormats.title }}</h2>
+                    {% if workFormats.subtitle %}<p class="section__subtitle">{{ workFormats.subtitle }}</p>{% endif %}
+                </div>
                 <div class="cards cards--catalog">
                     {% for item in workFormats.items|default([]) %}
                         {{ contentCard.catalog(item) }}
@@ -147,7 +157,19 @@
                     {% for case in cases %}
                         <article class="card">
                             {% if case.coverImagePath %}
-                                <img class="card__cover" src="{{ asset('uploads/' ~ case.coverImagePath) }}" alt="">
+                                {% set cover = case.coverImagePath %}
+                                {% set thumb = cover|replace({'.webp': '.thumb.webp'}) %}
+                                <img
+                                    class="card__cover"
+                                    src="{{ asset('uploads/' ~ cover) }}"
+                                    alt="{{ case.title }}"
+                                    {% if thumb != cover %}
+                                        srcset="{{ asset('uploads/' ~ thumb) }} 640w, {{ asset('uploads/' ~ cover) }} 1200w"
+                                        sizes="(max-width: 768px) 100vw, 320px"
+                                    {% endif %}
+                                    loading="lazy"
+                                    decoding="async"
+                                >
                             {% endif %}
                             <h3 class="card__title">{{ case.title }}</h3>
                             <p class="card__text">{{ case.summary }}</p>
@@ -162,14 +184,24 @@
         <div class="container narrow">
             {% if formIntro %}
                 <div class="section__head">
-                    <h2 class="section__title">{{ formIntro.title }}</h2>
+                    <h2 class="section__title text-center">{{ formIntro.title }}</h2>
                     {% if formIntro.body %}<p class="section__text">{{ formIntro.body }}</p>{% endif %}
                     {% if formIntro.subtitle %}<p class="section__text--brand">{{ formIntro.subtitle }}</p>{% endif %}
                 </div>
             {% endif %}
 
-            <div class="form-card">
-                {{ form_start(form, { attr: { class: 'inquiry-form', enctype: 'multipart/form-data' } }) }}
+            <div class="form-card" data-inquiry-card>
+                <div class="form-card__loader" data-inquiry-loader hidden aria-live="polite">
+                    <span class="form-card__loader-spinner" aria-hidden="true"></span>
+                    <span class="form-card__loader-text">Отправляем…</span>
+                </div>
+                {{ form_start(form, { attr: {
+                    class: 'inquiry-form',
+                    'data-inquiry-form': '',
+                    'data-form-name': form.vars.name,
+                    enctype: 'multipart/form-data',
+                    novalidate: 'novalidate'
+                } }) }}
                     <div class="form-grid">
                         <div class="form-field">
                             {{ form_label(form.name) }}
@@ -181,9 +213,10 @@
                             {{ form_widget(form.contactType, { attr: { class: 'form-control' } }) }}
                             {{ form_errors(form.contactType) }}
                         </div>
-                        <div class="form-field">
+                        <div class="form-field" data-contact-field>
                             {{ form_label(form.contact) }}
                             {{ form_widget(form.contact, { attr: { class: 'form-control' } }) }}
+                            <p class="form-field__hint" data-contact-hint hidden></p>
                             {{ form_errors(form.contact) }}
                         </div>
                         <div class="form-field">
@@ -192,7 +225,10 @@
                             {{ form_errors(form.inquiryType) }}
                         </div>
                         <div class="form-field form-field--full">
-                            {{ form_label(form.message) }}
+                            <div class="form-field__head">
+                                {{ form_label(form.message) }}
+                                <span class="form-field__optional">необязательно</span>
+                            </div>
                             {{ form_widget(form.message, { attr: { class: 'form-control' } }) }}
                             {{ form_errors(form.message) }}
                         </div>
@@ -229,7 +265,24 @@
                         </div>
                     </div>
                     {{ form_widget(form.website) }}
-                    <button type="submit" class="btn btn-primary btn-block">Отправить</button>
+                    <div class="form-field form-field--full form-consent">
+                        <label class="form-consent__label" for="{{ form.consent.vars.id }}">
+                            {{ form_widget(form.consent, { attr: { class: 'form-consent__checkbox' } }) }}
+                            <span class="form-consent__text">
+                                Я согласен(а) на
+                                <a href="{{ path('web_privacy') }}" target="_blank" rel="noopener">обработку персональных данных</a>
+                            </span>
+                        </label>
+                        {{ form_errors(form.consent) }}
+                    </div>
+                    {% if turnstileSiteKey %}
+                        <div class="form-field form-field--full turnstile-wrap" data-turnstile-wrap>
+                            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                            <div class="cf-turnstile" data-sitekey="{{ turnstileSiteKey }}" data-theme="light"></div>
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary btn-block" data-inquiry-submit>Отправить</button>
+                    {% include 'web/_partials/form_feedback.html.twig' %}
                 {{ form_end(form) }}
             </div>
         </div>

@@ -2,14 +2,19 @@
 
 namespace App\Controller;
 
+use App\Content\LandingContent;
+use App\Controller\Form\FormErrorCollector;
 use App\Form\InquiryFormType;
 use App\Repository\CaseStudyRepository;
-use App\Repository\SiteSettingsRepository;
 use App\Service\InquiryService;
-use App\Service\LandingContentProvider;
+use App\Service\PublicSiteContext;
+use App\Service\TurnstileValidator;
+use App\Validation\ContactValueValidator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class HomeController extends AbstractController
@@ -17,61 +22,127 @@ final class HomeController extends AbstractController
     #[Route('/', name: 'web_home', methods: ['GET', 'POST'])]
     public function index(
         Request $request,
-        LandingContentProvider $contentProvider,
-        SiteSettingsRepository $siteSettingsRepository,
+        PublicSiteContext $siteContext,
         CaseStudyRepository $caseStudyRepository,
         InquiryService $inquiryService,
+        TurnstileValidator $turnstileValidator,
+        #[Autowire('@limiter.inquiry_form')]
+        RateLimiterFactory $inquiryLimiterFactory,
     ): Response {
-        $settings = $siteSettingsRepository->getSettings();
+        $settings = $siteContext->getSettings();
+        $blocksBySlug = $siteContext->getBlocksBySlug();
+        $cases = $caseStudyRepository->findPublishedOrdered();
         $form = $this->createForm(InquiryFormType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
+            $limiter = $inquiryLimiterFactory->create($request->getClientIp() ?? 'unknown');
+            if (!$limiter->consume(1)->isAccepted()) {
+                return $this->respondInquiry(
+                    $request,
+                    ok: false,
+                    message: 'Слишком много попыток. Подождите 15 минут и попробуйте снова.',
+                    status: Response::HTTP_TOO_MANY_REQUESTS,
+                );
+            }
+
             if ('' !== (string) $form->get('website')->getData()) {
-                return $this->redirectToRoute('web_home', ['_fragment' => 'contact']);
+                return $this->respondInquiry($request, ok: true, message: '');
+            }
+
+            if (!$turnstileValidator->validate(
+                $request->request->getString('cf-turnstile-response'),
+                $request->getClientIp(),
+            )) {
+                return $this->respondInquiry(
+                    $request,
+                    ok: false,
+                    message: 'Подтвердите, что вы не робот',
+                    errors: ['_form' => ['Не пройдена проверка безопасности']],
+                    status: Response::HTTP_UNPROCESSABLE_ENTITY,
+                );
             }
 
             if ($form->isValid()) {
                 $data = $form->getData();
-                $inquiryService->create(
-                    name: $data['name'],
-                    contact: $data['contact'],
-                    contactType: $data['contactType'],
-                    inquiryType: $data['inquiryType'],
-                    message: $data['message'],
-                    attachment: $form->get('attachment')->getData(),
-                );
+                try {
+                    $inquiryService->create(
+                        name: trim($data['name']),
+                        contact: ContactValueValidator::normalize($data['contact'], $data['contactType']),
+                        contactType: $data['contactType'],
+                        inquiryType: $data['inquiryType'],
+                        message: trim($data['message'] ?? ''),
+                        attachment: $form->get('attachment')->getData(),
+                    );
+                } catch (\Throwable $exception) {
+                    if ($this->wantsJsonResponse($request)) {
+                        return $this->respondInquiry(
+                            $request,
+                            ok: false,
+                            message: 'Не удалось сохранить заявку. Попробуйте ещё раз чуть позже.',
+                            status: Response::HTTP_INTERNAL_SERVER_ERROR,
+                        );
+                    }
+
+                    throw $exception;
+                }
 
                 $successMessage = $settings->getFormSuccessMessage()
-                    ?: 'Вижу тебя. Скоро встретимся — выйду на связь.';
+                    ?: 'Благодарю за ваш запрос! Скоро вернусь с обратной связью';
 
-                $this->addFlash('success', $successMessage);
+                return $this->respondInquiry($request, ok: true, message: $successMessage);
+            }
 
-                return $this->redirectToRoute('web_home', ['_fragment' => 'contact']);
+            if ($this->wantsJsonResponse($request)) {
+                return $this->respondInquiry(
+                    $request,
+                    ok: false,
+                    message: 'Проверьте выделенные поля',
+                    errors: FormErrorCollector::collect($form),
+                    status: Response::HTTP_UNPROCESSABLE_ENTITY,
+                );
             }
         }
 
         return $this->render('web/home/index.html.twig', [
             'settings' => $settings,
-            'blocks' => $contentProvider->getVisibleBlocks(),
-            'blocksBySlug' => $this->indexBlocks($contentProvider->getVisibleBlocks()),
-            'cases' => $caseStudyRepository->findPublishedOrdered(),
+            'blocks' => $siteContext->getVisibleBlocks(),
+            'blocksBySlug' => $blocksBySlug,
+            'cases' => $cases,
+            'navAnchors' => LandingContent::navigationAnchors(\count($cases) > 0),
             'form' => $form,
         ]);
     }
 
     /**
-     * @param iterable<\App\Entity\ContentBlock> $blocks
-     *
-     * @return array<string, \App\Entity\ContentBlock>
+     * @param array<string, list<string>>|null $errors
      */
-    private function indexBlocks(iterable $blocks): array
-    {
-        $indexed = [];
-        foreach ($blocks as $block) {
-            $indexed[$block->getSlug()] = $block;
+    private function respondInquiry(
+        Request $request,
+        bool $ok,
+        string $message,
+        ?array $errors = null,
+        int $status = Response::HTTP_OK,
+    ): Response {
+        if ($this->wantsJsonResponse($request)) {
+            $payload = ['ok' => $ok, 'message' => $message];
+            if (null !== $errors) {
+                $payload['errors'] = $errors;
+            }
+
+            return $this->json($payload, $status);
         }
 
-        return $indexed;
+        if ($ok && '' !== $message) {
+            $this->addFlash('success', $message);
+        }
+
+        return $this->redirectToRoute('web_home');
+    }
+
+    private function wantsJsonResponse(Request $request): bool
+    {
+        return $request->isXmlHttpRequest()
+            || str_contains($request->headers->get('Accept', ''), 'application/json');
     }
 }

@@ -3,6 +3,7 @@
 :root {
     --font-family-sans-serif: "Montserrat", system-ui, sans-serif;
     --font-family-base: "Montserrat", system-ui, sans-serif;
+    --admin-form-width: min(100%, 42rem);
 }
 
 body.ea,
@@ -18,22 +19,58 @@ body.ea,
     font-family: "Montserrat", system-ui, sans-serif !important;
 }
 
-/* Поля формы одинаковой ширины */
-.ea-edit .form-widget,
-.ea-new .form-widget,
-.ea-edit .form-control,
-.ea-new .form-control,
-.ea-edit textarea,
-.ea-new textarea,
-.ea-edit select,
-.ea-new select {
+/* Поля форм — одинаковая ширина */
+.ea-new form,
+.ea-edit form {
+    max-width: var(--admin-form-width);
+}
+
+.ea-new form [class*="col-md-"],
+.ea-edit form [class*="col-md-"],
+.ea-new form [class*="col-lg-"],
+.ea-edit form [class*="col-lg-"],
+.ea-new form [class*="col-xxl-"],
+.ea-edit form [class*="col-xxl-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+    width: 100%;
+}
+
+.ea-new .form-group,
+.ea-edit .form-group {
+    width: 100%;
+}
+
+.ea-new .form-group .form-widget,
+.ea-edit .form-group .form-widget,
+.ea-new .short .form-widget,
+.ea-edit .short .form-widget {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.ea-new .form-widget .form-control,
+.ea-edit .form-widget .form-control,
+.ea-new .form-widget textarea.form-control,
+.ea-edit .form-widget textarea.form-control,
+.ea-new .form-widget .form-select,
+.ea-edit .form-widget .form-select,
+.ea-new .form-widget input.form-control,
+.ea-edit .form-widget input.form-control {
     width: 100%;
     max-width: 100%;
 }
 
-.ea-edit .field-group,
-.ea-new .field-group {
+.ea-new .datetime-widget,
+.ea-edit .datetime-widget {
     width: 100%;
+}
+
+.ea-new .datetime-widget .form-select,
+.ea-edit .datetime-widget .form-select {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 /* Коллекция элементов контента */
@@ -47,8 +84,29 @@ body.ea,
 
 .field-collection .field-collection-item .form-widget,
 .field-collection .field-collection-item input,
-.field-collection .field-collection-item textarea {
+.field-collection .field-collection-item textarea,
+.field-collection .field-collection-item select {
     width: 100%;
+    max-width: 100%;
+}
+
+.form-group.field-collection .accordion-item .form-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+}
+
+.form-group.field-collection .accordion-item .form-group > label,
+.form-group.field-collection .accordion-item .form-group legend.col-form-label {
+    inline-size: 100%;
+    width: 100%;
+    margin: 0 0 0.5rem;
+}
+
+.form-group.field-collection .accordion-item .accordion-body .form-widget {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
 }
 
 .field-collection .field-collection-add-button .btn {

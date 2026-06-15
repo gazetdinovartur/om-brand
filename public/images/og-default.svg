@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="@BC@ 075B48=>2  @07@01>BG8: 251-A8AB5<">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7f3eb"/>
+      <stop offset="100%" stop-color="#f0e9dc"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="82%" cy="18%" r="45%">
+      <stop offset="0%" stop-color="#e8a849" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#e8a849" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <circle cx="980" cy="150" r="88" fill="#e8a849" opacity="0.85"/>
+  <circle cx="980" cy="150" r="112" fill="none" stroke="#c87828" stroke-width="2" opacity="0.35"/>
+  <text x="96" y="250" fill="#1f1a14" font-family="Montserrat, Arial, sans-serif" font-size="64" font-weight="700">@BC@ 075B48=>2</text>
+  <text x="96" y="330" fill="#c87828" font-family="Montserrat, Arial, sans-serif" font-size="34" font-weight="600">@07@01>BG8: 251-A8AB5<</text>
+  <text x="96" y="410" fill="#6f6558" font-family="Montserrat, Arial, sans-serif" font-size="28" font-weight="500">@8:;04=K5 251-A8AB5<K 4;O 187=5A0 8 ?@>5:B>2</text>
+</svg>

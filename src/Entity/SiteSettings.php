@@ -15,13 +15,13 @@ class SiteSettings
     private ?int $id = null;
 
     #[ORM\Column(length: 120)]
-    private string $name = 'Артур';
+    private string $name = 'Артур Газетдинов';
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $tagline = null;
 
     #[ORM\Column(length: 120, nullable: true)]
-    private ?string $city = 'Екатеринбург';
+    private ?string $city = 'разработчик веб-систем';
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $avatarPath = null;
@@ -34,6 +34,9 @@ class SiteSettings
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $email = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $notificationEmail = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $formSuccessMessage = null;
@@ -123,6 +126,18 @@ class SiteSettings
     public function setEmail(?string $email): static
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function getNotificationEmail(): ?string
+    {
+        return $this->notificationEmail;
+    }
+
+    public function setNotificationEmail(?string $notificationEmail): static
+    {
+        $this->notificationEmail = $notificationEmail;
 
         return $this;
     }

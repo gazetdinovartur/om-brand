@@ -1,0 +1,7 @@
+<div class="form-feedback" data-form-feedback aria-live="polite">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="site-alert site-alert--{{ label }} site-alert--prominent" role="alert">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+</div>

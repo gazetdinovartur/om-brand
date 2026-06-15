@@ -29,14 +29,14 @@ class TelegramNotifier
         return '' !== ($this->botToken ?? '') && '' !== ($this->chatId ?? '');
     }
 
-    public function notifyNewInquiry(Inquiry $inquiry): void
+    public function notifyNewInquiry(Inquiry $inquiry): bool
     {
         if (!$this->isConfigured()) {
             $this->logger->info('Telegram not configured, skipping inquiry notification.', [
                 'inquiry_id' => $inquiry->getId(),
             ]);
 
-            return;
+            return false;
         }
 
         $adminUrl = $this->urlGenerator->generate(
@@ -49,6 +49,9 @@ class TelegramNotifier
             ? "\n📎 Файл: ".$inquiry->getAttachmentOriginalName()
             : '';
 
+        $message = trim($inquiry->getMessage());
+        $messageLine = '' !== $message ? $message : '— без описания';
+
         $text = sprintf(
             "🆕 Новая заявка #%d\n\n👤 %s\n📬 %s: %s\n🏷 %s\n\n%s%s\n\n→ %s",
             $inquiry->getId(),
@@ -56,12 +59,12 @@ class TelegramNotifier
             $inquiry->getContactType()->label(),
             $inquiry->getContact(),
             $inquiry->getInquiryType()->label(),
-            $inquiry->getMessage(),
+            $messageLine,
             $attachmentLine,
             $adminUrl,
         );
 
-        $this->sendMessage($text);
+        return $this->sendMessage($text);
     }
 
     public function notifyPaymentOffer(PaymentOffer $offer, string $paymentUrl): void
@@ -83,7 +86,7 @@ class TelegramNotifier
         $this->sendMessage($text);
     }
 
-    private function sendMessage(string $text): void
+    private function sendMessage(string $text): bool
     {
         try {
             $this->httpClient->request('POST', sprintf('https://api.telegram.org/bot%s/sendMessage', $this->botToken ?? ''), [
@@ -93,10 +96,14 @@ class TelegramNotifier
                     'disable_web_page_preview' => true,
                 ],
             ]);
+
+            return true;
         } catch (\Throwable $exception) {
             $this->logger->error('Failed to send Telegram message.', [
                 'exception' => $exception->getMessage(),
             ]);
+
+            return false;
         }
     }
 }

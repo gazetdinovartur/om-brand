@@ -2,9 +2,9 @@
 
 namespace App\EventSubscriber;
 
-use App\Repository\ContentBlockRepository;
-use App\Repository\SiteSettingsRepository;
+use App\Service\TwigSiteGlobalsProvider;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Twig\Environment;
@@ -13,8 +13,8 @@ final class TwigGlobalSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly Environment $twig,
-        private readonly SiteSettingsRepository $siteSettingsRepository,
-        private readonly ContentBlockRepository $contentBlockRepository,
+        private readonly TwigSiteGlobalsProvider $twigSiteGlobalsProvider,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
@@ -32,20 +32,23 @@ final class TwigGlobalSubscriber implements EventSubscriberInterface
         }
 
         $route = (string) $event->getRequest()->attributes->get('_route');
-        if (str_starts_with($route, 'admin') || str_starts_with($route, '_')) {
+        if ($this->shouldSkipRoute($route)) {
             return;
         }
 
-        $settings = $this->siteSettingsRepository->getSettings();
-        $blocksBySlug = [];
-
-        foreach ($this->contentBlockRepository->findVisibleOrdered() as $block) {
-            if (str_starts_with($block->getSlug(), 'footer_')) {
-                $blocksBySlug[$block->getSlug()] = $block;
-            }
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return;
         }
 
-        $this->twig->addGlobal('settings', $settings);
-        $this->twig->addGlobal('blocksBySlug', $blocksBySlug);
+        $this->twigSiteGlobalsProvider->apply($this->twig, $request, $route);
+    }
+
+    private function shouldSkipRoute(string $route): bool
+    {
+        return str_starts_with($route, 'admin')
+            || str_starts_with($route, '_profiler')
+            || str_starts_with($route, '_wdt')
+            || str_starts_with($route, '_fragment');
     }
 }

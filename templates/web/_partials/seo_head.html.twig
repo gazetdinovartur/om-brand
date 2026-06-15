@@ -1,0 +1,33 @@
+{# Meta, Open Graph, Twitter Cards, JSON-LD #}
+<meta name="description" content="{{ seo.description }}">
+<meta name="robots" content="{{ seo.robots }}">
+<meta name="author" content="{{ siteName }}">
+<link rel="canonical" href="{{ seo.canonicalUrl }}">
+<link rel="alternate" hreflang="ru" href="{{ seo.canonicalUrl }}">
+
+<meta property="og:locale" content="ru_RU">
+<meta property="og:type" content="{{ seo.ogType }}">
+<meta property="og:title" content="{{ seo.title }}">
+<meta property="og:description" content="{{ seo.description }}">
+<meta property="og:url" content="{{ seo.canonicalUrl }}">
+<meta property="og:site_name" content="{{ siteName }}">
+{% if seo.ogImageUrl %}
+<meta property="og:image" content="{{ seo.ogImageUrl }}">
+<meta property="og:image:alt" content="{{ siteName }} — разработчик веб-систем">
+{% if seo.ogImageUrl ends with '.jpg' or seo.ogImageUrl ends with '.jpeg' %}
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
+{% endif %}
+{% endif %}
+
+<meta name="twitter:card" content="{% if seo.ogImageUrl %}summary_large_image{% else %}summary{% endif %}">
+<meta name="twitter:title" content="{{ seo.title }}">
+<meta name="twitter:description" content="{{ seo.description }}">
+{% if seo.ogImageUrl %}
+<meta name="twitter:image" content="{{ seo.ogImageUrl }}">
+{% endif %}
+
+{% if seo.jsonLdScript %}
+<script type="application/ld+json">{{ seo.jsonLdScript|raw }}</script>
+{% endif %}

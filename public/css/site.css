@@ -24,6 +24,7 @@
 
 html {
     scroll-behavior: smooth;
+    overflow-x: clip;
 }
 
 body.site-body {
@@ -81,14 +82,19 @@ body.site-body {
     color: inherit;
 }
 
-.site-brand__avatar,
-.hero__avatar {
+.site-brand__avatar {
     width: 3rem;
     height: 3rem;
     border-radius: 999px;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.85);
     box-shadow: 0 8px 24px rgba(200, 120, 40, 0.18);
+}
+
+.hero__avatar-frame .hero__avatar,
+.hero__avatar--placeholder {
+    border: none;
+    box-shadow: 0 18px 50px rgba(200, 120, 40, 0.22);
 }
 
 .site-brand__avatar--placeholder,
@@ -100,6 +106,7 @@ body.site-body {
     font-family: var(--font-main);
     font-weight: 700;
     font-size: 1.2rem;
+    overflow: visible;
 }
 
 .site-brand__text {
@@ -111,6 +118,7 @@ body.site-body {
 .site-brand__text strong {
     font-family: var(--font-main);
     font-size: 1.05rem;
+    font-weight: 500;
 }
 
 .site-brand__text small {
@@ -137,6 +145,142 @@ body.site-body {
     color: var(--primary-dark);
 }
 
+.site-nav__link:focus-visible,
+.site-nav-panel__link:focus-visible {
+    outline: 2px solid rgba(200, 120, 40, 0.45);
+    outline-offset: 3px;
+}
+
+.site-nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 4px 18px rgba(31, 26, 20, 0.08);
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.site-nav-toggle__icon,
+.site-nav-toggle__icon::before,
+.site-nav-toggle__icon::after {
+    display: block;
+    width: 1.1rem;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--text);
+    transition: transform 0.25s ease, opacity 0.2s ease, top 0.25s ease;
+}
+
+.site-nav-toggle__icon {
+    position: relative;
+}
+
+.site-nav-toggle__icon::before,
+.site-nav-toggle__icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+}
+
+.site-nav-toggle__icon::before {
+    top: -0.35rem;
+}
+
+.site-nav-toggle__icon::after {
+    top: 0.35rem;
+}
+
+.site-nav-toggle[aria-expanded="true"] .site-nav-toggle__icon {
+    background: transparent;
+}
+
+.site-nav-toggle[aria-expanded="true"] .site-nav-toggle__icon::before {
+    top: 0;
+    transform: rotate(45deg);
+}
+
+.site-nav-toggle[aria-expanded="true"] .site-nav-toggle__icon::after {
+    top: 0;
+    transform: rotate(-45deg);
+}
+
+.site-nav-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: start center;
+    padding: calc(4.5rem + env(safe-area-inset-top, 0px)) 1.25rem 2rem;
+    background: rgba(247, 243, 235, 0.72);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.site-nav-panel.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.site-nav-panel__inner {
+    width: min(100%, 24rem);
+}
+
+.site-nav-panel__link {
+    display: block;
+    padding: 0.95rem 0.35rem;
+    border-bottom: 1px solid rgba(31, 26, 20, 0.08);
+    color: var(--text);
+    text-decoration: none;
+    font-size: clamp(1.35rem, 4vw, 1.65rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.site-nav-panel__link:hover {
+    color: var(--primary-dark);
+}
+
+.site-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgba(31, 26, 20, 0.18);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.site-nav-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+[id] {
+    scroll-margin-top: calc(4.75rem + env(safe-area-inset-top, 0px));
+}
+
 .site-main {
     padding-bottom: 5rem;
 }
@@ -158,10 +302,29 @@ body.site-body {
     background: #fff5f5;
 }
 
+.site-alert--prominent {
+    padding: 1.1rem 1.25rem;
+    font-size: 1.02rem;
+    animation: feedback-in 0.35s ease;
+}
+
+@keyframes feedback-in {
+    from {
+        opacity: 0;
+        transform: translateY(-0.35rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
 .hero {
     position: relative;
-    padding: 4.5rem 0 5rem;
-    overflow: hidden;
+    padding: 4.5rem 0 1.5rem;
+    overflow: visible;
+    margin-bottom: 1.35rem;
 }
 
 .hero__inner {
@@ -174,22 +337,39 @@ body.site-body {
 .hero__title {
     margin: 0 0 0.65rem;
     font-family: var(--font-main);
-    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-size: clamp(2.4rem, 5vw, 3rem);
     line-height: 1.05;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .hero__subtitle {
     margin: 0 0 1rem;
-    font-size: 1.05rem;
-    color: var(--muted);
+    font-size: 1.5rem;
+    line-height: 1.4;
+    color: var(--primary);
     font-weight: 500;
 }
 
 .hero__lead {
-    margin: 0 0 1rem;
+    margin: 0;
     font-size: 1.15rem;
+    line-height: 1.6;
     color: var(--text);
+    max-width: 36rem;
+}
+
+.hero__actions {
+    position: relative;
+    z-index: 3;
+    transform: translateY(25%);
+}
+
+.hero__actions .container {
+    display: flex;
+}
+
+.hero + .section {
+    padding-top: calc(4rem + 1.35rem);
 }
 
 .hero__text {
@@ -201,11 +381,27 @@ body.site-body {
 .hero__visual {
     display: flex;
     justify-content: center;
+    align-items: center;
+    padding: clamp(1rem, 3vw, 1.75rem);
+}
+
+.hero__avatar-frame {
+    position: relative;
+    width: min(18rem, 70vw);
+    height: min(18rem, 70vw);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero__avatar-frame .hero__avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    object-fit: cover;
 }
 
 .hero__avatar {
-    width: min(18rem, 70vw);
-    height: min(18rem, 70vw);
     position: relative;
 }
 
@@ -221,13 +417,15 @@ body.site-body {
     border-radius: 999px;
     border: 1px solid rgba(232, 168, 73, 0.35);
     animation: pulse-ring 6s ease-in-out infinite;
+    pointer-events: none;
 }
 
 .hero__arc {
     position: absolute;
     left: 50%;
     bottom: -6rem;
-    width: 140%;
+    width: 100%;
+    max-width: 100%;
     height: 12rem;
     transform: translateX(-50%);
     background: radial-gradient(ellipse at center top, rgba(232, 168, 73, 0.18), transparent 70%);
@@ -250,10 +448,34 @@ body.site-body {
 
 .section--form {
     padding-bottom: 6rem;
+    scroll-margin-top: 5rem;
+}
+
+.form-feedback {
+    display: grid;
+    gap: 0.75rem;
+    scroll-margin-top: 5rem;
+    scroll-margin-bottom: 2.5rem;
+}
+
+.form-feedback:not(:empty) {
+    margin-top: 1.25rem;
+}
+
+.form-feedback:focus {
+    outline: none;
+}
+
+.inquiry-form .form-feedback:not(:has(.site-alert)) {
+    display: none;
 }
 
 .section__head {
     margin-bottom: 2rem;
+}
+
+.section__head.text-center .section__subtitle {
+    text-align: center;
 }
 
 .section__title {
@@ -261,6 +483,10 @@ body.site-body {
     font-family: var(--font-main);
     font-size: clamp(1.7rem, 3vw, 2.4rem);
     line-height: 1.15;
+}
+
+.section__title:has(+ .cards--catalog) {
+    margin-bottom: 1.35rem;
 }
 
 .section__subtitle {
@@ -292,6 +518,10 @@ body.site-body {
     line-height: 1.55;
 }
 
+.text--color-brand {
+    color: var(--primary);
+}
+
 .checklist {
     list-style: none;
     margin: 0;
@@ -301,6 +531,7 @@ body.site-body {
 }
 
 .checklist__item {
+    position: relative;
     display: flex;
     gap: 0.85rem;
     align-items: flex-start;
@@ -309,6 +540,128 @@ body.site-body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.checklist__item::before,
+.checklist__item::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Хаос — рассыпанные кристаллические фрагменты */
+.checklist__item::before {
+    top: -0.25rem;
+    right: 3.25rem;
+    width: 5.75rem;
+    height: 5.75rem;
+    opacity: 0.14;
+    transition: opacity 0.28s ease;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+}
+
+/* Порядок — решётка, гексагоны, симметрия */
+.checklist__item::after {
+    right: 0.45rem;
+    bottom: 0.35rem;
+    width: 5rem;
+    height: 5rem;
+    opacity: 0.18;
+    transition: opacity 0.28s ease;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+}
+
+.checklist__mark,
+.checklist__text {
+    position: relative;
+    z-index: 1;
+}
+
+/* 1: осколки семени → Цветок жизни */
+.checklist__item:nth-child(8n+1)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='16' cy='24' r='7' opacity='.45'/%3E%3Ccircle cx='28' cy='32' r='6' opacity='.35'/%3E%3Cpath d='M8 42a9 9 0 0 1 14 2' opacity='.4'/%3E%3Cpath d='M32 14a7 7 0 0 1 2 10' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+1)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='7'/%3E%3Ccircle cx='71' cy='64' r='7'/%3E%3Ccircle cx='67.5' cy='70.062' r='7'/%3E%3Ccircle cx='60.5' cy='70.062' r='7'/%3E%3Ccircle cx='57' cy='64' r='7'/%3E%3Ccircle cx='60.5' cy='57.938' r='7'/%3E%3Ccircle cx='67.5' cy='57.938' r='7'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 2: рваная везика → Везica piscis */
+.checklist__item:nth-child(8n+2)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Cpath d='M10 28a10 10 0 0 1 16 0' opacity='.5'/%3E%3Cpath d='M28 16a8 8 0 0 1 0 14' opacity='.4'/%3E%3Ccircle cx='14' cy='38' r='5' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+2)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='58' cy='64' r='9'/%3E%3Ccircle cx='70' cy='64' r='9'/%3E%3Cpath d='M64 55.2V72.8' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 3: разрозненное семя → Семя жизни */
+.checklist__item:nth-child(8n+3)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='14' cy='20' r='5' opacity='.5'/%3E%3Ccircle cx='26' cy='28' r='4' opacity='.4'/%3E%3Ccircle cx='10' cy='36' r='3.5' opacity='.35'/%3E%3Ccircle cx='32' cy='14' r='3' opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+3)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='6'/%3E%3Ccircle cx='70' cy='64' r='6'/%3E%3Ccircle cx='67' cy='69.196' r='6'/%3E%3Ccircle cx='61' cy='69.196' r='6'/%3E%3Ccircle cx='58' cy='64' r='6'/%3E%3Ccircle cx='61' cy='58.804' r='6'/%3E%3Ccircle cx='67' cy='58.804' r='6'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 4: осколки → Шри-янтра (вложенные треугольники) */
+.checklist__item:nth-child(8n+4)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Cpath d='M18 16L28 34L8 34Z' transform='rotate(-12 18 25)' opacity='.5'/%3E%3Cpath d='M36 10L44 26L28 24Z' transform='rotate(18 36 18)' opacity='.4'/%3E%3Cpath d='M12 48L20 62L4 58Z' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+4)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Cpolygon points='64,50 76,70 52,70'/%3E%3Cpolygon points='64,74 52,54 76,54' opacity='.75'/%3E%3Cpolygon points='64,54 70,66 58,66' opacity='.55'/%3E%3Cpolygon points='64,70 58,58 70,58' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 5: осколки → Метатрон (куб сотворения) */
+.checklist__item:nth-child(8n+5)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M12 28L22 22L32 28M22 22V38M12 28L22 44' opacity='.55'/%3E%3Cpath d='M30 12L38 20L34 30M38 20L26 24' opacity='.4'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+5)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='5'/%3E%3Ccircle cx='73' cy='64' r='5'/%3E%3Ccircle cx='68.5' cy='73.5' r='5'/%3E%3Ccircle cx='59.5' cy='73.5' r='5'/%3E%3Ccircle cx='55' cy='64' r='5'/%3E%3Ccircle cx='59.5' cy='54.5' r='5'/%3E%3Ccircle cx='68.5' cy='54.5' r='5'/%3E%3Cpath d='M64 64L73 64M64 64L68.5 73.5M64 64L59.5 73.5M64 64L55 64M64 64L59.5 54.5M64 64L68.5 54.5M55 64L59.5 54.5M73 64L68.5 54.5M59.5 73.5L73 64M68.5 73.5L55 64' opacity='.45'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 6: обрывки → Тор (гекс в Цветке жизни) */
+.checklist__item:nth-child(8n+6)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M10 22a6 6 0 0 1 10 0M28 12a5 5 0 0 1 0 8M8 40a7 7 0 0 1 12 0' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+6)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='58' cy='60' r='5.5'/%3E%3Ccircle cx='64' cy='60' r='5.5'/%3E%3Ccircle cx='70' cy='60' r='5.5'/%3E%3Ccircle cx='61' cy='69.4' r='5.5'/%3E%3Ccircle cx='67' cy='69.4' r='5.5'/%3E%3Ccircle cx='73' cy='69.4' r='5.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 7: концентрические круги — оставляем */
+.checklist__item:nth-child(8n+7)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='22' cy='28' r='10' opacity='.55'/%3E%3Ccircle cx='36' cy='38' r='8' opacity='.45'/%3E%3Ccircle cx='14' cy='44' r='7' opacity='.4'/%3E%3Ccircle cx='32' cy='18' r='6' opacity='.35'/%3E%3Ccircle cx='44' cy='30' r='5' opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+7)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='66' cy='66' r='6'/%3E%3Ccircle cx='66' cy='66' r='11' opacity='.78'/%3E%3Ccircle cx='66' cy='66' r='16' opacity='.58'/%3E%3Ccircle cx='66' cy='66' r='21' opacity='.38'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 8: размытые лучи → золотая спираль (освобождение времени) */
+.checklist__item:nth-child(8n+8)::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M20 36L24 20M20 36L8 32M20 36L28 48M20 36L16 52' opacity='.45'/%3E%3Ccircle cx='20' cy='36' r='2' fill='%23c87828' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.checklist__item:nth-child(8n+8)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05' stroke-linecap='round'%3E%3Cpath d='M72 66A6 6 0 0 1 66 72'/%3E%3Cpath d='M66 72A10 10 0 0 1 56 82' opacity='.78'/%3E%3Cpath d='M56 82A16 16 0 0 1 40 66' opacity='.55'/%3E%3Ccircle cx='66' cy='66' r='1.5' fill='%23c87828' opacity='.45'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@media (hover: hover) {
+    .checklist__item:hover::before,
+    .checklist__item:hover::after,
+    .steps__item:hover::after {
+        opacity: 0.33;
+    }
 }
 
 .checklist__mark {
@@ -424,6 +777,7 @@ body.site-body {
 }
 
 .steps__item {
+    position: relative;
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 1rem;
@@ -431,6 +785,61 @@ body.site-body {
     background: var(--surface);
     border-radius: var(--radius);
     border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.steps__item::before,
+.steps__item::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    transition: opacity 0.28s ease;
+}
+
+.steps__item::before {
+    content: none;
+    display: none;
+}
+
+.steps__item::after {
+    top: 0.45rem;
+    right: 0.65rem;
+    bottom: auto;
+    width: 5.1rem;
+    height: 5.1rem;
+    opacity: 0.14;
+}
+
+.steps__num,
+.steps__body {
+    position: relative;
+    z-index: 1;
+}
+
+/* 1 · Контакт: Vesica piscis */
+.steps__item:nth-child(4n+1)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='58' cy='64' r='9'/%3E%3Ccircle cx='70' cy='64' r='9'/%3E%3Cpath d='M64 55.2V72.8' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 2 · Возможности: Метатрон (куб сотворения) */
+.steps__item:nth-child(4n+2)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='64' cy='64' r='5.5'/%3E%3Ccircle cx='73.5' cy='64' r='5.5'/%3E%3Ccircle cx='68.75' cy='73.5' r='5.5'/%3E%3Ccircle cx='59.25' cy='73.5' r='5.5'/%3E%3Ccircle cx='54.5' cy='64' r='5.5'/%3E%3Ccircle cx='59.25' cy='54.5' r='5.5'/%3E%3Ccircle cx='68.75' cy='54.5' r='5.5'/%3E%3Cpath d='M64 64L73.5 64M64 64L68.75 73.5M64 64L59.25 73.5M64 64L54.5 64M64 64L59.25 54.5M64 64L68.75 54.5M54.5 64L59.25 54.5M73.5 64L68.75 54.5M59.25 73.5L73.5 64M68.75 73.5L54.5 64' opacity='.42'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 3 · Реализация: Цветок жизни */
+.steps__item:nth-child(4n+3)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='64' cy='64' r='7'/%3E%3Ccircle cx='71' cy='64' r='7'/%3E%3Ccircle cx='67.5' cy='70.062' r='7'/%3E%3Ccircle cx='60.5' cy='70.062' r='7'/%3E%3Ccircle cx='57' cy='64' r='7'/%3E%3Ccircle cx='60.5' cy='57.938' r='7'/%3E%3Ccircle cx='67.5' cy='57.938' r='7'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 4 · Поддержка: концентрические круги */
+.steps__item:nth-child(4n+4)::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='66' cy='66' r='7' opacity='.85'/%3E%3Ccircle cx='66' cy='66' r='12' opacity='.62'/%3E%3Ccircle cx='66' cy='66' r='17' opacity='.42'/%3E%3Ccircle cx='66' cy='66' r='22' opacity='.26'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 .steps__num {
@@ -456,11 +865,71 @@ body.site-body {
 
 .form-card,
 .payment-card {
+    position: relative;
     padding: 1.5rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) + 0.1rem);
     box-shadow: var(--shadow);
+}
+
+.form-card.is-loading .inquiry-form {
+    pointer-events: none;
+    opacity: 0.58;
+}
+
+.form-card__loader {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border-radius: inherit;
+    background: rgba(255, 253, 249, 0.78);
+    backdrop-filter: blur(2px);
+}
+
+.form-card__loader[hidden] {
+    display: none;
+}
+
+.form-card__loader-spinner {
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 2px solid rgba(200, 120, 40, 0.18);
+    border-top-color: var(--primary);
+    border-radius: 999px;
+    animation: form-spin 0.75s linear infinite;
+}
+
+.form-card__loader-text {
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+@keyframes form-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.form-control.is-invalid {
+    border-color: rgba(180, 40, 40, 0.45);
+}
+
+.form-control.is-invalid:focus {
+    outline-color: rgba(180, 40, 40, 0.25);
+    border-color: rgba(180, 40, 40, 0.55);
+}
+
+.form-field__client-errors {
+    margin-top: 0.35rem;
+    color: #b42828;
+    font-size: 0.85rem;
+    line-height: 1.45;
 }
 
 .form-grid {
@@ -501,6 +970,17 @@ body.site-body {
     font-size: 0.82rem;
     color: var(--muted);
     font-weight: 400;
+}
+
+.form-field__hint {
+    margin: 0.45rem 0 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.form-field__hint[hidden] {
+    display: none;
 }
 
 .file-upload {
@@ -703,6 +1183,21 @@ body.site-body {
     color: inherit;
 }
 
+select.form-control {
+    padding-right: 2.5rem;
+    appearance: none;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%236f6558' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 1rem;
+    cursor: pointer;
+}
+
+select.form-control:focus {
+    background-color: #fff;
+}
+
 .form-control:focus {
     outline: 2px solid rgba(232, 168, 73, 0.35);
     border-color: rgba(200, 120, 40, 0.45);
@@ -716,8 +1211,115 @@ body.site-body {
 
 .inquiry-honeypot {
     position: absolute;
-    left: -9999px;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
     opacity: 0;
+    pointer-events: none;
+}
+
+.form-consent {
+    margin-top: 1.1rem;
+    margin-bottom: 1.25rem;
+    padding-top: 0.35rem;
+}
+
+.form-consent__label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+    padding: 0.15rem 0;
+}
+
+.form-consent__checkbox {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+    accent-color: var(--primary);
+}
+
+.form-consent__text {
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.form-consent__text a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.form-consent__text a:hover {
+    color: var(--primary-dark);
+}
+
+.section--legal {
+    padding-top: 3rem;
+}
+
+.legal-page__eyebrow {
+    margin: 0 0 0.5rem;
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.legal-page__title {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-main);
+    font-size: clamp(1.8rem, 3vw, 2.35rem);
+    line-height: 1.15;
+}
+
+.legal-page__updated {
+    margin: 0 0 2rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.legal-section + .legal-section {
+    margin-top: 1.75rem;
+}
+
+.legal-section__title {
+    margin: 0 0 0.65rem;
+    font-family: var(--font-main);
+    font-size: 1.08rem;
+}
+
+.legal-section__text {
+    margin: 0 0 0.75rem;
+    color: var(--text);
+    font-size: 0.98rem;
+    line-height: 1.65;
+}
+
+.legal-section__text:last-child {
+    margin-bottom: 0;
+}
+
+.legal-page__back {
+    margin: 2.5rem 0 0;
+}
+
+.legal-page__back a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.legal-page__back a:hover {
+    color: var(--primary-dark);
 }
 
 .btn {
@@ -751,15 +1353,69 @@ body.site-body {
 }
 
 .site-footer {
-    padding: 3rem 0 2rem;
+    padding: 3rem 0 0;
     border-top: 1px solid var(--border);
+}
+
+.site-footer__inner {
+    padding-bottom: 2rem;
 }
 
 .site-footer__grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
     gap: 2rem;
-    margin-bottom: 2rem;
+}
+
+.site-footer__legal-meta {
+    margin-top: 1.25rem;
+    padding-top: 1.15rem;
+    border-top: 1px solid var(--border);
+}
+
+.site-footer__legal-link {
+    display: inline-block;
+    margin-bottom: 0.55rem;
+    color: var(--primary-dark);
+    font-size: 0.92rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.site-footer__legal-link:hover {
+    color: var(--primary);
+}
+
+.site-footer__cookie-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.site-footer__cookie-note a {
+    color: var(--primary-dark);
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+}
+
+.site-footer__cookie-note a:hover {
+    color: var(--primary);
+}
+
+.site-footer__bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 1.35rem;
+    padding-bottom: 1.35rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.site-footer__bar--sub {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
 }
 
 .site-footer__title {
@@ -779,19 +1435,47 @@ body.site-body {
     padding-left: 1.1rem;
 }
 
-.site-footer__bottom {
-    display: flex;
-    flex-direction: column;
+.site-footer__copy {
+    display:    flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 0.65rem;
-    text-align: center;
+    gap: 0.45rem 0.55rem;
+    margin: 0;
     color: var(--muted);
     font-size: 0.88rem;
+    line-height: 1.45;
 }
 
-.site-footer__copy {
-    margin: 0;
+.site-footer__copy-sep {
+    color: rgba(111, 101, 88, 0.55);
+}
+
+.site-footer__brand {
+    color: var(--primary);
+    font-weight: inherit;
+}
+
+.site-footer__sigil {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+}
+
+.site-footer__sigil svg {
+    width: 100%;
+    height: 100%;
+}
+
+.site-footer__alias {
+    color: var(--muted);
+}
+
+.site-footer__rights {
+    font-variant-numeric: tabular-nums;
 }
 
 .site-footer__links {
@@ -806,8 +1490,8 @@ body.site-body {
 
 .site-fab {
     position: fixed;
-    right: 1rem;
-    bottom: 1rem;
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     z-index: 30;
     padding: 0.9rem 1.1rem;
     border-radius: 999px;
@@ -817,6 +1501,16 @@ body.site-body {
     font-size: 0.92rem;
     font-weight: 600;
     box-shadow: 0 12px 30px rgba(31, 26, 20, 0.22);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.turnstile-wrap {
+    display: grid;
+    justify-content: center;
+}
+
+.site-body--nav-open {
+    overflow: hidden;
 }
 
 .payment-card__eyebrow {
@@ -931,6 +1625,14 @@ body.site-body {
 }
 
 @media (max-width: 768px) {
+    .site-nav--desktop {
+        display: none;
+    }
+
+    .site-nav-toggle {
+        display: inline-flex;
+    }
+
     .hero__inner {
         grid-template-columns: 1fr;
     }
@@ -956,8 +1658,19 @@ body.site-body {
     .file-upload__remove {
         align-self: flex-start;
     }
+}
 
-    .site-nav {
-        display: none;
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
     }
+
+    .hero__sun-ring,
+    .form-card__loader-spinner {
+        animation: none !important;
+    }
+}
+
+.text-center {
+    text-align: center;
 }

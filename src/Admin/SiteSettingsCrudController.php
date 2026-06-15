@@ -32,17 +32,24 @@ class SiteSettingsCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('name', 'Имя');
+        yield TextField::new('name', 'Имя')
+            ->setHelp('Шапка, футер и вкладка браузера. На главной приоритет у блока hero в «Контенте».');
         yield TextField::new('tagline', 'Краткое описание')
-            ->setHelp('Для поисковиков и превью ссылки. На главном экране показывается текст из блока hero.');
-        yield TextField::new('city', 'Город');
+            ->setHelp('Meta description для поисковиков и превью ссылки в соцсетях. На главном экране показывается текст из блока hero.');
+        yield TextField::new('city', 'Подпись в шапке')
+            ->setHelp('Строка под именем в шапке сайта.');
         yield ImageField::new('avatarPath', 'Аватар')
             ->setBasePath('uploads/avatars')
             ->setUploadDir('public/uploads/avatars')
             ->setUploadedFileNamePattern('[uuid].[extension]');
         yield UrlField::new('telegramUrl', 'Telegram')->hideOnIndex();
         yield UrlField::new('githubUrl', 'GitHub')->hideOnIndex();
-        yield EmailField::new('email', 'Email')->hideOnIndex();
+        yield EmailField::new('email', 'Email для политики')
+            ->hideOnIndex()
+            ->setHelp('Указывается в политике конфиденциальности для обращений по персональным данным.');
+        yield EmailField::new('notificationEmail', 'Email для заявок')
+            ->hideOnIndex()
+            ->setHelp('Fallback-уведомления о новых заявках, если Telegram недоступен. Нужен MAILER_DSN.');
         yield TextareaField::new('formSuccessMessage', 'Сообщение после заявки')->hideOnIndex();
     }
 }

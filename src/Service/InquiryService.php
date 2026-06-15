@@ -14,7 +14,7 @@ class InquiryService
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly InquiryAttachmentStorage $attachmentStorage,
-        private readonly TelegramNotifier $telegramNotifier,
+        private readonly InquiryNotifier $inquiryNotifier,
     ) {
     }
 
@@ -32,7 +32,8 @@ class InquiryService
             ->setContactType($contactType)
             ->setInquiryType($inquiryType)
             ->setMessage($message)
-            ->setStatus(InquiryStatus::New);
+            ->setStatus(InquiryStatus::New)
+            ->setPrivacyConsentAt(new \DateTimeImmutable());
 
         if ($attachment instanceof UploadedFile) {
             $stored = $this->attachmentStorage->store($attachment);
@@ -45,7 +46,7 @@ class InquiryService
         $this->entityManager->persist($inquiry);
         $this->entityManager->flush();
 
-        $this->telegramNotifier->notifyNewInquiry($inquiry);
+        $this->inquiryNotifier->notifyNewInquiry($inquiry);
 
         return $inquiry;
     }

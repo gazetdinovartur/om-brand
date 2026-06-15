@@ -1,0 +1,19 @@
+{% macro avatar(path, alt, class, eager) %}
+    {% if path %}
+        {% set thumb = path|replace({'.webp': '.thumb.webp'}) %}
+        <img
+            class="{{ class }}"
+            src="{{ asset('uploads/avatars/' ~ path) }}"
+            alt="{{ alt }}"
+            {% if thumb != path %}
+                srcset="{{ asset('uploads/avatars/' ~ thumb) }} 160w, {{ asset('uploads/avatars/' ~ path) }} 800w"
+                sizes="(max-width: 768px) 10rem, 3rem"
+            {% endif %}
+            {% if eager|default(false) %}
+                loading="eager" fetchpriority="high"
+            {% else %}
+                loading="lazy" decoding="async"
+            {% endif %}
+        >
+    {% endif %}
+{% endmacro %}

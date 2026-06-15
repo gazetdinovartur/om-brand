@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f5efe4">
-    <title>{% block title %}{{ settings.name }} · веб-системы{% endblock %}</title>
-    <meta name="description" content="{{ settings.tagline|default('Прикладные веб-системы для бизнеса, проектов и частных специалистов') }}">
+    {% set siteName = siteName|default(blocksBySlug.hero.title|default(settings.name)) %}
+    <title>{% block title %}{{ seo.title }}{% endblock %}</title>
+    {% include 'web/_partials/seo_head.html.twig' %}
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23e8a849' opacity='0.8'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap&subset=cyrillic,cyrillic-ext,latin" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}" rel="stylesheet">
     {% block head %}{% endblock %}
 </head>
@@ -20,29 +21,29 @@
         <div class="container site-header__inner">
             <a class="site-brand" href="{{ path('web_home') }}">
                 {% if settings.avatarPath %}
-                    <img class="site-brand__avatar" src="{{ asset('uploads/avatars/' ~ settings.avatarPath) }}" alt="">
+                    {% import 'web/_partials/avatar_image.html.twig' as avatarImage %}
+                    {{ avatarImage.avatar(settings.avatarPath, siteName, 'site-brand__avatar', false) }}
                 {% else %}
-                    <span class="site-brand__avatar site-brand__avatar--placeholder">{{ settings.name|slice(0, 1) }}</span>
+                    <span class="site-brand__avatar site-brand__avatar--placeholder">{{ siteName|slice(0, 1) }}</span>
                 {% endif %}
                 <span class="site-brand__text">
-                    <strong>{{ settings.name }}</strong>
+                    <strong>{{ siteName }}</strong>
                     {% if settings.city %}<small>{{ settings.city }}</small>{% endif %}
                 </span>
             </a>
-            <nav class="site-nav" aria-label="Навигация">
-                <a class="site-nav__link" href="#about">Обо мне</a>
-                <a class="site-nav__link" href="#contact">Связаться</a>
-            </nav>
+            {% include 'web/_partials/site_nav.html.twig' %}
         </div>
     </header>
 
-    {% for label, messages in app.flashes %}
-        {% for message in messages %}
-            <div class="container mt-3">
-                <div class="site-alert site-alert--{{ label }}" role="alert">{{ message }}</div>
-            </div>
+    {% if app.request.attributes.get('_route') != 'web_home' %}
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="container mt-3">
+                    <div class="site-alert site-alert--{{ label }}" role="alert">{{ message }}</div>
+                </div>
+            {% endfor %}
         {% endfor %}
-    {% endfor %}
+    {% endif %}
 
     <main class="site-main">
         {% block body %}{% endblock %}
@@ -52,13 +53,17 @@
         <div class="container site-footer__inner">
             <div class="site-footer__grid">
                 {% if blocksBySlug.footer_legal is defined %}
-                    <div>
+                    <div class="site-footer__col site-footer__col--legal">
                         <h3 class="site-footer__title">{{ blocksBySlug.footer_legal.title }}</h3>
                         <p class="site-footer__text">{{ blocksBySlug.footer_legal.body|nl2br }}</p>
+                        <div class="site-footer__legal-meta">
+                            <a class="site-footer__legal-link" href="{{ path('web_privacy') }}">Политика конфиденциальности</a>
+                            <p class="site-footer__cookie-note">Сайт использует технические cookie для работы формы заявки. Подробнее — в <a href="{{ path('web_privacy') }}">политике конфиденциальности</a>.</p>
+                        </div>
                     </div>
                 {% endif %}
                 {% if blocksBySlug.footer_excludes is defined %}
-                    <div>
+                    <div class="site-footer__col">
                         <h3 class="site-footer__title">{{ blocksBySlug.footer_excludes.title }}</h3>
                         <ul class="site-footer__list">
                             {% for item in blocksBySlug.footer_excludes.items|default([]) %}
@@ -68,16 +73,43 @@
                     </div>
                 {% endif %}
             </div>
-            <div class="site-footer__bottom">
-                <p class="site-footer__copy">© {{ 'now'|date('Y') }} {{ settings.name }}</p>
-                {% if settings.telegramUrl or settings.githubUrl %}
+        </div>
+        <div class="site-footer__bar">
+            <div class="container">
+                <p class="site-footer__copy">
+                    <span class="site-footer__sigil site-footer__sigil--sun" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="5.5" fill="#e8a849" opacity="0.88"/>
+                            <circle cx="12" cy="12" r="8.5" stroke="#c87828" stroke-width="1" opacity="0.38"/>
+                        </svg>
+                    </span>
+                    <span class="site-footer__brand">{{ legalName|default(siteName) }}</span>
+                    <span class="site-footer__sigil site-footer__sigil--moon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="8.5" stroke="#c87828" stroke-width="1" opacity="0.38"/>
+                            <mask id="footerMoonMask" maskUnits="userSpaceOnUse">
+                                <rect width="24" height="24" fill="white"/>
+                                <circle cx="8.65" cy="12" r="5.15" fill="black"/>
+                            </mask>
+                            <circle cx="12" cy="12" r="5.5" fill="#e8a849" opacity="0.88" mask="url(#footerMoonMask)"/>
+                        </svg>
+                    </span>
+                    <span class="site-footer__alias">также известен как <span class="site-footer__brand">{{ alsoKnownAs|default('Лун') }}</span></span>
+                    <span class="site-footer__copy-sep" aria-hidden="true">·</span>
+                    <span class="site-footer__rights">© {{ 'now'|date('Y') }}</span>
+                </p>
+            </div>
+        </div>
+        {% if settings.telegramUrl or settings.githubUrl %}
+            <div class="site-footer__bar site-footer__bar--sub">
+                <div class="container">
                     <div class="site-footer__links">
                         {% if settings.telegramUrl %}<a href="{{ settings.telegramUrl }}" rel="noopener">Telegram</a>{% endif %}
                         {% if settings.githubUrl %}<a href="{{ settings.githubUrl }}" rel="noopener">GitHub</a>{% endif %}
                     </div>
-                {% endif %}
+                </div>
             </div>
-        </div>
+        {% endif %}
     </footer>
 
     <a class="site-fab" href="#contact">Рассказать о задаче</a>

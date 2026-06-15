@@ -1,4 +1,4 @@
-# Enable stateless CSRF protection for forms and logins/logouts
+# Stateless CSRF для login/logout; формы лендинга — с обычным токеном в HTML.
 framework:
     form:
         csrf_protection:
@@ -6,6 +6,5 @@ framework:
 
     csrf_protection:
         stateless_token_ids:
-            - submit
             - authenticate
             - logout

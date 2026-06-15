@@ -4,15 +4,20 @@ namespace App\Form;
 
 use App\Enum\ContactType;
 use App\Enum\InquiryType;
+use App\Validation\ContactValueValidator;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Validator\Constraints\File;
+use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
@@ -33,9 +38,14 @@ class InquiryFormType extends AbstractType
                 'choices' => ContactType::cases(),
                 'choice_label' => static fn (ContactType $type) => $type->label(),
                 'choice_value' => static fn (?ContactType $type) => $type?->value,
+                'attr' => ['data-contact-type' => ''],
             ])
             ->add('contact', TextType::class, [
                 'label' => 'Контакт',
+                'attr' => [
+                    'data-contact-input' => '',
+                    'autocomplete' => 'off',
+                ],
                 'constraints' => [
                     new NotBlank(message: 'Укажите, как с вами связаться'),
                     new Length(max: 255),
@@ -49,10 +59,11 @@ class InquiryFormType extends AbstractType
             ])
             ->add('message', TextareaType::class, [
                 'label' => 'Расскажите о задаче',
+                'required' => false,
+                'empty_data' => '',
                 'attr' => ['rows' => 5],
                 'constraints' => [
-                    new NotBlank(message: 'Расскажите хотя бы пару строк о задаче'),
-                    new Length(min: 10, minMessage: 'Напишите чуть подробнее — хотя бы пару предложений'),
+                    new Length(max: 10000),
                 ],
             ])
             ->add('attachment', FileType::class, [
@@ -83,6 +94,32 @@ class InquiryFormType extends AbstractType
                     'autocomplete' => 'off',
                     'class' => 'inquiry-honeypot',
                 ],
+            ])
+            ->add('consent', CheckboxType::class, [
+                'mapped' => false,
+                'required' => true,
+                'label' => false,
+                'constraints' => [
+                    new IsTrue(message: 'Нужно согласие на обработку персональных данных'),
+                ],
             ]);
+        $builder->addEventListener(FormEvents::POST_SUBMIT, static function (FormEvent $event): void {
+            $data = $event->getData();
+            if (!\is_array($data)) {
+                return;
+            }
+
+            $contactType = $data['contactType'] ?? null;
+            $contact = trim((string) ($data['contact'] ?? ''));
+
+            if (!$contactType instanceof ContactType || '' === $contact) {
+                return;
+            }
+
+            $error = ContactValueValidator::validate($contact, $contactType);
+            if (null !== $error) {
+                $event->getForm()->get('contact')->addError(new FormError($error));
+            }
+        });
     }
 }

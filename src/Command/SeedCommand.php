@@ -36,6 +36,18 @@ final class SeedCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        if ('' === trim($this->adminPassword) || 'admin' === $this->adminPassword || 'change_me_strong_password' === $this->adminPassword) {
+            $io->error('Задайте надёжный ADMIN_PASSWORD в .env.local (см. .env.example).');
+
+            return Command::FAILURE;
+        }
+
+        if ('' === trim($this->adminEmail)) {
+            $io->error('Задайте ADMIN_EMAIL в .env.local.');
+
+            return Command::FAILURE;
+        }
+
         $this->seedSettings();
         $this->syncContentBlocks();
         $this->seedAdmin();
@@ -54,10 +66,10 @@ final class SeedCommand extends Command
         }
 
         $settings = (new SiteSettings())
-            ->setName('Артур')
-            ->setTagline(LandingContent::metaTagline())
-            ->setCity('Екатеринбург')
-            ->setFormSuccessMessage('Вижу тебя. Скоро встретимся — выйду на связь.');
+            ->setName(LandingContent::personName())
+            ->setTagline(LandingContent::metaDescription())
+            ->setCity(LandingContent::headerSubtitle())
+            ->setFormSuccessMessage('Вижу Ваш запрос. Скоро выйду на связь.');
 
         $this->entityManager->persist($settings);
     }

@@ -67,6 +67,7 @@ class InquiryCrudController extends AbstractCrudController
             ));
         yield TextField::new('attachmentOriginalName', 'Файл')->onlyOnDetail();
         yield TextareaField::new('adminNote', 'Заметка')->hideOnIndex();
+        yield DateTimeField::new('privacyConsentAt', 'Согласие на обработку ПДн')->hideOnForm()->hideOnIndex();
         yield DateTimeField::new('createdAt', 'Создана')->hideOnForm();
         yield DateTimeField::new('updatedAt', 'Обновлена')->onlyOnDetail();
     }

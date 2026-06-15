@@ -1,0 +1,28 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block body %}
+    <section class="section section--legal">
+        <div class="container narrow">
+            <div class="legal-page">
+                <p class="legal-page__eyebrow">Документы</p>
+                <h1 class="legal-page__title">{{ legal_title|default('Политика конфиденциальности') }}</h1>
+                <p class="legal-page__updated">Обновлено: {{ updatedAt }}</p>
+
+                <div class="legal-page__content">
+                    {% for section in sections %}
+                        <section class="legal-section">
+                            <h2 class="legal-section__title">{{ section.title }}</h2>
+                            {% for paragraph in section.paragraphs %}
+                                <p class="legal-section__text">{{ paragraph }}</p>
+                            {% endfor %}
+                        </section>
+                    {% endfor %}
+                </div>
+
+                <p class="legal-page__back">
+                    <a href="{{ path('web_home') }}">← На главную</a>
+                </p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

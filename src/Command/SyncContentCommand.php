@@ -47,7 +47,7 @@ final class SyncContentCommand extends Command
             }
         }
 
-        $this->syncSiteSettingsTagline();
+        $this->syncSiteSettings();
         $this->entityManager->flush();
 
         $io->success('Контент лендинга обновлён.');
@@ -55,13 +55,16 @@ final class SyncContentCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function syncSiteSettingsTagline(): void
+    private function syncSiteSettings(): void
     {
         $settings = $this->entityManager->getRepository(SiteSettings::class)->findOneBy([]);
         if (!$settings instanceof SiteSettings) {
             return;
         }
 
-        $settings->setTagline(LandingContent::metaTagline());
+        $settings
+            ->setName(LandingContent::personName())
+            ->setTagline(LandingContent::metaDescription())
+            ->setCity(LandingContent::headerSubtitle());
     }
 }

@@ -2,26 +2,23 @@
 
 namespace App\Service;
 
-use App\Entity\ContentBlock;
-use App\Repository\ContentBlockRepository;
-
 class LandingContentProvider
 {
-    /** @var array<string, ContentBlock>|null */
+    /** @var array<string, \App\Entity\ContentBlock>|null */
     private ?array $indexed = null;
 
     public function __construct(
-        private readonly ContentBlockRepository $contentBlockRepository,
+        private readonly PublicSiteContext $siteContext,
     ) {
     }
 
-    /** @return list<ContentBlock> */
+    /** @return list<\App\Entity\ContentBlock> */
     public function getVisibleBlocks(): array
     {
-        return $this->contentBlockRepository->findVisibleOrdered();
+        return $this->siteContext->getVisibleBlocks();
     }
 
-    public function getBlock(string $slug): ?ContentBlock
+    public function getBlock(string $slug): ?\App\Entity\ContentBlock
     {
         $this->loadIndexed();
 
@@ -34,9 +31,6 @@ class LandingContentProvider
             return;
         }
 
-        $this->indexed = [];
-        foreach ($this->getVisibleBlocks() as $block) {
-            $this->indexed[$block->getSlug()] = $block;
-        }
+        $this->indexed = $this->siteContext->getBlocksBySlug();
     }
 }
