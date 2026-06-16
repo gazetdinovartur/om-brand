@@ -275,12 +275,6 @@
                         </label>
                         {{ form_errors(form.consent) }}
                     </div>
-                    {% if turnstileSiteKey %}
-                        <div class="form-field form-field--full turnstile-wrap" data-turnstile-wrap>
-                            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-                            <div class="cf-turnstile" data-sitekey="{{ turnstileSiteKey }}" data-theme="light"></div>
-                        </div>
-                    {% endif %}
                     <button type="submit" class="btn btn-primary btn-block" data-inquiry-submit>Отправить</button>
                     {% include 'web/_partials/form_feedback.html.twig' %}
                 {{ form_end(form) }}

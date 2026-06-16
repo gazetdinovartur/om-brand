@@ -1512,7 +1512,7 @@ select.form-control:focus {
 }
 
 .site-footer__brand {
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .site-footer__sigil {
@@ -1561,11 +1561,6 @@ select.form-control:focus {
     font-weight: 600;
     box-shadow: 0 12px 30px rgba(31, 26, 20, 0.22);
     transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.turnstile-wrap {
-    display: grid;
-    justify-content: center;
 }
 
 .payment-card__eyebrow {

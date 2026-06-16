@@ -11,13 +11,13 @@ parameters:
     app.private_uploads_directory: '%kernel.project_dir%/var/private/uploads'
     env(TELEGRAM_BOT_TOKEN): ''
     env(TELEGRAM_CHAT_ID): ''
-    env(TURNSTILE_SITE_KEY): ''
-    env(TURNSTILE_SECRET_KEY): ''
+    env(SBP_PAYMENT_URL_TEMPLATE): ''
     env(MAILER_DSN): 'null://null'
     env(APP_SITE_URL): ''
     env(ADMIN_EMAIL): ''
     env(ADMIN_PASSWORD): ''
     app.site_url: ''
+    app.sbp_payment_url_template: ''
 
 services:
     _defaults:
@@ -35,3 +35,7 @@ services:
     App\Service\InquiryAttachmentStorage:
         arguments:
             $uploadsDirectory: '%app.private_uploads_directory%'
+
+    App\Service\PaymentSbpUrlFactory:
+        arguments:
+            $envTemplate: '%env(default:app.sbp_payment_url_template:SBP_PAYMENT_URL_TEMPLATE)%'

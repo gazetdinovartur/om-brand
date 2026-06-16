@@ -41,6 +41,9 @@ class SiteSettings
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $formSuccessMessage = null;
 
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $sbpPaymentUrlTemplate = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -150,6 +153,18 @@ class SiteSettings
     public function setFormSuccessMessage(?string $formSuccessMessage): static
     {
         $this->formSuccessMessage = $formSuccessMessage;
+
+        return $this;
+    }
+
+    public function getSbpPaymentUrlTemplate(): ?string
+    {
+        return $this->sbpPaymentUrlTemplate;
+    }
+
+    public function setSbpPaymentUrlTemplate(?string $sbpPaymentUrlTemplate): static
+    {
+        $this->sbpPaymentUrlTemplate = $sbpPaymentUrlTemplate;
 
         return $this;
     }

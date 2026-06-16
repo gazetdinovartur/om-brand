@@ -116,3 +116,65 @@ body.ea,
 .content-block-item-title-row.d-none {
     display: none !important;
 }
+
+.payment-admin-links {
+    display: grid;
+    gap: 1.25rem;
+    margin-bottom: 0.5rem;
+    padding: 1.1rem 1.15rem;
+    background: #faf7f2;
+    border: 1px solid rgba(31, 26, 20, 0.1);
+    border-radius: 0.85rem;
+}
+
+.payment-admin-links--compact {
+    margin-bottom: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+}
+
+.payment-admin-links__item {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.payment-admin-links__label {
+    font-weight: 600;
+    color: #1f1a14;
+}
+
+.payment-admin-links__hint,
+.payment-admin-links__notice {
+    margin: 0;
+    color: #6f6558;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.payment-admin-links__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.payment-admin-links--compact .payment-admin-links__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.payment-admin-links__input {
+    font-size: 0.88rem;
+}
+
+.payment-admin-links__btn.is-copied {
+    background: #2f6b3b;
+    border-color: #2f6b3b;
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .payment-admin-links__row {
+        grid-template-columns: 1fr;
+    }
+}

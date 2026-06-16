@@ -2,5 +2,5 @@ framework:
     rate_limiter:
         inquiry_form:
             policy: sliding_window
-            limit: 5
+            limit: 10
             interval: '15 minutes'

@@ -1,0 +1,32 @@
+{% set offer = entity.instance %}
+{% set clientUrl = payment_client_url(offer) %}
+{% set sbpUrl = offer.sberPaymentUrl %}
+
+<div class="payment-admin-links">
+    <div class="payment-admin-links__item">
+        <span class="payment-admin-links__label">Ссылка для клиента</span>
+        <p class="payment-admin-links__hint">Страница оплаты на сайте — отправьте клиенту</p>
+        <div class="payment-admin-links__row">
+            <input type="text" class="form-control payment-admin-links__input" value="{{ clientUrl }}" readonly data-copy-field>
+            <button type="button" class="btn btn-secondary payment-admin-links__btn" data-copy-btn>Копировать</button>
+            <a href="{{ clientUrl }}" class="btn btn-link payment-admin-links__open" target="_blank" rel="noopener">Открыть</a>
+        </div>
+    </div>
+
+    {% if sbpUrl %}
+        <div class="payment-admin-links__item">
+            <span class="payment-admin-links__label">Ссылка СБП</span>
+            <p class="payment-admin-links__hint">Из шаблона в настройках сайта</p>
+            <div class="payment-admin-links__row">
+                <input type="text" class="form-control payment-admin-links__input" value="{{ sbpUrl }}" readonly data-copy-field>
+                <button type="button" class="btn btn-secondary payment-admin-links__btn" data-copy-btn>Копировать</button>
+            </div>
+        </div>
+    {% else %}
+        <p class="payment-admin-links__notice">
+            Ссылка СБП не сгенерирована. Задайте шаблон в
+            <a href="{{ ea_url().setController('App\\Admin\\SiteSettingsCrudController').setAction('index').generateUrl() }}">настройках сайта</a>
+            или в <code>SBP_PAYMENT_URL_TEMPLATE</code>.
+        </p>
+    {% endif %}
+</div>

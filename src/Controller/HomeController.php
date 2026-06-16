@@ -8,7 +8,6 @@ use App\Form\InquiryFormType;
 use App\Repository\CaseStudyRepository;
 use App\Service\InquiryService;
 use App\Service\PublicSiteContext;
-use App\Service\TurnstileValidator;
 use App\Validation\ContactValueValidator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -25,7 +24,6 @@ final class HomeController extends AbstractController
         PublicSiteContext $siteContext,
         CaseStudyRepository $caseStudyRepository,
         InquiryService $inquiryService,
-        TurnstileValidator $turnstileValidator,
         #[Autowire('@limiter.inquiry_form')]
         RateLimiterFactory $inquiryLimiterFactory,
     ): Response {
@@ -48,19 +46,6 @@ final class HomeController extends AbstractController
 
             if ('' !== (string) $form->get('website')->getData()) {
                 return $this->respondInquiry($request, ok: true, message: '');
-            }
-
-            if (!$turnstileValidator->validate(
-                $request->request->getString('cf-turnstile-response'),
-                $request->getClientIp(),
-            )) {
-                return $this->respondInquiry(
-                    $request,
-                    ok: false,
-                    message: 'Подтвердите, что вы не робот',
-                    errors: ['_form' => ['Не пройдена проверка безопасности']],
-                    status: Response::HTTP_UNPROCESSABLE_ENTITY,
-                );
             }
 
             if ($form->isValid()) {

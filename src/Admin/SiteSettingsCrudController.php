@@ -51,5 +51,8 @@ class SiteSettingsCrudController extends AbstractCrudController
             ->hideOnIndex()
             ->setHelp('Fallback-уведомления о новых заявках, если Telegram недоступен. Нужен MAILER_DSN.');
         yield TextareaField::new('formSuccessMessage', 'Сообщение после заявки')->hideOnIndex();
+        yield TextField::new('sbpPaymentUrlTemplate', 'Шаблон ссылки СБП')
+            ->hideOnIndex()
+            ->setHelp('Подставляется при сохранении оплаты. Плейсхолдеры: {amount_rubles}, {amount}, {token}, {title}, {id}. Пример: https://qr.nspk.ru/...?sum={amount_rubles}');
     }
 }

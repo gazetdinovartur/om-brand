@@ -96,9 +96,10 @@
                             <circle cx="12" cy="12" r="5.5" fill="#e8a849" opacity="0.88" mask="url(#footerMoonMask)"/>
                         </svg>
                     </span>
-                    <span class="site-footer__alias">также известен как <span class="site-footer__brand">{{ alsoKnownAs|default('Лун') }}</span></span>
-                    <span class="site-footer__copy-sep" aria-hidden="true">·</span>
-                    <span class="site-footer__rights">© {{ 'now'|date('Y') }}</span>
+                    <span class="site-footer__alias"><span class="site-footer__brand">также известен как  {{ alsoKnownAs|default('Лун') }}</span></span>
+                    <span class="site-footer__copy-sep" aria-hidden="true">©</span>
+                    <span class="site-footer__rights">{{ 'now'|date('Y') }}
+                        </span>
                 </p>
             </div>
         </div>

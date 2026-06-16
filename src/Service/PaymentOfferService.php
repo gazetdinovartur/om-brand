@@ -15,6 +15,7 @@ class PaymentOfferService
         private readonly EntityManagerInterface $entityManager,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly TelegramNotifier $telegramNotifier,
+        private readonly PaymentSbpUrlFactory $sbpUrlFactory,
     ) {
     }
 
@@ -30,7 +31,6 @@ class PaymentOfferService
             ->setInquiry($inquiry)
             ->setTitle($title)
             ->setAmount($amountKopecks)
-            ->setSberPaymentUrl($sberPaymentUrl)
             ->setNote($note)
             ->setStatus(PaymentOfferStatus::Pending);
 
@@ -38,18 +38,28 @@ class PaymentOfferService
             $offer->setExpiresAt($expiresAt);
         }
 
+        $offer->setSberPaymentUrl($this->sbpUrlFactory->build($offer) ?? $sberPaymentUrl);
+
         $this->entityManager->persist($offer);
         $this->entityManager->flush();
 
-        $paymentUrl = $this->urlGenerator->generate(
-            'web_payment_show',
-            ['token' => $offer->getToken()],
-            UrlGeneratorInterface::ABSOLUTE_URL
-        );
-
-        $this->telegramNotifier->notifyPaymentOffer($offer, $paymentUrl);
+        $this->notifyCreated($offer);
 
         return $offer;
+    }
+
+    public function notifyCreated(PaymentOffer $offer): void
+    {
+        $this->telegramNotifier->notifyPaymentOffer($offer, $this->getClientUrl($offer));
+    }
+
+    public function getClientUrl(PaymentOffer $offer): string
+    {
+        return $this->urlGenerator->generate(
+            'web_payment_show',
+            ['token' => $offer->getToken()],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
     }
 
     public function getValidOffer(string $token): PaymentOffer

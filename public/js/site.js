@@ -159,7 +159,6 @@ function initInquiryForm() {
             if (data.ok) {
                 form.reset();
                 resetFileUploads(form);
-                resetTurnstile(form);
                 form.querySelector('[data-contact-type]')?.dispatchEvent(new Event('change'));
 
                 if (data.message) {
@@ -423,17 +422,6 @@ function focusFirstInvalid(form) {
     const invalid = form.querySelector('.is-invalid');
     if (invalid instanceof HTMLElement) {
         invalid.focus({ preventScroll: true });
-    }
-}
-
-function resetTurnstile(form) {
-    if (typeof window.turnstile === 'undefined') {
-        return;
-    }
-
-    const widget = form.querySelector('.cf-turnstile');
-    if (widget instanceof HTMLElement) {
-        window.turnstile.reset(widget);
     }
 }
 

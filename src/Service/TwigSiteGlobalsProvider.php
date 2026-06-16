@@ -4,7 +4,6 @@ namespace App\Service;
 
 use App\Content\LandingContent;
 use App\Seo\SeoMetadataFactory;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -15,8 +14,6 @@ final class TwigSiteGlobalsProvider
         private readonly PublicSiteContext $siteContext,
         private readonly SeoMetadataFactory $seoMetadataFactory,
         private readonly UrlGeneratorInterface $urlGenerator,
-        #[Autowire('%env(TURNSTILE_SITE_KEY)%')]
-        private readonly string $turnstileSiteKey = '',
     ) {
     }
 
@@ -37,7 +34,6 @@ final class TwigSiteGlobalsProvider
         $twig->addGlobal('siteName', $siteName);
         $twig->addGlobal('legalName', LandingContent::personName());
         $twig->addGlobal('alsoKnownAs', LandingContent::alsoKnownAs());
-        $twig->addGlobal('turnstileSiteKey', $this->turnstileSiteKey);
         $twig->addGlobal('navPrefix', $navPrefix);
         $twig->addGlobal('navAnchors', LandingContent::navigationAnchors());
         $twig->addGlobal('seo', $this->seoMetadataFactory->forRoute(

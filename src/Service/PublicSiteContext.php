@@ -6,11 +6,13 @@ use App\Entity\ContentBlock;
 use App\Entity\SiteSettings;
 use App\Repository\ContentBlockRepository;
 use App\Repository\SiteSettingsRepository;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Request-scoped cache for public site data (deduplicates DB reads per request).
+ * Per-request cache for public site data (deduplicates DB reads within one request).
+ * Reset after each HTTP request so PHP-FPM workers do not serve stale admin edits.
  */
-final class PublicSiteContext
+final class PublicSiteContext implements ResetInterface
 {
     private ?SiteSettings $settings = null;
 
@@ -63,5 +65,12 @@ final class PublicSiteContext
         }
 
         return $filtered;
+    }
+
+    public function reset(): void
+    {
+        $this->settings = null;
+        $this->visibleBlocks = null;
+        $this->blocksBySlug = null;
     }
 }
