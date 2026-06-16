@@ -35,6 +35,8 @@
         </div>
     </header>
 
+    {% include 'web/_partials/mobile_nav.html.twig' %}
+
     {% if app.request.attributes.get('_route') != 'web_home' %}
         {% for label, messages in app.flashes %}
             {% for message in messages %}

@@ -1,0 +1,13 @@
+<div class="mobile-nav" id="mobile-nav" data-mobile-nav hidden aria-hidden="true">
+    <button type="button" class="mobile-nav__backdrop" data-nav-backdrop aria-label="Закрыть меню"></button>
+
+    <div class="mobile-nav__panel" data-nav-panel role="dialog" aria-modal="true" aria-label="Меню сайта">
+        <nav class="mobile-nav__links" aria-label="Мобильная навигация">
+            {% for item in navAnchors|default([]) %}
+                <a class="mobile-nav__link" href="{{ navPrefix ~ item.href }}" data-nav-link>{{ item.label }}</a>
+            {% endfor %}
+        </nav>
+
+        <a class="btn btn-primary mobile-nav__cta" href="{{ navPrefix ~ '#contact' }}" data-nav-link>Рассказать о задаче</a>
+    </div>
+</div>

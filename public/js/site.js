@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const y = window.scrollY;
         document.documentElement.style.setProperty('--scroll', String(Math.min(y / 600, 1)));
 
-        if (fab && contact) {
+        if (fab && contact && !document.body.classList.contains('site-body--nav-open')) {
             const rect = contact.getBoundingClientRect();
             fab.style.opacity = rect.top < window.innerHeight * 0.6 ? '0' : '1';
             fab.style.pointerEvents = rect.top < window.innerHeight * 0.6 ? 'none' : 'auto';
@@ -29,35 +29,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initMobileNav() {
     const toggle = document.querySelector('[data-nav-toggle]');
-    const panel = document.querySelector('[data-nav-panel]');
+    const root = document.querySelector('[data-mobile-nav]');
     const backdrop = document.querySelector('[data-nav-backdrop]');
     const links = document.querySelectorAll('[data-nav-link]');
 
-    if (!(toggle instanceof HTMLButtonElement) || !(panel instanceof HTMLElement) || !(backdrop instanceof HTMLElement)) {
+    if (!(toggle instanceof HTMLButtonElement) || !(root instanceof HTMLElement) || !(backdrop instanceof HTMLButtonElement)) {
         return;
     }
 
+    let scrollY = 0;
+
+    const lockScroll = () => {
+        scrollY = window.scrollY;
+        document.body.classList.add('site-body--nav-open');
+        document.body.style.top = `-${scrollY}px`;
+    };
+
+    const unlockScroll = () => {
+        document.body.classList.remove('site-body--nav-open');
+        document.body.style.top = '';
+        window.scrollTo(0, scrollY);
+    };
+
     const close = () => {
         toggle.setAttribute('aria-expanded', 'false');
-        panel.classList.remove('is-open');
-        backdrop.classList.remove('is-open');
-        panel.hidden = true;
-        backdrop.hidden = true;
-        document.body.classList.remove('site-body--nav-open');
+        root.classList.remove('is-open');
+        root.hidden = true;
+        root.setAttribute('aria-hidden', 'true');
+        unlockScroll();
+        toggle.focus({ preventScroll: true });
     };
 
     const open = () => {
         toggle.setAttribute('aria-expanded', 'true');
-        panel.hidden = false;
-        backdrop.hidden = false;
+        root.hidden = false;
+        root.setAttribute('aria-hidden', 'false');
+        lockScroll();
         requestAnimationFrame(() => {
-            panel.classList.add('is-open');
-            backdrop.classList.add('is-open');
+            root.classList.add('is-open');
+            root.querySelector('[data-nav-link]')?.focus({ preventScroll: true });
         });
-        document.body.classList.add('site-body--nav-open');
     };
 
-    toggle.addEventListener('click', () => {
+    toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
         if (toggle.getAttribute('aria-expanded') === 'true') {
             close();
         } else {
@@ -72,9 +87,12 @@ function initMobileNav() {
     });
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            close();
+        if (event.key !== 'Escape' || toggle.getAttribute('aria-expanded') !== 'true') {
+            return;
         }
+
+        event.preventDefault();
+        close();
     });
 }
 
