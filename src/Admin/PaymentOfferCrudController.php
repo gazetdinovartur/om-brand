@@ -12,6 +12,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
@@ -20,6 +21,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
+use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class PaymentOfferCrudController extends AbstractCrudController
@@ -71,8 +74,9 @@ class PaymentOfferCrudController extends AbstractCrudController
 
         yield AssociationField::new('inquiry', 'Заявка');
         yield TextField::new('title', 'Название');
-        yield IntegerField::new('amount', 'Сумма (коп.)')
-            ->setHelp('Например, 500000 = 5 000 ₽. Ссылка СБП пересчитается при сохранении, если задан шаблон в настройках.');
+        yield IntegerField::new('amount', 'Сумма, ₽')
+            ->setHelp('Целое число в рублях, например 5000. Ссылка СБП пересчитается при сохранении, если задан шаблон в настройках.')
+            ->formatValue(static fn (int $value): string => number_format($value / 100, 0, ',', ' ').' ₽');
 
         yield TextField::new('sberPaymentUrl', 'Ссылка СБП')
             ->hideOnForm()
@@ -90,8 +94,20 @@ class PaymentOfferCrudController extends AbstractCrudController
         yield DateTimeField::new('createdAt', 'Создана')->hideOnForm();
     }
 
+    public function createEditFormBuilder(EntityDto $entityDto, KeyValueStore $formOptions, AdminContext $context): FormBuilderInterface
+    {
+        $builder = parent::createEditFormBuilder($entityDto, $formOptions, $context);
+        $this->prepareAmountFieldForAdmin($builder, $entityDto->getInstance());
+
+        return $builder;
+    }
+
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
+        if ($entityInstance instanceof PaymentOffer) {
+            $this->storeAmountFromAdminRubles($entityInstance);
+        }
+
         parent::persistEntity($entityManager, $entityInstance);
 
         if ($entityInstance instanceof PaymentOffer) {
@@ -101,6 +117,10 @@ class PaymentOfferCrudController extends AbstractCrudController
 
     public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
+        if ($entityInstance instanceof PaymentOffer) {
+            $this->storeAmountFromAdminRubles($entityInstance);
+        }
+
         parent::updateEntity($entityManager, $entityInstance);
 
         if ($entityInstance instanceof PaymentOffer) {
@@ -136,5 +156,20 @@ class PaymentOfferCrudController extends AbstractCrudController
             $created ? 'Оплата создана.' : 'Оплата обновлена.',
             $this->paymentOfferService->getClientUrl($offer),
         ));
+    }
+
+    private function prepareAmountFieldForAdmin(FormBuilderInterface $builder, mixed $entity): void
+    {
+        if (!$entity instanceof PaymentOffer || !$builder->has('amount')) {
+            return;
+        }
+
+        $builder->get('amount')->setData((int) round($entity->getAmountRubles()));
+    }
+
+    private function storeAmountFromAdminRubles(PaymentOffer $offer): void
+    {
+        $rubles = max(0, $offer->getAmount());
+        $offer->setAmount($rubles * 100);
     }
 }
