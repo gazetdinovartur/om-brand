@@ -708,13 +708,13 @@ body.site-body {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='66' cy='66' r='6'/%3E%3Ccircle cx='66' cy='66' r='11' opacity='.78'/%3E%3Ccircle cx='66' cy='66' r='16' opacity='.58'/%3E%3Ccircle cx='66' cy='66' r='21' opacity='.38'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-/* 8: размытые лучи → золотая спираль (освобождение времени) */
+/* 8: как первый пункт — осколки семени → Цветок жизни */
 .checklist__item:nth-child(8n+8)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M20 36L24 20M20 36L8 32M20 36L28 48M20 36L16 52' opacity='.45'/%3E%3Ccircle cx='20' cy='36' r='2' fill='%23c87828' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='16' cy='24' r='7' opacity='.45'/%3E%3Ccircle cx='28' cy='32' r='6' opacity='.35'/%3E%3Cpath d='M8 42a9 9 0 0 1 14 2' opacity='.4'/%3E%3Cpath d='M32 14a7 7 0 0 1 2 10' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 .checklist__item:nth-child(8n+8)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05' stroke-linecap='round'%3E%3Cpath d='M72 66A6 6 0 0 1 66 72'/%3E%3Cpath d='M66 72A10 10 0 0 1 56 82' opacity='.78'/%3E%3Cpath d='M56 82A16 16 0 0 1 40 66' opacity='.55'/%3E%3Ccircle cx='66' cy='66' r='1.5' fill='%23c87828' opacity='.45'/%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='7'/%3E%3Ccircle cx='71' cy='64' r='7'/%3E%3Ccircle cx='67.5' cy='70.062' r='7'/%3E%3Ccircle cx='60.5' cy='70.062' r='7'/%3E%3Ccircle cx='57' cy='64' r='7'/%3E%3Ccircle cx='60.5' cy='57.938' r='7'/%3E%3Ccircle cx='67.5' cy='57.938' r='7'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 @media (hover: hover) {

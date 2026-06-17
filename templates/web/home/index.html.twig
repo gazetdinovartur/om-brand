@@ -202,8 +202,8 @@
             {% if formIntro %}
                 <div class="section__head text-center">
                     <h2 class="section__title">{{ formIntro.title }}</h2>
-                    {% if formIntro.subtitle %}<p class="section__subtitle text--color-brand">{{ formIntro.subtitle }}</p>{% endif %}
                     {% if formIntro.body %}<p class="section__text">{{ formIntro.body }}</p>{% endif %}
+                    {% if formIntro.subtitle %}<p class="section__text--brand">{{ formIntro.subtitle }}</p>{% endif %}
                 </div>
             {% endif %}
 
