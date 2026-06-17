@@ -23,6 +23,11 @@ class ContentBlockItemType extends AbstractType
                 'label' => 'Текст',
                 'required' => true,
                 'attr' => ['rows' => 3, 'placeholder' => 'Краткое описание'],
+            ])
+            ->add('price', TextType::class, [
+                'label' => 'Стоимость',
+                'required' => false,
+                'attr' => ['placeholder' => 'Например: от 1500 ₽/ч'],
             ]);
     }
 

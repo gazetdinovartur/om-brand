@@ -68,6 +68,7 @@ final class SeoMetadataFactory
                 ogType: 'website',
                 ogImageUrl: $ogImageUrl,
                 jsonLd: 'web_home' === $route ? $this->homeJsonLd($personName, $settings, $baseUrl, $description, $ogImageUrl) : null,
+                keywords: implode(', ', LandingContent::metaKeywords()),
             ),
         };
     }
@@ -114,7 +115,7 @@ final class SeoMetadataFactory
         ?string $ogImageUrl,
     ): array {
         $homeUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home');
-        $jobTitle = $settings->getCity() ?: LandingContent::headerSubtitle();
+        $jobTitle = LandingContent::headerSubtitle();
 
         $person = [
             '@type' => 'Person',
@@ -138,6 +139,73 @@ final class SeoMetadataFactory
             $person['sameAs'] = $sameAs;
         }
 
+        $contactPoint = [];
+        if (null !== $settings->getEmail() && '' !== $settings->getEmail()) {
+            $contactPoint[] = [
+                '@type' => 'ContactPoint',
+                'contactType' => 'customer support',
+                'email' => $settings->getEmail(),
+                'availableLanguage' => ['Russian'],
+            ];
+        }
+        if (null !== $settings->getTelegramUrl() && '' !== $settings->getTelegramUrl()) {
+            $contactPoint[] = [
+                '@type' => 'ContactPoint',
+                'contactType' => 'sales',
+                'url' => $settings->getTelegramUrl(),
+                'availableLanguage' => ['Russian'],
+            ];
+        }
+
+        $service = [
+            '@type' => 'ProfessionalService',
+            '@id' => $homeUrl.'#service',
+            'name' => LandingContent::serviceName($personName),
+            'description' => $description,
+            'url' => $homeUrl,
+            'provider' => ['@id' => $homeUrl.'#person'],
+            'areaServed' => LandingContent::areaServed(),
+            'serviceType' => LandingContent::serviceTypes(),
+        ];
+        if ([] !== $contactPoint) {
+            $service['contactPoint'] = $contactPoint;
+        }
+
+        $faqPage = [
+            '@type' => 'FAQPage',
+            '@id' => $homeUrl.'#faq',
+            'mainEntity' => array_map(
+                static fn (array $item): array => [
+                    '@type' => 'Question',
+                    'name' => $item['question'],
+                    'acceptedAnswer' => [
+                        '@type' => 'Answer',
+                        'text' => $item['answer'],
+                    ],
+                ],
+                LandingContent::faqSchemaItems(),
+            ),
+        ];
+
+        $webPage = [
+            '@type' => 'WebPage',
+            '@id' => $homeUrl.'#webpage',
+            'url' => $homeUrl,
+            'name' => LandingContent::metaTitle($personName),
+            'description' => $description,
+            'isPartOf' => ['@id' => $homeUrl.'#website'],
+            'about' => ['@id' => $homeUrl.'#person'],
+            'inLanguage' => 'ru-RU',
+            'potentialAction' => [
+                '@type' => 'CommunicateAction',
+                'name' => 'Оставить заявку',
+                'target' => $homeUrl.'#contact',
+            ],
+        ];
+        if (null !== $ogImageUrl) {
+            $webPage['primaryImageOfPage'] = $ogImageUrl;
+        }
+
         return [
             '@context' => 'https://schema.org',
             '@graph' => [
@@ -150,27 +218,10 @@ final class SeoMetadataFactory
                     'inLanguage' => 'ru-RU',
                     'publisher' => ['@id' => $homeUrl.'#person'],
                 ],
-                [
-                    '@type' => 'WebPage',
-                    '@id' => $homeUrl.'#webpage',
-                    'url' => $homeUrl,
-                    'name' => LandingContent::metaTitle($personName),
-                    'description' => $description,
-                    'isPartOf' => ['@id' => $homeUrl.'#website'],
-                    'about' => ['@id' => $homeUrl.'#person'],
-                    'inLanguage' => 'ru-RU',
-                ],
+                $webPage,
                 $person,
-                [
-                    '@type' => 'ProfessionalService',
-                    '@id' => $homeUrl.'#service',
-                    'name' => LandingContent::serviceName($personName),
-                    'description' => $description,
-                    'url' => $homeUrl,
-                    'provider' => ['@id' => $homeUrl.'#person'],
-                    'areaServed' => LandingContent::areaServed(),
-                    'serviceType' => LandingContent::serviceTypes(),
-                ],
+                $service,
+                $faqPage,
             ],
         ];
     }

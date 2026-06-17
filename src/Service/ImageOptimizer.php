@@ -14,11 +14,17 @@ final class ImageOptimizer
     }
 
     /**
-     * Converts a public upload to WebP, optionally generates a smaller variant.
+     * Converts a public upload to WebP, optionally generates smaller variants.
      *
      * @return array{path: string, srcset: ?string}
      */
-    public function optimizeToWebp(string $relativePath, int $maxWidth = 800, ?int $thumbWidth = null): array
+    public function optimizeToWebp(
+        string $relativePath,
+        int $maxWidth = 800,
+        ?int $thumbWidth = null,
+        ?int $mediumWidth = null,
+        int $quality = 82,
+    ): array
     {
         if (!extension_loaded('gd')) {
             return ['path' => $relativePath, 'srcset' => null];
@@ -46,15 +52,23 @@ final class ImageOptimizer
 
         $main = $this->resize($source, $width, $height, $targetWidth, $targetHeight);
         $mainPath = $this->replaceExtension($relativePath, 'webp');
-        $this->saveWebp($main, rtrim($this->publicUploadsDirectory, '/').'/'.$mainPath);
+        $this->saveWebp($main, rtrim($this->publicUploadsDirectory, '/').'/'.$mainPath, $quality);
         imagedestroy($main);
 
         $srcset = null;
+        if (null !== $mediumWidth && $width > $mediumWidth) {
+            $mediumHeight = (int) round($height * ($mediumWidth / $width));
+            $medium = $this->resize($source, $width, $height, $mediumWidth, $mediumHeight);
+            $mediumPath = $this->replaceExtension($relativePath, 'medium.webp');
+            $this->saveWebp($medium, rtrim($this->publicUploadsDirectory, '/').'/'.$mediumPath, $quality);
+            imagedestroy($medium);
+        }
+
         if (null !== $thumbWidth && $width > $thumbWidth) {
             $thumbHeight = (int) round($height * ($thumbWidth / $width));
             $thumb = $this->resize($source, $width, $height, $thumbWidth, $thumbHeight);
             $thumbPath = $this->replaceExtension($relativePath, 'thumb.webp');
-            $this->saveWebp($thumb, rtrim($this->publicUploadsDirectory, '/').'/'.$thumbPath);
+            $this->saveWebp($thumb, rtrim($this->publicUploadsDirectory, '/').'/'.$thumbPath, $quality);
             imagedestroy($thumb);
             $srcset = sprintf('%s %dw', $thumbPath, $thumbWidth);
         }
@@ -80,14 +94,14 @@ final class ImageOptimizer
         return $canvas;
     }
 
-    private function saveWebp($image, string $absolutePath): void
+    private function saveWebp($image, string $absolutePath, int $quality = 82): void
     {
         $dir = \dirname($absolutePath);
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new FileException('Не удалось создать каталог для изображения.');
         }
 
-        if (!imagewebp($image, $absolutePath, 82)) {
+        if (!imagewebp($image, $absolutePath, max(0, min(100, $quality)))) {
             throw new FileException('Не удалось сохранить изображение.');
         }
     }

@@ -497,6 +497,10 @@ body.site-body {
     background: rgba(255, 255, 255, 0.45);
 }
 
+.section--warm {
+    background: var(--bg-soft);
+}
+
 .section--accent {
     background: linear-gradient(165deg, #4a4034 0%, #352d24 100%);
     color: #f7f3eb;
@@ -803,6 +807,105 @@ body.site-body {
     margin: 0;
     font-size: 1rem;
     line-height: 1.5;
+    color: var(--muted);
+}
+
+.pricing-accordion {
+    display: grid;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 0.15rem);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.pricing-accordion__item {
+    border-top: 1px solid var(--border);
+    transition: background 0.25s ease;
+}
+
+.pricing-accordion__item:first-child {
+    border-top: none;
+}
+
+.pricing-accordion__item[open] {
+    background: linear-gradient(90deg, var(--primary-soft), rgba(255, 253, 249, 0.35));
+}
+
+.pricing-accordion__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem 1.35rem;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+.pricing-accordion__summary::-webkit-details-marker {
+    display: none;
+}
+
+.pricing-accordion__summary::marker {
+    content: "";
+}
+
+.pricing-accordion__label {
+    font-family: var(--font-main);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+}
+
+.pricing-accordion__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.pricing-accordion__rate {
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--primary-dark);
+    white-space: nowrap;
+}
+
+.pricing-accordion__icon {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-right: 2px solid var(--primary);
+    border-bottom: 2px solid var(--primary);
+    transform: rotate(45deg);
+    margin-top: -0.2rem;
+    transition: transform 0.2s ease;
+}
+
+.pricing-accordion__item[open] .pricing-accordion__icon {
+    transform: rotate(225deg);
+    margin-top: 0.15rem;
+}
+
+.pricing-accordion__body {
+    padding: 0 1.35rem 1.15rem;
+}
+
+.pricing-accordion__text {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.55;
+    color: var(--muted);
+}
+
+.pricing-accordion__note {
+    margin: 1.15rem 0 0;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.55;
     color: var(--muted);
 }
 
@@ -1422,6 +1525,10 @@ select.form-control:focus {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
     gap: 2rem;
+}
+
+.site-footer__resume-link {
+    margin-top: 0.15rem;
 }
 
 .site-footer__legal-meta {

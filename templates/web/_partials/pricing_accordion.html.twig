@@ -1,0 +1,22 @@
+{% macro accordion(items) %}
+    <div class="pricing-accordion" data-pricing-accordion>
+        {% for item in items %}
+            <details class="pricing-accordion__item"{% if loop.first %} open{% endif %}>
+                <summary class="pricing-accordion__summary">
+                    <span class="pricing-accordion__label">{{ item.title }}</span>
+                    <span class="pricing-accordion__meta">
+                        {% if item.price|default('') is not empty %}
+                            <span class="pricing-accordion__rate">{{ item.price }}</span>
+                        {% endif %}
+                        <span class="pricing-accordion__icon" aria-hidden="true"></span>
+                    </span>
+                </summary>
+                {% if item.text|default('') is not empty %}
+                    <div class="pricing-accordion__body">
+                        <p class="pricing-accordion__text">{{ item.text }}</p>
+                    </div>
+                {% endif %}
+            </details>
+        {% endfor %}
+    </div>
+{% endmacro %}

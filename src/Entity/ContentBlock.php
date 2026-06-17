@@ -138,6 +138,11 @@ class ContentBlock
                 $entry['title'] = $title;
             }
 
+            $price = trim((string) ($item['price'] ?? ''));
+            if ('' !== $price) {
+                $entry['price'] = $price;
+            }
+
             $normalized[] = $entry;
         }
 

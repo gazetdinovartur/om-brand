@@ -1,5 +1,6 @@
 {% extends 'web/layout.html.twig' %}
 {% import 'web/_partials/content_card.html.twig' as contentCard %}
+{% import 'web/_partials/pricing_accordion.html.twig' as pricingAccordion %}
 {% import 'web/_partials/avatar_image.html.twig' as avatarImage %}
 
 {% block body %}
@@ -11,6 +12,7 @@
     {% set philosophy = blocksBySlug.philosophy|default(null) %}
     {% set process = blocksBySlug.process|default(null) %}
     {% set workFormats = blocksBySlug.work_formats|default(null) %}
+    {% set pricing = blocksBySlug.pricing|default(null) %}
     {% set formIntro = blocksBySlug.form_intro|default(null) %}
 
     <section class="hero" id="top">
@@ -30,7 +32,7 @@
             <div class="hero__visual">
                 <div class="hero__avatar-frame">
                     {% if settings.avatarPath %}
-                        {{ avatarImage.avatar(settings.avatarPath, siteName, 'hero__avatar', true) }}
+                        {{ avatarImage.avatar(settings.avatarPath, siteName, 'hero__avatar', true, '(max-width: 768px) 10rem, min(18rem, 70vw)') }}
                     {% else %}
                         <div class="hero__avatar hero__avatar--placeholder" aria-hidden="true">
                             <span>{{ settings.name|slice(0, 1) }}</span>
@@ -149,6 +151,21 @@
         </section>
     {% endif %}
 
+    {% if pricing %}
+        <section class="section section--warm" id="pricing">
+            <div class="container narrow">
+                <div class="section__head text-center">
+                    <h2 class="section__title">{{ pricing.title }}</h2>
+                    {% if pricing.subtitle %}<p class="section__subtitle text--color-brand">{{ pricing.subtitle }}</p>{% endif %}
+                </div>
+                {{ pricingAccordion.accordion(pricing.items|default([])) }}
+                {% if pricing.body %}
+                    <p class="pricing-accordion__note">{{ pricing.body }}</p>
+                {% endif %}
+            </div>
+        </section>
+    {% endif %}
+
     {% if cases is not empty %}
         <section class="section" id="cases">
             <div class="container">
@@ -183,10 +200,10 @@
     <section class="section section--form" id="contact">
         <div class="container narrow">
             {% if formIntro %}
-                <div class="section__head">
-                    <h2 class="section__title text-center">{{ formIntro.title }}</h2>
+                <div class="section__head text-center">
+                    <h2 class="section__title">{{ formIntro.title }}</h2>
+                    {% if formIntro.subtitle %}<p class="section__subtitle text--color-brand">{{ formIntro.subtitle }}</p>{% endif %}
                     {% if formIntro.body %}<p class="section__text">{{ formIntro.body }}</p>{% endif %}
-                    {% if formIntro.subtitle %}<p class="section__text--brand">{{ formIntro.subtitle }}</p>{% endif %}
                 </div>
             {% endif %}
 

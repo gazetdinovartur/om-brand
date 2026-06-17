@@ -115,7 +115,9 @@ class ContentBlockCrudController extends AbstractCrudController
 
         return match ($entity->getType()) {
             ContentBlockType::List => 'Для списка достаточно текста — заголовок можно не заполнять.',
-            ContentBlockType::Cards, ContentBlockType::Steps => 'У каждого элемента есть заголовок и текст.',
+            ContentBlockType::Cards, ContentBlockType::Steps => 'pricing' === $entity->getSlug()
+                ? 'У каждого элемента — заголовок и текст. Поле «Стоимость» — только если нужно показать ставку (например, от 1500 ₽/ч).'
+                : 'У каждого элемента есть заголовок и текст.',
             ContentBlockType::Footer => 'Короткие пункты «что не предлагаю» — только текст.',
             default => '',
         };

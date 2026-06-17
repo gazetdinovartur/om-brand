@@ -15,6 +15,7 @@ final readonly class SeoMetadata
         public string $ogType,
         public ?string $ogImageUrl,
         public ?array $jsonLd = null,
+        public ?string $keywords = null,
     ) {
     }
 

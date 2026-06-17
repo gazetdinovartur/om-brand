@@ -20,7 +20,7 @@ final class TwigSiteGlobalsProvider
     public function apply(Environment $twig, Request $request, string $route = 'web_home'): void
     {
         $settings = $this->siteContext->getSettings();
-        $blocksBySlug = $this->siteContext->getBlocksBySlugFiltered(['footer_legal', 'footer_excludes', 'hero']);
+        $blocksBySlug = $this->siteContext->getBlocksBySlugFiltered(['footer_hr', 'footer_excludes', 'hero']);
 
         $hero = $blocksBySlug['hero'] ?? null;
         $siteName = (\is_object($hero) && method_exists($hero, 'getTitle') && \is_string($hero->getTitle()) && '' !== $hero->getTitle())

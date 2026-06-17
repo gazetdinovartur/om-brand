@@ -47,7 +47,12 @@ final class EntityImageOptimizerSubscriber implements EventSubscriberInterface
         }
 
         $relative = str_contains($path, '/') ? $path : 'avatars/'.$path;
-        $result = $this->imageOptimizer->optimizeToWebp($relative, maxWidth: 800, thumbWidth: 160);
+        $result = $this->imageOptimizer->optimizeToWebp(
+            $relative,
+            maxWidth: 1200,
+            thumbWidth: 160,
+            quality: 92,
+        );
         $settings->setAvatarPath(basename($result['path']));
     }
 

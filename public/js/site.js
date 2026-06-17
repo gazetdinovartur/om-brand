@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFormFeedbackReveal();
     initInquiryForm();
     initFileUploads();
+    initPricingAccordion();
 
     const onScroll = () => {
         const y = window.scrollY;
@@ -515,6 +516,28 @@ function initFileUploads() {
             transfer.items.add(file);
             input.files = transfer.files;
             input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    });
+}
+
+function initPricingAccordion() {
+    const root = document.querySelector('[data-pricing-accordion]');
+    if (!root) {
+        return;
+    }
+
+    const items = root.querySelectorAll('.pricing-accordion__item');
+    items.forEach((item) => {
+        item.addEventListener('toggle', () => {
+            if (!item.open) {
+                return;
+            }
+
+            items.forEach((other) => {
+                if (other !== item) {
+                    other.open = false;
+                }
+            });
         });
     });
 }

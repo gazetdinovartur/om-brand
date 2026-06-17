@@ -107,7 +107,7 @@ app:content:sync  # перезаписать все блоки из LandingConte
 | `process` | Процесс |
 | `work_formats` | Форматы |
 | `form_intro` | Заголовок формы |
-| `footer_legal` | Футер «Как работаю» |
+| `footer_hr` | Футер «Для HR» |
 | `footer_excludes` | Футер «Что не предлагаю» |
 
 ---
