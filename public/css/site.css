@@ -603,6 +603,28 @@ body.site-body {
     box-shadow: var(--shadow);
     overflow: hidden;
     isolation: isolate;
+    transition:
+        border-color 0.28s ease,
+        box-shadow 0.28s ease,
+        transform 0.28s ease;
+}
+
+.checklist__sheen {
+    position: absolute;
+    inset: -20% -40%;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+        105deg,
+        transparent 42%,
+        rgba(255, 255, 255, 0.04) 46%,
+        rgba(255, 255, 255, 0.72) 50%,
+        rgba(255, 252, 248, 0.48) 52%,
+        rgba(255, 255, 255, 0.04) 56%,
+        transparent 60%
+    );
+    transform: translateX(-115%) skewX(-12deg);
+    opacity: 0;
 }
 
 .checklist__item::before,
@@ -642,7 +664,23 @@ body.site-body {
 .checklist__mark,
 .checklist__text {
     position: relative;
-    z-index: 1;
+    z-index: 2;
+}
+
+@keyframes checklist-sun-sweep {
+    from {
+        transform: translateX(-115%) skewX(-12deg);
+        opacity: 0;
+    }
+
+    12% {
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(115%) skewX(-12deg);
+        opacity: 0;
+    }
 }
 
 /* 1: осколки семени → Цветок жизни */
@@ -718,10 +756,46 @@ body.site-body {
 }
 
 @media (hover: hover) {
+    .checklist__item:hover {
+        border-color: rgba(232, 168, 73, 0.28);
+        box-shadow: 0 16px 40px rgba(200, 120, 40, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .checklist__item:hover .checklist__sheen {
+        animation: checklist-sun-sweep 0.85s ease;
+    }
+
+    .card--catalog:hover {
+        border-color: rgba(232, 168, 73, 0.24);
+        box-shadow: 0 12px 32px rgba(200, 120, 40, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .card--catalog:hover .card__title {
+        color: var(--primary);
+    }
+
     .checklist__item:hover::before,
     .checklist__item:hover::after,
     .steps__item:hover::after {
         opacity: 0.33;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .checklist__sheen {
+        display: none;
+    }
+
+    .checklist__item,
+    .card--catalog {
+        transition: border-color 0.28s ease, box-shadow 0.28s ease;
+    }
+
+    .checklist__item:hover,
+    .card--catalog:hover {
+        transform: none;
     }
 }
 
@@ -793,6 +867,10 @@ body.site-body {
     text-align: center;
     min-height: 8rem;
     padding: 1.4rem 1.15rem;
+    transition:
+        border-color 0.28s ease,
+        box-shadow 0.28s ease,
+        transform 0.28s ease;
 }
 
 .card--catalog .card__title {
@@ -801,6 +879,7 @@ body.site-body {
     font-weight: 600;
     color: var(--text);
     line-height: 1.25;
+    transition: color 0.28s ease;
 }
 
 .card--catalog .card__text {

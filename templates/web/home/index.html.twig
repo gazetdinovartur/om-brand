@@ -69,6 +69,7 @@
                 <ul class="checklist">
                     {% for item in pains.items|default([]) %}
                         <li class="checklist__item">
+                            <span class="checklist__sheen" aria-hidden="true"></span>
                             <span class="checklist__mark" aria-hidden="true"></span>
                             <span class="checklist__text">{{ item.text }}</span>
                         </li>
