@@ -53,27 +53,43 @@
     {% if process %}
         <section class="section section--soft" id="process">
             <div class="container">
-                <div class="section__head">
+                <div class="section__head text-center">
                     <h2 class="section__title">{{ process.title }}</h2>
                     {% if process.subtitle %}<p class="section__subtitle">{{ process.subtitle }}</p>{% endif %}
                 </div>
-                <ol class="steps">
-                    {% for item in process.items|default([]) %}
-                        <li class="steps__item">
-                            <span class="steps__num">{{ loop.index }}</span>
-                            <div class="steps__body">
-                                <h3 class="steps__title">{{ item.title }}</h3>
-                                <p class="steps__text">{{ item.text }}</p>
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ol>
+                <div class="process-path" data-process-path>
+                    <svg class="process-path__track process-path__track--horizontal" aria-hidden="true">
+                        <path class="process-path__line process-path__line--base" data-process-path-base />
+                        <path class="process-path__line process-path__line--draw" data-process-path-draw pathLength="100" />
+                    </svg>
+                    <svg class="process-path__track process-path__track--vertical" aria-hidden="true">
+                        <path class="process-path__line process-path__line--base" data-process-path-base />
+                        <path class="process-path__line process-path__line--draw" data-process-path-draw pathLength="100" />
+                    </svg>
+                    <span class="process-path__orb" data-process-path-orb aria-hidden="true"></span>
+                    <ol class="process-path__steps">
+                        {% for item in process.items|default([]) %}
+                            <li class="process-path__step" style="--step-index: {{ loop.index0 }}">
+                                <span class="process-path__node-shell">
+                                    <span class="process-path__node">
+                                        <span class="process-path__charge" aria-hidden="true"></span>
+                                        <span class="process-path__num">{{ loop.index }}</span>
+                                    </span>
+                                </span>
+                                <div class="process-path__body">
+                                    <h3 class="process-path__title">{{ item.title }}</h3>
+                                    <p class="process-path__text">{{ item.text }}</p>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </div>
             </div>
         </section>
     {% endif %}
 
     {% if audience %}
-        <section class="section" id="about">
+        <section class="section text-center" id="about">
             <div class="container">
                 <h2 class="section__title">{{ audience.title }}</h2>
                 <p class="section__text section__text--brand">{{ audience.body }}</p>

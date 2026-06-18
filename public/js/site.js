@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initInquiryForm();
     initFileUploads();
     initPricingAccordion();
+    initProcessPath();
 
     const onScroll = () => {
         const y = window.scrollY;
@@ -518,6 +519,312 @@ function initFileUploads() {
             input.dispatchEvent(new Event('change', { bubbles: true }));
         });
     });
+}
+
+function initProcessPath() {
+    const block = document.querySelector('[data-process-path]');
+    if (!(block instanceof HTMLElement)) {
+        return;
+    }
+
+    const orb = block.querySelector('[data-process-path-orb]');
+    if (!(orb instanceof HTMLElement)) {
+        return;
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+    let animationToken = 0;
+    let points = [];
+    let steps = [];
+
+    const clearChargedStates = () => {
+        block.querySelectorAll('.process-path__step.is-charged').forEach((step) => {
+            step.classList.remove('is-charged');
+        });
+    };
+
+    const setOrb = (x, y, scale, opacity) => {
+        orb.style.left = `${x}px`;
+        orb.style.top = `${y}px`;
+        orb.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        orb.style.opacity = String(opacity);
+    };
+
+    const syncTracks = () => {
+        const isMobile = mobileQuery.matches;
+        const horizontalSvg = block.querySelector('.process-path__track--horizontal');
+        const verticalSvg = block.querySelector('.process-path__track--vertical');
+        const activeSvg = isMobile ? verticalSvg : horizontalSvg;
+
+        if (!(activeSvg instanceof SVGSVGElement)) {
+            return;
+        }
+
+        const nodes = [...block.querySelectorAll('.process-path__node-shell')];
+        steps = nodes.map((node) => node.closest('.process-path__step')).filter((step) => step instanceof HTMLElement);
+
+        if (nodes.length < 2) {
+            return;
+        }
+
+        const blockRect = block.getBoundingClientRect();
+        const width = Math.max(1, Math.round(blockRect.width));
+        const height = Math.max(1, Math.round(blockRect.height));
+
+        points = nodes.map((node) => {
+            const rect = node.getBoundingClientRect();
+
+            return {
+                x: rect.left + rect.width / 2 - blockRect.left,
+                y: rect.top + rect.height / 2 - blockRect.top,
+            };
+        });
+
+        const pathData = buildStraightPath(points);
+
+        activeSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        activeSvg.setAttribute('preserveAspectRatio', 'none');
+
+        activeSvg.querySelectorAll('[data-process-path-base], [data-process-path-draw]').forEach((path) => {
+            if (path instanceof SVGPathElement) {
+                path.setAttribute('d', pathData);
+            }
+        });
+
+        if (block.classList.contains('is-animating')) {
+            restartAnimation();
+        }
+    };
+
+    const restartAnimation = () => {
+        animationToken += 1;
+        clearChargedStates();
+        setOrb(points[0]?.x ?? 0, points[0]?.y ?? 0, 0, 0);
+
+        if (!prefersReducedMotion && block.classList.contains('is-visible') && points.length > 1) {
+            block.classList.add('is-animating');
+            runAnimationLoop(animationToken);
+        }
+    };
+
+    const wait = (ms, token) => new Promise((resolve) => {
+        window.setTimeout(() => {
+            resolve(token === animationToken);
+        }, ms);
+    });
+
+    const tweenOrb = (from, to, duration, token) => new Promise((resolve) => {
+        const start = performance.now();
+
+        const frame = (now) => {
+            if (token !== animationToken) {
+                resolve(false);
+                return;
+            }
+
+            const progress = Math.min(1, (now - start) / duration);
+            const eased = 1 - (1 - progress) ** 3;
+
+            setOrb(
+                from.x + (to.x - from.x) * eased,
+                from.y + (to.y - from.y) * eased,
+                from.scale + (to.scale - from.scale) * eased,
+                from.opacity + (to.opacity - from.opacity) * eased,
+            );
+
+            if (progress < 1) {
+                requestAnimationFrame(frame);
+                return;
+            }
+
+            resolve(true);
+        };
+
+        requestAnimationFrame(frame);
+    });
+
+    const chargeNode = async (index, token, isLast = false, fromHidden = false) => {
+        const step = steps[index];
+        const point = points[index];
+
+        if (!(step instanceof HTMLElement) || !point) {
+            return false;
+        }
+
+        if (fromHidden) {
+            setOrb(point.x, point.y, 0.2, 0);
+
+            const appeared = await tweenOrb(
+                { x: point.x, y: point.y, scale: 0.2, opacity: 0 },
+                { x: point.x, y: point.y, scale: 1, opacity: 1 },
+                280,
+                token,
+            );
+
+            if (!appeared) {
+                return false;
+            }
+        }
+
+        const ignited = await tweenOrb(
+            { x: point.x, y: point.y, scale: 1, opacity: 1 },
+            { x: point.x, y: point.y, scale: 2.4, opacity: 1 },
+            200,
+            token,
+        );
+
+        if (!ignited) {
+            return false;
+        }
+
+        const vanished = await tweenOrb(
+            { x: point.x, y: point.y, scale: 2.4, opacity: 1 },
+            { x: point.x, y: point.y, scale: 0.2, opacity: 0 },
+            220,
+            token,
+        );
+
+        if (!vanished) {
+            return false;
+        }
+
+        step.classList.add('is-charged');
+        const dwellMs = isLast ? 1050 : 760;
+        const stillActive = await wait(dwellMs, token);
+
+        if (!stillActive) {
+            return false;
+        }
+
+        step.classList.remove('is-charged');
+        const settled = await wait(480, token);
+
+        if (!settled) {
+            return false;
+        }
+
+        const emerged = await tweenOrb(
+            { x: point.x, y: point.y, scale: 0.25, opacity: 0 },
+            { x: point.x, y: point.y, scale: 1, opacity: 1 },
+            300,
+            token,
+        );
+
+        return emerged;
+    };
+
+    const runAnimationLoop = async (token) => {
+        if (points.length < 2) {
+            return;
+        }
+
+        while (token === animationToken && block.classList.contains('is-visible')) {
+            const booted = await chargeNode(0, token, false, true);
+            if (!booted) {
+                return;
+            }
+
+            for (let index = 0; index < points.length - 1; index += 1) {
+                const from = points[index];
+                const to = points[index + 1];
+                const distance = Math.hypot(to.x - from.x, to.y - from.y);
+                const duration = Math.max(520, Math.min(920, distance * 1.35));
+
+                const traveled = await tweenOrb(
+                    { x: from.x, y: from.y, scale: 1, opacity: 1 },
+                    { x: to.x, y: to.y, scale: 1, opacity: 1 },
+                    duration,
+                    token,
+                );
+
+                if (!traveled) {
+                    return;
+                }
+
+                const charged = await chargeNode(index + 1, token, index + 1 === points.length - 1);
+                if (!charged) {
+                    return;
+                }
+            }
+
+            setOrb(points[0].x, points[0].y, 0.2, 0);
+            const cycled = await wait(360, token);
+
+            if (!cycled) {
+                return;
+            }
+        }
+    };
+
+    const revealIfNeeded = () => {
+        if (prefersReducedMotion) {
+            block.classList.add('is-visible');
+            return;
+        }
+
+        block.classList.add('is-awaiting');
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+
+                block.classList.add('is-visible');
+                observer.disconnect();
+
+                window.setTimeout(() => {
+                    restartAnimation();
+                }, 1400);
+            },
+            { threshold: 0.2, rootMargin: '0px 0px -8% 0px' },
+        );
+
+        observer.observe(block);
+    };
+
+    syncTracks();
+    revealIfNeeded();
+
+    requestAnimationFrame(() => {
+        syncTracks();
+        requestAnimationFrame(syncTracks);
+    });
+
+    if (document.fonts?.ready) {
+        document.fonts.ready.then(syncTracks).catch(() => {});
+    }
+
+    if (typeof ResizeObserver !== 'undefined') {
+        const resizeObserver = new ResizeObserver(() => {
+            syncTracks();
+        });
+        resizeObserver.observe(block);
+    } else {
+        window.addEventListener('resize', syncTracks, { passive: true });
+    }
+
+    mobileQuery.addEventListener('change', syncTracks);
+}
+
+function buildStraightPath(points) {
+    if (points.length === 0) {
+        return '';
+    }
+
+    let path = `M ${round(points[0].x)} ${round(points[0].y)}`;
+
+    for (let index = 1; index < points.length; index += 1) {
+        path += ` L ${round(points[index].x)} ${round(points[index].y)}`;
+    }
+
+    return path;
+}
+
+function round(value) {
+    return Math.round(value * 10) / 10;
 }
 
 function initPricingAccordion() {
