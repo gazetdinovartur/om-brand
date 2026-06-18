@@ -44,7 +44,7 @@
         </div>
         <div class="hero__actions">
             <div class="container">
-                <a class="btn btn-primary" href="#contact">Написать мне</a>
+                <a class="btn btn-primary" href="#contact" data-hero-cta>Написать мне</a>
             </div>
         </div>
         <div class="hero__arc" aria-hidden="true"></div>
@@ -125,17 +125,13 @@
         {% if pains %}
             <section class="section" id="pains">
                 <div class="container">
-                    <div class="section__head">
+                    <div class="section__head text-center">
                         <h2 class="section__title">{{ pains.title }}</h2>
                         {% if pains.subtitle %}<p class="section__subtitle">{{ pains.subtitle }}</p>{% endif %}
                     </div>
-                    <ul class="checklist">
+                    <ul class="pain-bento">
                         {% for item in pains.items|default([]) %}
-                            <li class="checklist__item">
-                                <span class="checklist__sheen" aria-hidden="true"></span>
-                                <span class="checklist__mark" aria-hidden="true"></span>
-                                <span class="checklist__text">{{ item.text }}</span>
-                            </li>
+                            <li class="pain-bento__item{{ item.featured|default(false) ? ' pain-bento__item--feature' : '' }}">{{ item.text }}</li>
                         {% endfor %}
                     </ul>
                 </div>

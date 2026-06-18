@@ -13,6 +13,7 @@ parameters:
     env(TELEGRAM_CHAT_ID): ''
     env(SBP_PAYMENT_URL_TEMPLATE): ''
     env(MAILER_DSN): 'null://null'
+    env(MAILER_FROM): ''
     env(APP_SITE_URL): ''
     env(ADMIN_EMAIL): ''
     env(ADMIN_PASSWORD): ''

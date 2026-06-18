@@ -257,9 +257,9 @@ body.site-body {
     width: min(100%, 20.5rem);
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
     padding:
-        calc(5rem + env(safe-area-inset-top, 0px))
+        calc(0.85rem + env(safe-area-inset-top, 0px))
         1.35rem
         calc(1.5rem + env(safe-area-inset-bottom, 0px));
     background: var(--surface);
@@ -268,6 +268,68 @@ body.site-body {
     transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+}
+
+.mobile-nav__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.15rem;
+}
+
+.mobile-nav__eyebrow {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.mobile-nav__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 4px 18px rgba(31, 26, 20, 0.08);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-nav__close:hover,
+.mobile-nav__close:focus-visible {
+    background: rgba(255, 255, 255, 0.98);
+    outline: 2px solid rgba(200, 120, 40, 0.45);
+    outline-offset: 2px;
+}
+
+.mobile-nav__close-icon,
+.mobile-nav__close-icon::before {
+    display: block;
+    width: 1.1rem;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--text);
+}
+
+.mobile-nav__close-icon {
+    position: relative;
+    transform: rotate(45deg);
+}
+
+.mobile-nav__close-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: rotate(-90deg);
 }
 
 .mobile-nav.is-open .mobile-nav__panel {
@@ -583,187 +645,57 @@ body.site-body {
     color: var(--primary);
 }
 
-.checklist {
+.pain-bento {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 0.85rem;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.65rem;
 }
 
-.checklist__item {
-    position: relative;
-    display: flex;
-    gap: 0.85rem;
-    align-items: flex-start;
-    padding: 1rem 1.1rem;
+.pain-bento__item {
+    grid-column: span 4;
+    padding: 0.72rem 0.95rem;
+    font-size: 0.88rem;
+    line-height: 1.42;
+    color: var(--text);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    isolation: isolate;
+    box-shadow: 0 6px 18px rgba(31, 26, 20, 0.04);
     transition:
-        border-color 0.28s ease,
-        box-shadow 0.28s ease,
-        transform 0.28s ease;
+        border-color 0.24s ease,
+        box-shadow 0.24s ease,
+        transform 0.24s ease;
 }
 
-.checklist__sheen {
-    position: absolute;
-    inset: -20% -40%;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(
-        105deg,
-        transparent 42%,
-        rgba(255, 255, 255, 0.04) 46%,
-        rgba(255, 255, 255, 0.72) 50%,
-        rgba(255, 252, 248, 0.48) 52%,
-        rgba(255, 255, 255, 0.04) 56%,
-        transparent 60%
-    );
-    transform: translateX(-115%) skewX(-12deg);
-    opacity: 0;
+.pain-bento__item:nth-child(4),
+.pain-bento__item:nth-child(5) {
+    grid-column: span 6;
 }
 
-.checklist__item::before,
-.checklist__item::after {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* Хаос — рассыпанные кристаллические фрагменты */
-.checklist__item::before {
-    top: -0.25rem;
-    right: 3.25rem;
-    width: 5.75rem;
-    height: 5.75rem;
-    opacity: 0.14;
-    transition: opacity 0.28s ease;
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-}
-
-/* Порядок — решётка, гексагоны, симметрия */
-.checklist__item::after {
-    right: 0.45rem;
-    bottom: 0.35rem;
-    width: 5rem;
-    height: 5rem;
-    opacity: 0.18;
-    transition: opacity 0.28s ease;
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-}
-
-.checklist__mark,
-.checklist__text {
-    position: relative;
-    z-index: 2;
-}
-
-@keyframes checklist-sun-sweep {
-    from {
-        transform: translateX(-115%) skewX(-12deg);
-        opacity: 0;
-    }
-
-    12% {
-        opacity: 1;
-    }
-
-    to {
-        transform: translateX(115%) skewX(-12deg);
-        opacity: 0;
-    }
-}
-
-/* 1: осколки семени → Цветок жизни */
-.checklist__item:nth-child(8n+1)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='16' cy='24' r='7' opacity='.45'/%3E%3Ccircle cx='28' cy='32' r='6' opacity='.35'/%3E%3Cpath d='M8 42a9 9 0 0 1 14 2' opacity='.4'/%3E%3Cpath d='M32 14a7 7 0 0 1 2 10' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+1)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='7'/%3E%3Ccircle cx='71' cy='64' r='7'/%3E%3Ccircle cx='67.5' cy='70.062' r='7'/%3E%3Ccircle cx='60.5' cy='70.062' r='7'/%3E%3Ccircle cx='57' cy='64' r='7'/%3E%3Ccircle cx='60.5' cy='57.938' r='7'/%3E%3Ccircle cx='67.5' cy='57.938' r='7'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* 2: рваная везика → Везica piscis */
-.checklist__item:nth-child(8n+2)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Cpath d='M10 28a10 10 0 0 1 16 0' opacity='.5'/%3E%3Cpath d='M28 16a8 8 0 0 1 0 14' opacity='.4'/%3E%3Ccircle cx='14' cy='38' r='5' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+2)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='58' cy='64' r='9'/%3E%3Ccircle cx='70' cy='64' r='9'/%3E%3Cpath d='M64 55.2V72.8' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* 3: разрозненное семя → Семя жизни */
-.checklist__item:nth-child(8n+3)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='14' cy='20' r='5' opacity='.5'/%3E%3Ccircle cx='26' cy='28' r='4' opacity='.4'/%3E%3Ccircle cx='10' cy='36' r='3.5' opacity='.35'/%3E%3Ccircle cx='32' cy='14' r='3' opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+3)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='6'/%3E%3Ccircle cx='70' cy='64' r='6'/%3E%3Ccircle cx='67' cy='69.196' r='6'/%3E%3Ccircle cx='61' cy='69.196' r='6'/%3E%3Ccircle cx='58' cy='64' r='6'/%3E%3Ccircle cx='61' cy='58.804' r='6'/%3E%3Ccircle cx='67' cy='58.804' r='6'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* 4: осколки → Шри-янтра (вложенные треугольники) */
-.checklist__item:nth-child(8n+4)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Cpath d='M18 16L28 34L8 34Z' transform='rotate(-12 18 25)' opacity='.5'/%3E%3Cpath d='M36 10L44 26L28 24Z' transform='rotate(18 36 18)' opacity='.4'/%3E%3Cpath d='M12 48L20 62L4 58Z' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+4)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Cpolygon points='64,50 76,70 52,70'/%3E%3Cpolygon points='64,74 52,54 76,54' opacity='.75'/%3E%3Cpolygon points='64,54 70,66 58,66' opacity='.55'/%3E%3Cpolygon points='64,70 58,58 70,58' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* 5: осколки → Метатрон (куб сотворения) */
-.checklist__item:nth-child(8n+5)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M12 28L22 22L32 28M22 22V38M12 28L22 44' opacity='.55'/%3E%3Cpath d='M30 12L38 20L34 30M38 20L26 24' opacity='.4'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+5)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='5'/%3E%3Ccircle cx='73' cy='64' r='5'/%3E%3Ccircle cx='68.5' cy='73.5' r='5'/%3E%3Ccircle cx='59.5' cy='73.5' r='5'/%3E%3Ccircle cx='55' cy='64' r='5'/%3E%3Ccircle cx='59.5' cy='54.5' r='5'/%3E%3Ccircle cx='68.5' cy='54.5' r='5'/%3E%3Cpath d='M64 64L73 64M64 64L68.5 73.5M64 64L59.5 73.5M64 64L55 64M64 64L59.5 54.5M64 64L68.5 54.5M55 64L59.5 54.5M73 64L68.5 54.5M59.5 73.5L73 64M68.5 73.5L55 64' opacity='.45'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* 6: обрывки → Тор (гекс в Цветке жизни) */
-.checklist__item:nth-child(8n+6)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M10 22a6 6 0 0 1 10 0M28 12a5 5 0 0 1 0 8M8 40a7 7 0 0 1 12 0' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+6)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='58' cy='60' r='5.5'/%3E%3Ccircle cx='64' cy='60' r='5.5'/%3E%3Ccircle cx='70' cy='60' r='5.5'/%3E%3Ccircle cx='61' cy='69.4' r='5.5'/%3E%3Ccircle cx='67' cy='69.4' r='5.5'/%3E%3Ccircle cx='73' cy='69.4' r='5.5'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* 7: концентрические круги — оставляем */
-.checklist__item:nth-child(8n+7)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='22' cy='28' r='10' opacity='.55'/%3E%3Ccircle cx='36' cy='38' r='8' opacity='.45'/%3E%3Ccircle cx='14' cy='44' r='7' opacity='.4'/%3E%3Ccircle cx='32' cy='18' r='6' opacity='.35'/%3E%3Ccircle cx='44' cy='30' r='5' opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+7)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.05'%3E%3Ccircle cx='66' cy='66' r='6'/%3E%3Ccircle cx='66' cy='66' r='11' opacity='.78'/%3E%3Ccircle cx='66' cy='66' r='16' opacity='.58'/%3E%3Ccircle cx='66' cy='66' r='21' opacity='.38'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* 8: как первый пункт — осколки семени → Цветок жизни */
-.checklist__item:nth-child(8n+8)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1.1'%3E%3Ccircle cx='16' cy='24' r='7' opacity='.45'/%3E%3Ccircle cx='28' cy='32' r='6' opacity='.35'/%3E%3Cpath d='M8 42a9 9 0 0 1 14 2' opacity='.4'/%3E%3Cpath d='M32 14a7 7 0 0 1 2 10' opacity='.35'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.checklist__item:nth-child(8n+8)::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88' fill='none'%3E%3Cg stroke='%23c87828' stroke-width='1'%3E%3Ccircle cx='64' cy='64' r='7'/%3E%3Ccircle cx='71' cy='64' r='7'/%3E%3Ccircle cx='67.5' cy='70.062' r='7'/%3E%3Ccircle cx='60.5' cy='70.062' r='7'/%3E%3Ccircle cx='57' cy='64' r='7'/%3E%3Ccircle cx='60.5' cy='57.938' r='7'/%3E%3Ccircle cx='67.5' cy='57.938' r='7'/%3E%3C/g%3E%3C/svg%3E");
+.pain-bento__item--feature {
+    grid-column: span 6;
+    padding: 1.05rem 1.15rem;
+    font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+    font-weight: 500;
+    line-height: 1.48;
+    background: linear-gradient(155deg, #fffdf9 0%, rgba(232, 168, 73, 0.1) 100%);
+    border-color: rgba(200, 120, 40, 0.24);
+    box-shadow: 0 12px 32px rgba(200, 120, 40, 0.1);
 }
 
 @media (hover: hover) {
-    .checklist__item:hover {
-        border-color: rgba(232, 168, 73, 0.28);
-        box-shadow: 0 16px 40px rgba(200, 120, 40, 0.12);
-        transform: translateY(-1px);
+    .pain-bento__item:hover {
+        border-color: rgba(232, 168, 73, 0.3);
+        box-shadow: 0 10px 24px rgba(200, 120, 40, 0.09);
+        transform: translateY(-2px);
     }
 
-    .checklist__item:hover .checklist__sheen {
-        animation: checklist-sun-sweep 0.85s ease;
+    .pain-bento__item--feature:hover {
+        border-color: rgba(200, 120, 40, 0.38);
+        box-shadow: 0 14px 34px rgba(200, 120, 40, 0.14);
     }
 
     .card--catalog:hover {
@@ -775,36 +707,48 @@ body.site-body {
     .card--catalog:hover .card__title {
         color: var(--primary);
     }
+}
 
-    .checklist__item:hover::before,
-    .checklist__item:hover::after {
-        opacity: 0.33;
+@media (max-width: 900px) {
+    .pain-bento__item,
+    .pain-bento__item:nth-child(4),
+    .pain-bento__item:nth-child(5),
+    .pain-bento__item--feature {
+        grid-column: span 6;
+    }
+}
+
+@media (max-width: 768px) {
+    .pain-bento {
+        grid-template-columns: 1fr;
+        gap: 0.55rem;
+    }
+
+    .pain-bento__item,
+    .pain-bento__item:nth-child(4),
+    .pain-bento__item:nth-child(5),
+    .pain-bento__item--feature {
+        grid-column: span 1;
+        font-size: 0.86rem;
+        padding: 0.65rem 0.85rem;
+    }
+
+    .pain-bento__item--feature {
+        font-size: 0.92rem;
+        padding: 0.82rem 0.95rem;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .checklist__sheen {
-        display: none;
-    }
-
-    .checklist__item,
+    .pain-bento__item,
     .card--catalog {
         transition: border-color 0.28s ease, box-shadow 0.28s ease;
     }
 
-    .checklist__item:hover,
+    .pain-bento__item:hover,
     .card--catalog:hover {
         transform: none;
     }
-}
-
-.checklist__mark {
-    width: 0.75rem;
-    height: 0.75rem;
-    margin-top: 0.45rem;
-    border-radius: 999px;
-    background: var(--accent);
-    flex-shrink: 0;
 }
 
 .cards {
@@ -1966,13 +1910,22 @@ select.form-control:focus {
     z-index: 30;
     padding: 0.9rem 1.1rem;
     border-radius: 999px;
-    background: rgba(31, 26, 20, 0.92);
+    background: #1f1a14;
     color: #fff;
     text-decoration: none;
     font-size: 0.92rem;
     font-weight: 600;
-    box-shadow: 0 12px 30px rgba(31, 26, 20, 0.22);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 12px 30px rgba(31, 26, 20, 0.28);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.35rem);
+    transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.site-fab.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
 }
 
 .payment-card__eyebrow {
@@ -2097,7 +2050,6 @@ select.form-control:focus {
 
     .mobile-nav__panel {
         width: 100%;
-        padding-top: calc(4.75rem + env(safe-area-inset-top, 0px));
     }
 
     .hero__inner {

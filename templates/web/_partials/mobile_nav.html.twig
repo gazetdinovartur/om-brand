@@ -2,12 +2,19 @@
     <button type="button" class="mobile-nav__backdrop" data-nav-backdrop aria-label="Закрыть меню"></button>
 
     <div class="mobile-nav__panel" data-nav-panel role="dialog" aria-modal="true" aria-label="Меню сайта">
+        <div class="mobile-nav__head">
+            <p class="mobile-nav__eyebrow">Навигация</p>
+            <button type="button" class="mobile-nav__close" data-nav-close aria-label="Закрыть меню">
+                <span class="mobile-nav__close-icon" aria-hidden="true"></span>
+            </button>
+        </div>
+
         <nav class="mobile-nav__links" aria-label="Мобильная навигация">
             {% for item in navAnchors|default([]) %}
                 <a class="mobile-nav__link" href="{{ navPrefix ~ item.href }}" data-nav-link>{{ item.label }}</a>
             {% endfor %}
         </nav>
 
-        <a class="btn btn-primary mobile-nav__cta" href="{{ navPrefix ~ '#contact' }}" data-nav-link>Рассказать о задаче</a>
+        <a class="btn btn-primary mobile-nav__cta" href="{{ navPrefix ~ '#contact' }}" data-nav-link>Написать мне</a>
     </div>
 </div>

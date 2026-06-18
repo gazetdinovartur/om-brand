@@ -7,6 +7,7 @@ use App\Entity\SiteSettings;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -18,12 +19,16 @@ final class InquiryMailNotifier
         private readonly LoggerInterface $logger,
         #[Autowire('%env(MAILER_DSN)%')]
         private readonly string $mailerDsn = '',
+        #[Autowire('%env(MAILER_FROM)%')]
+        private readonly string $mailFrom = '',
     ) {
     }
 
     public function isConfigured(): bool
     {
-        return '' !== $this->mailerDsn && !str_starts_with($this->mailerDsn, 'null://');
+        return '' !== $this->mailerDsn
+            && !str_starts_with($this->mailerDsn, 'null://')
+            && '' !== trim($this->mailFrom);
     }
 
     public function notifyNewInquiry(Inquiry $inquiry, SiteSettings $settings): bool
@@ -54,10 +59,16 @@ final class InquiryMailNotifier
             $adminUrl,
         );
 
+        $senderName = trim((string) $settings->getName());
+        $from = '' !== $senderName
+            ? new Address($this->mailFrom, $senderName)
+            : new Address($this->mailFrom);
+
         try {
             $this->mailer->send(
                 (new Email())
-                    ->from($recipient)
+                    ->from($from)
+                    ->sender($this->mailFrom)
                     ->to($recipient)
                     ->subject(sprintf('Новая заявка #%d · %s', $inquiry->getId(), $inquiry->getName()))
                     ->text($body),

@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const header = document.querySelector('.site-header');
     const fab = document.querySelector('.site-fab');
+    const heroCta = document.querySelector('[data-hero-cta]');
     const contact = document.querySelector('#contact');
 
     initMobileNav();
@@ -10,15 +11,38 @@ document.addEventListener('DOMContentLoaded', () => {
     initPricingAccordion();
     initProcessPath();
 
+    const updateFabVisibility = () => {
+        if (!(fab instanceof HTMLElement) || document.body.classList.contains('site-body--nav-open')) {
+            return;
+        }
+
+        let showFab = true;
+
+        if (heroCta instanceof HTMLElement) {
+            const heroRect = heroCta.getBoundingClientRect();
+            const heroCtaVisible = heroRect.bottom > 0 && heroRect.top < window.innerHeight;
+
+            if (heroCtaVisible) {
+                showFab = false;
+            }
+        }
+
+        if (showFab && contact instanceof HTMLElement) {
+            const contactRect = contact.getBoundingClientRect();
+
+            if (contactRect.top < window.innerHeight * 0.6) {
+                showFab = false;
+            }
+        }
+
+        fab.classList.toggle('is-visible', showFab);
+    };
+
     const onScroll = () => {
         const y = window.scrollY;
         document.documentElement.style.setProperty('--scroll', String(Math.min(y / 600, 1)));
 
-        if (fab && contact && !document.body.classList.contains('site-body--nav-open')) {
-            const rect = contact.getBoundingClientRect();
-            fab.style.opacity = rect.top < window.innerHeight * 0.6 ? '0' : '1';
-            fab.style.pointerEvents = rect.top < window.innerHeight * 0.6 ? 'none' : 'auto';
-        }
+        updateFabVisibility();
 
         if (header) {
             header.style.boxShadow = y > 12 ? '0 10px 30px rgba(31, 26, 20, 0.05)' : 'none';
@@ -26,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', updateFabVisibility, { passive: true });
     onScroll();
 });
 
@@ -69,7 +94,7 @@ function initMobileNav() {
         lockScroll();
         requestAnimationFrame(() => {
             root.classList.add('is-open');
-            root.querySelector('[data-nav-link]')?.focus({ preventScroll: true });
+            root.querySelector('[data-nav-close]')?.focus({ preventScroll: true });
         });
     };
 
@@ -83,6 +108,10 @@ function initMobileNav() {
     });
 
     backdrop.addEventListener('click', close);
+
+    root.querySelectorAll('[data-nav-close]').forEach((button) => {
+        button.addEventListener('click', close);
+    });
 
     links.forEach((link) => {
         link.addEventListener('click', close);

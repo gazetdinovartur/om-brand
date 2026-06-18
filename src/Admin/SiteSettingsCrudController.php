@@ -49,7 +49,7 @@ class SiteSettingsCrudController extends AbstractCrudController
             ->setHelp('Указывается в политике конфиденциальности для обращений по персональным данным.');
         yield EmailField::new('notificationEmail', 'Email для заявок')
             ->hideOnIndex()
-            ->setHelp('Fallback-уведомления о новых заявках, если Telegram недоступен. Нужен MAILER_DSN.');
+            ->setHelp('Куда приходят уведомления (Gmail, Яндекс и т.д.). Отправитель задаётся в MAILER_FROM на сервере, не здесь.');
         yield TextareaField::new('formSuccessMessage', 'Сообщение после заявки')->hideOnIndex();
         yield TextField::new('sbpPaymentUrlTemplate', 'Шаблон ссылки СБП')
             ->hideOnIndex()
