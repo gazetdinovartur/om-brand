@@ -9,8 +9,8 @@
     </article>
 {% endmacro %}
 
-{% macro catalog(item) %}
-    <article class="card card--catalog">
+{% macro catalog(item, featured = false) %}
+    <article class="card card--catalog{{ featured or item.featured|default(false) ? ' card--catalog--feature' : '' }}">
         {% if item.title|default('') is not empty %}
             <h3 class="card__title">{{ item.title }}</h3>
         {% endif %}

@@ -1,0 +1,14 @@
+Новая заявка #{{ inquiry.id }} · {{ siteDomain }}
+
+Имя: {{ inquiry.name }}
+Контакт ({{ inquiry.contactType.label() }}): {{ inquiry.contact }}
+Тип запроса: {{ inquiry.inquiryType.label() }}
+
+{{ messageText }}
+{% if inquiry.hasAttachment %}
+
+Вложение: {{ inquiry.attachmentOriginalName }}
+{% endif %}
+
+Открыть в админке:
+{{ adminUrl }}

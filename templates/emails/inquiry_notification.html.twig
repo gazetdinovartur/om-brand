@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новая заявка #{{ inquiry.id }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#18181b;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f4f5;padding:24px 12px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:12px;border:1px solid #e4e4e7;">
+                <tr>
+                    <td style="padding:28px 28px 8px;">
+                        <p style="margin:0 0 8px;font-size:13px;line-height:1.4;color:#71717a;text-transform:uppercase;letter-spacing:0.04em;">
+                            {{ siteDomain }}
+                        </p>
+                        <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;color:#18181b;">
+                            Новая заявка #{{ inquiry.id }}
+                        </h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 28px 20px;">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:15px;line-height:1.6;">
+                            <tr>
+                                <td style="padding:8px 0;color:#71717a;width:120px;vertical-align:top;">Имя</td>
+                                <td style="padding:8px 0;color:#18181b;font-weight:500;">{{ inquiry.name }}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:8px 0;color:#71717a;vertical-align:top;">Контакт</td>
+                                <td style="padding:8px 0;color:#18181b;">{{ inquiry.contactType.label() }} · {{ inquiry.contact }}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:8px 0;color:#71717a;vertical-align:top;">Тип</td>
+                                <td style="padding:8px 0;color:#18181b;">{{ inquiry.inquiryType.label() }}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:8px 0;color:#71717a;vertical-align:top;">Сообщение</td>
+                                <td style="padding:8px 0;color:#18181b;white-space:pre-wrap;">{{ messageText }}</td>
+                            </tr>
+                            {% if inquiry.hasAttachment %}
+                            <tr>
+                                <td style="padding:8px 0;color:#71717a;vertical-align:top;">Файл</td>
+                                <td style="padding:8px 0;color:#18181b;">{{ inquiry.attachmentOriginalName }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 28px 28px;">
+                        <a href="{{ adminUrl }}" style="display:inline-block;padding:12px 20px;background:#18181b;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:500;">
+                            Открыть в админке
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

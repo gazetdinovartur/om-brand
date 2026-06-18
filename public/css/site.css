@@ -707,6 +707,16 @@ body.site-body {
     .card--catalog:hover .card__title {
         color: var(--primary);
     }
+
+    .cards--formats .card--catalog--feature:hover {
+        border-color: rgba(200, 120, 40, 0.34);
+        box-shadow: 0 14px 36px rgba(200, 120, 40, 0.13);
+    }
+
+    .cards.cards--formats > .card--catalog--feature:hover {
+        border-color: rgba(200, 120, 40, 0.34);
+        box-shadow: 0 14px 36px rgba(200, 120, 40, 0.13);
+    }
 }
 
 @media (max-width: 900px) {
@@ -798,6 +808,81 @@ body.site-body {
     flex-wrap: wrap;
     justify-content: center;
     gap: 1rem;
+}
+
+.cards.cards--formats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    justify-content: stretch;
+}
+
+.cards.cards--formats > .card--catalog {
+    flex: unset;
+    width: 100%;
+    max-width: none;
+    grid-column: span 1;
+}
+
+.cards.cards--formats > .card--catalog:nth-child(5) {
+    grid-column: 1 / span 2;
+}
+
+.cards.cards--formats > .card--catalog:nth-child(6) {
+    grid-column: 3 / span 2;
+}
+
+.cards.cards--formats > .card--catalog--feature {
+    min-height: 7.55rem;
+    padding: 1.55rem 1.4rem;
+    align-items: center;
+    background: linear-gradient(155deg, #fffdf9 0%, rgba(232, 168, 73, 0.09) 100%);
+    border-color: rgba(200, 120, 40, 0.2);
+    box-shadow: 0 12px 32px rgba(200, 120, 40, 0.09);
+}
+
+.cards.cards--formats > .card--catalog--feature .card__title {
+    font-size: 1.18rem;
+}
+
+.cards.cards--formats > .card--catalog--feature .card__text {
+    max-width: 22rem;
+    font-size: 0.96rem;
+    line-height: 1.52;
+}
+
+@media (max-width: 900px) {
+    .cards.cards--formats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cards.cards--formats > .card--catalog {
+        grid-column: span 1;
+    }
+
+    .cards.cards--formats > .card--catalog:nth-child(5),
+    .cards.cards--formats > .card--catalog:nth-child(6) {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .cards.cards--formats {
+        grid-template-columns: 1fr;
+    }
+
+    .cards.cards--formats > .card--catalog,
+    .cards.cards--formats > .card--catalog:nth-child(5),
+    .cards.cards--formats > .card--catalog:nth-child(6),
+    .cards.cards--formats > .card--catalog--feature {
+        grid-column: 1;
+        min-height: 7.25rem;
+        padding: 1.25rem 1.1rem;
+    }
+
+    .cards.cards--formats > .card--catalog--feature .card__text {
+        max-width: none;
+    }
 }
 
 .card--catalog {

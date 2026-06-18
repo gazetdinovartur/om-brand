@@ -153,9 +153,9 @@
                     <h2 class="section__title">{{ workFormats.title }}</h2>
                     {% if workFormats.subtitle %}<p class="section__subtitle">{{ workFormats.subtitle }}</p>{% endif %}
                 </div>
-                <div class="cards cards--catalog">
+                <div class="cards cards--catalog cards--formats">
                     {% for item in workFormats.items|default([]) %}
-                        {{ contentCard.catalog(item) }}
+                        {{ contentCard.catalog(item, loop.index > 4) }}
                     {% endfor %}
                 </div>
             </div>

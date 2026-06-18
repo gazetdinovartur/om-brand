@@ -6,16 +6,13 @@ use App\Entity\Inquiry;
 use App\Entity\PaymentOffer;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class TelegramNotifier
 {
     public function __construct(
         private readonly HttpClientInterface $httpClient,
-        private readonly UrlGeneratorInterface $urlGenerator,
-        private readonly RequestStack $requestStack,
+        private readonly InquiryAdminUrlGenerator $inquiryAdminUrlGenerator,
         private readonly LoggerInterface $logger,
         #[Autowire('%env(TELEGRAM_BOT_TOKEN)%')]
         private readonly ?string $botToken = null,
@@ -39,11 +36,12 @@ class TelegramNotifier
             return false;
         }
 
-        $adminUrl = $this->urlGenerator->generate(
-            'admin',
-            [],
-            UrlGeneratorInterface::ABSOLUTE_URL
-        ).'?crudAction=detail&crudControllerFqcn=App%5CAdmin%5CInquiryCrudController&entityId='.$inquiry->getId();
+        $inquiryId = $inquiry->getId();
+        if (null === $inquiryId) {
+            return false;
+        }
+
+        $adminUrl = $this->inquiryAdminUrlGenerator->detailUrl($inquiryId);
 
         $attachmentLine = $inquiry->hasAttachment()
             ? "\n📎 Файл: ".$inquiry->getAttachmentOriginalName()
