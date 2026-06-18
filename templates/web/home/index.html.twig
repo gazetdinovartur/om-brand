@@ -44,78 +44,14 @@
         </div>
         <div class="hero__actions">
             <div class="container">
-                <a class="btn btn-primary" href="#contact">Рассказать о задаче</a>
+                <a class="btn btn-primary" href="#contact">Написать мне</a>
             </div>
         </div>
         <div class="hero__arc" aria-hidden="true"></div>
     </section>
 
-    {% if audience %}
-        <section class="section section--soft" id="about">
-            <div class="container">
-                <h2 class="section__title">{{ audience.title }}</h2>
-                <p class="section__text section__text--brand">{{ audience.body }}</p>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if pains %}
-        <section class="section" id="pains">
-            <div class="container">
-                <div class="section__head">
-                    <h2 class="section__title">{{ pains.title }}</h2>
-                    {% if pains.subtitle %}<p class="section__subtitle">{{ pains.subtitle }}</p>{% endif %}
-                </div>
-                <ul class="checklist">
-                    {% for item in pains.items|default([]) %}
-                        <li class="checklist__item">
-                            <span class="checklist__sheen" aria-hidden="true"></span>
-                            <span class="checklist__mark" aria-hidden="true"></span>
-                            <span class="checklist__text">{{ item.text }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if specialization %}
-        <section class="section section--soft" id="approach">
-            <div class="container narrow text-center">
-                <h2 class="section__title">{{ specialization.title }}</h2>
-                {% set specializationParts = specialization.body|split('\n\n') %}
-                <p class="section__text">{{ specializationParts[0] }}</p>
-                {% if specializationParts[1]|default('') %}
-                    <p class="section__text section__text--brand">{{ specializationParts[1] }}</p>
-                {% endif %}
-            </div>
-        </section>
-    {% endif %}
-
-    {% if services %}
-        <section class="section" id="services">
-            <div class="container">
-                <h2 class="section__title text-center">{{ services.title }}</h2>
-                <div class="cards cards--catalog">
-                    {% for item in services.items|default([]) %}
-                        {{ contentCard.catalog(item) }}
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if philosophy %}
-        <section class="section section--accent" id="philosophy">
-            <div class="container narrow text-center">
-                <h2 class="section__title section__title--light">{{ philosophy.title }}</h2>
-                <p class="section__text section__text--light">{{ philosophy.body }}</p>
-            </div>
-        </section>
-    {% endif %}
-
     {% if process %}
-        <section class="section" id="process">
+        <section class="section section--soft" id="process">
             <div class="container">
                 <div class="section__head">
                     <h2 class="section__title">{{ process.title }}</h2>
@@ -132,6 +68,68 @@
                         </li>
                     {% endfor %}
                 </ol>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if audience %}
+        <section class="section" id="about">
+            <div class="container">
+                <h2 class="section__title">{{ audience.title }}</h2>
+                <p class="section__text section__text--brand">{{ audience.body }}</p>
+            </div>
+        </section>
+    {% endif %}
+
+{#    {% if specialization %}#}
+{#        <section class="section section--soft" id="approach">#}
+{#            <div class="container narrow text-center">#}
+{#                <h2 class="section__title">{{ specialization.title }}</h2>#}
+{#                {% set specializationParts = specialization.body|split('\n\n') %}#}
+{#                <p class="section__text">{{ specializationParts[0] }}</p>#}
+{#                {% if specializationParts[1]|default('') %}#}
+{#                    <p class="section__text section__text--brand">{{ specializationParts[1] }}</p>#}
+{#                {% endif %}#}
+{#            </div>#}
+{#        </section>#}
+{#    {% endif %}#}
+
+    {% if services %}
+        <section class="section section--soft" id="services">
+            <div class="container">
+                <h2 class="section__title text-center">{{ services.title }}</h2>
+                <div class="cards cards--catalog">
+                    {% for item in services.items|default([]) %}
+                        {{ contentCard.catalog(item) }}
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+        {% if pains %}
+            <section class="section" id="pains">
+                <div class="container">
+                    <div class="section__head">
+                        <h2 class="section__title">{{ pains.title }}</h2>
+                        {% if pains.subtitle %}<p class="section__subtitle">{{ pains.subtitle }}</p>{% endif %}
+                    </div>
+                    <ul class="checklist">
+                        {% for item in pains.items|default([]) %}
+                            <li class="checklist__item">
+                                <span class="checklist__sheen" aria-hidden="true"></span>
+                                <span class="checklist__mark" aria-hidden="true"></span>
+                                <span class="checklist__text">{{ item.text }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </section>
+        {% endif %}
+    {% if philosophy %}
+        <section class="section section--accent" id="philosophy">
+            <div class="container narrow text-center">
+                <h2 class="section__title section__title--light">{{ philosophy.title }}</h2>
+                <p class="section__text section__text--light">{{ philosophy.body }}</p>
             </div>
         </section>
     {% endif %}

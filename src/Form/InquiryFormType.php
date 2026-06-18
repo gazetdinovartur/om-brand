@@ -58,7 +58,7 @@ class InquiryFormType extends AbstractType
                 'choice_value' => static fn (?InquiryType $type) => $type?->value,
             ])
             ->add('message', TextareaType::class, [
-                'label' => 'Расскажите о задаче',
+                'label' => 'Ваш текст в свободной форме',
                 'required' => false,
                 'empty_data' => '',
                 'attr' => ['rows' => 5],
