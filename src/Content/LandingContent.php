@@ -156,7 +156,7 @@ final class LandingContent
     public static function navigationAnchors(bool $hasCases = false): array
     {
         $items = [
-            ['href' => '#approach', 'label' => 'Подход'],
+            ['href' => '#philosophy', 'label' => 'Подход'],
             ['href' => '#services', 'label' => 'Решения'],
             ['href' => '#process', 'label' => 'Процесс'],
             ['href' => '#formats', 'label' => 'Форматы'],
