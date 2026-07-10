@@ -156,10 +156,9 @@ final class LandingContent
     public static function navigationAnchors(bool $hasCases = false): array
     {
         $items = [
-            ['href' => '#philosophy', 'label' => 'Подход'],
-            ['href' => '#services', 'label' => 'Решения'],
             ['href' => '#process', 'label' => 'Процесс'],
-            ['href' => '#formats', 'label' => 'Форматы'],
+            ['href' => '#services', 'label' => 'Направления'],
+            ['href' => '#philosophy', 'label' => 'Подход'],
         ];
 
         if ($hasCases) {
