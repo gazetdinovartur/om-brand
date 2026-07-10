@@ -1,17 +1,14 @@
 {% extends 'web/layout.html.twig' %}
-{% import 'web/_partials/content_card.html.twig' as contentCard %}
 {% import 'web/_partials/pricing_accordion.html.twig' as pricingAccordion %}
 {% import 'web/_partials/avatar_image.html.twig' as avatarImage %}
 
 {% block body %}
     {% set hero = blocksBySlug.hero|default(null) %}
-    {% set audience = blocksBySlug.audience|default(null) %}
     {% set pains = blocksBySlug.pains|default(null) %}
     {% set specialization = blocksBySlug.specialization|default(null) %}
     {% set services = blocksBySlug.services|default(null) %}
     {% set philosophy = blocksBySlug.philosophy|default(null) %}
     {% set process = blocksBySlug.process|default(null) %}
-    {% set workFormats = blocksBySlug.work_formats|default(null) %}
     {% set pricing = blocksBySlug.pricing|default(null) %}
     {% set formIntro = blocksBySlug.form_intro|default(null) %}
 
@@ -88,76 +85,130 @@
         </section>
     {% endif %}
 
-    {% if audience %}
-        <section class="section text-center" id="about">
+    {% if pains %}
+        <section class="section section--pains-gradient" id="pains">
             <div class="container">
-                <h2 class="section__title">{{ audience.title }}</h2>
-                <p class="section__text section__text--brand">{{ audience.body }}</p>
+                <div class="section__head text-center">
+                    <h2 class="section__title">{{ pains.title }}</h2>
+                    {% if pains.subtitle %}<p class="section__subtitle">{{ pains.subtitle }}</p>{% endif %}
+                </div>
+                <ul class="pain-bento">
+                    {% for item in pains.items|default([]) %}
+                        <li class="pain-bento__item{{ item.featured|default(false) ? ' pain-bento__item--feature' : '' }}">{{ item.text }}</li>
+                    {% endfor %}
+                </ul>
             </div>
         </section>
     {% endif %}
-
-{#    {% if specialization %}#}
-{#        <section class="section section--soft" id="approach">#}
-{#            <div class="container narrow text-center">#}
-{#                <h2 class="section__title">{{ specialization.title }}</h2>#}
-{#                {% set specializationParts = specialization.body|split('\n\n') %}#}
-{#                <p class="section__text">{{ specializationParts[0] }}</p>#}
-{#                {% if specializationParts[1]|default('') %}#}
-{#                    <p class="section__text section__text--brand">{{ specializationParts[1] }}</p>#}
-{#                {% endif %}#}
-{#            </div>#}
-{#        </section>#}
-{#    {% endif %}#}
 
     {% if services %}
-        <section class="section section--soft" id="services">
+        <section class="section section--soft capabilities-section" id="services">
+            <span class="section-anchor" id="formats" aria-hidden="true"></span>
             <div class="container">
-                <h2 class="section__title text-center">{{ services.title }}</h2>
-                <div class="cards cards--catalog">
-                    {% for item in services.items|default([]) %}
-                        {{ contentCard.catalog(item) }}
-                    {% endfor %}
+                <div class="section__head capabilities-map__head">
+                    <p class="capabilities-map__eyebrow">Карта возможностей</p>
+                    <h2 class="section__title">{{ services.title }}</h2>
+                    <p class="section__subtitle">Выберите направление и посмотрите, во что может превратиться ваша задача — от первого разговора до рабочей системы</p>
+                </div>
+
+                <div class="capabilities-map" data-capabilities-map>
+                    <div class="capabilities-map__nav" role="tablist" aria-label="Направления возможностей">
+                        {% for item in services.items|default([]) %}
+                            <button
+                                class="capabilities-map__tab{{ loop.first ? ' is-active' : '' }}"
+                                type="button"
+                                id="capability-tab-{{ loop.index }}"
+                                role="tab"
+                                aria-controls="capability-panel-{{ loop.index }}"
+                                aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                                data-capability-tab
+                            >
+                                <span class="capabilities-map__tab-index">{{ '%02d'|format(loop.index) }}</span>
+                                <span class="capabilities-map__tab-label">{{ item.title }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <div class="capabilities-map__stage">
+                        {% for item in services.items|default([]) %}
+                            <article
+                                class="capabilities-map__panel{{ loop.first ? ' is-active' : '' }}"
+                                id="capability-panel-{{ loop.index }}"
+                                role="tabpanel"
+                                aria-labelledby="capability-tab-{{ loop.index }}"
+                                data-capability-panel
+                            >
+                                <p class="capabilities-map__panel-kicker">Направление {{ '%02d'|format(loop.index) }}</p>
+                                <h3 class="capabilities-map__title">{{ item.title }}</h3>
+                                <p class="capabilities-map__text">{{ item.text }}</p>
+
+                                {% set examples = item.examples|default([]) is iterable ? item.examples|default([]) : item.examples|split(',') %}
+                                {% if examples is not empty %}
+                                    <div class="capabilities-map__group">
+                                        <p class="capabilities-map__label">Что может быть внутри</p>
+                                        <ul class="capabilities-map__chips">
+                                            {% for example in examples %}
+                                                {% if example|trim is not empty %}
+                                                    <li>{{ example|trim }}</li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+
+                                {% if item.starts|default('') is not empty %}
+                                    <div class="capabilities-map__start">
+                                        <p class="capabilities-map__label">Как можно начать</p>
+                                        <p>{{ item.starts }}</p>
+                                    </div>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+
+                    <div class="capabilities-map__mobile">
+                        {% for item in services.items|default([]) %}
+                            <details class="capabilities-map__details"{% if loop.first %} open{% endif %}>
+                                <summary class="capabilities-map__summary">
+                                    <span class="capabilities-map__tab-index">{{ '%02d'|format(loop.index) }}</span>
+                                    <span>{{ item.title }}</span>
+                                </summary>
+                                <div class="capabilities-map__details-body">
+                                    <p class="capabilities-map__text">{{ item.text }}</p>
+                                    {% set examples = item.examples|default([]) is iterable ? item.examples|default([]) : item.examples|split(',') %}
+                                    {% if examples is not empty %}
+                                        <ul class="capabilities-map__chips">
+                                            {% for example in examples %}
+                                                {% if example|trim is not empty %}
+                                                    <li>{{ example|trim }}</li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                    {% if item.starts|default('') is not empty %}
+                                        <div class="capabilities-map__start">
+                                            <p class="capabilities-map__label">Как можно начать</p>
+                                            <p>{{ item.starts }}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </details>
+                        {% endfor %}
+                    </div>
+
+                    <div class="capabilities-map__footer">
+                        <p>Не обязательно выбирать точно. Можно прийти с идеей, хаосом в процессе или вопросом — вместе найдём подходящий формат</p>
+                        <a class="btn btn-primary" href="#contact">Обсудить задачу</a>
+                    </div>
                 </div>
             </div>
         </section>
     {% endif %}
-        {% if pains %}
-            <section class="section" id="pains">
-                <div class="container">
-                    <div class="section__head text-center">
-                        <h2 class="section__title">{{ pains.title }}</h2>
-                        {% if pains.subtitle %}<p class="section__subtitle">{{ pains.subtitle }}</p>{% endif %}
-                    </div>
-                    <ul class="pain-bento">
-                        {% for item in pains.items|default([]) %}
-                            <li class="pain-bento__item{{ item.featured|default(false) ? ' pain-bento__item--feature' : '' }}">{{ item.text }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </section>
-        {% endif %}
     {% if philosophy %}
         <section class="section section--accent" id="philosophy">
             <div class="container narrow text-center">
                 <h2 class="section__title section__title--light">{{ philosophy.title }}</h2>
                 <p class="section__text section__text--light">{{ philosophy.body }}</p>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if workFormats %}
-        <section class="section section--soft" id="formats">
-            <div class="container">
-                <div class="section__head text-center">
-                    <h2 class="section__title">{{ workFormats.title }}</h2>
-                    {% if workFormats.subtitle %}<p class="section__subtitle">{{ workFormats.subtitle }}</p>{% endif %}
-                </div>
-                <div class="cards cards--catalog cards--formats">
-                    {% for item in workFormats.items|default([]) %}
-                        {{ contentCard.catalog(item, loop.index > 4) }}
-                    {% endfor %}
-                </div>
             </div>
         </section>
     {% endif %}

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initInquiryForm();
     initFileUploads();
     initPricingAccordion();
+    initCapabilitiesMap();
     initProcessPath();
 
     const updateFabVisibility = () => {
@@ -858,11 +859,16 @@ function round(value) {
 
 function initPricingAccordion() {
     const root = document.querySelector('[data-pricing-accordion]');
-    if (!root) {
+
+    initExclusiveDetails(root, '.pricing-accordion__item');
+}
+
+function initExclusiveDetails(root, itemSelector) {
+    if (!(root instanceof HTMLElement)) {
         return;
     }
 
-    const items = root.querySelectorAll('.pricing-accordion__item');
+    const items = root.querySelectorAll(itemSelector);
     items.forEach((item) => {
         item.addEventListener('toggle', () => {
             if (!item.open) {
@@ -876,4 +882,66 @@ function initPricingAccordion() {
             });
         });
     });
+}
+
+function initCapabilitiesMap() {
+    const root = document.querySelector('[data-capabilities-map]');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    initExclusiveDetails(root, '.capabilities-map__details');
+
+    const tabs = Array.from(root.querySelectorAll('[data-capability-tab]'));
+    const panels = Array.from(root.querySelectorAll('[data-capability-panel]'));
+    if (tabs.length === 0 || panels.length === 0) {
+        return;
+    }
+
+    root.classList.add('is-enhanced');
+
+    const activate = (index, shouldFocus = false) => {
+        tabs.forEach((tab, tabIndex) => {
+            const isActive = tabIndex === index;
+            tab.classList.toggle('is-active', isActive);
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+
+        panels.forEach((panel, panelIndex) => {
+            const isActive = panelIndex === index;
+            panel.classList.toggle('is-active', isActive);
+            panel.hidden = !isActive;
+        });
+
+        if (shouldFocus) {
+            tabs[index]?.focus({ preventScroll: true });
+        }
+    };
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activate(index));
+
+        tab.addEventListener('keydown', (event) => {
+            const currentIndex = tabs.indexOf(tab);
+            let nextIndex = currentIndex;
+
+            if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+                nextIndex = (currentIndex + 1) % tabs.length;
+            } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+                nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+            } else if (event.key === 'Home') {
+                nextIndex = 0;
+            } else if (event.key === 'End') {
+                nextIndex = tabs.length - 1;
+            } else {
+                return;
+            }
+
+            event.preventDefault();
+            activate(nextIndex, true);
+        });
+    });
+
+    activate(0);
 }

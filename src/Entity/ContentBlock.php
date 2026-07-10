@@ -31,7 +31,7 @@ class ContentBlock
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $body = null;
 
-    /** @var array<int, array<string, string>>|null */
+    /** @var array<int, array<string, mixed>>|null */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $items = null;
 
@@ -106,13 +106,13 @@ class ContentBlock
         return $this;
     }
 
-    /** @return array<int, array<string, string>> */
+    /** @return array<int, array<string, mixed>> */
     public function getItems(): array
     {
         return $this->items ?? [];
     }
 
-    /** @param array<int, array<string, string>>|null $items */
+    /** @param array<int, array<string, mixed>>|null $items */
     public function setItems(?array $items): static
     {
         if (null === $items) {
@@ -141,6 +141,29 @@ class ContentBlock
             $price = trim((string) ($item['price'] ?? ''));
             if ('' !== $price) {
                 $entry['price'] = $price;
+            }
+
+            $starts = trim((string) ($item['starts'] ?? ''));
+            if ('' !== $starts) {
+                $entry['starts'] = $starts;
+            }
+
+            $examples = $item['examples'] ?? null;
+            if (is_array($examples)) {
+                $examples = array_values(array_filter(array_map(
+                    static fn (mixed $example): string => trim((string) $example),
+                    $examples,
+                )));
+
+                if ([] !== $examples) {
+                    $entry['examples'] = $examples;
+                }
+            } elseif (is_string($examples)) {
+                $examples = array_values(array_filter(array_map('trim', explode(',', $examples))));
+
+                if ([] !== $examples) {
+                    $entry['examples'] = $examples;
+                }
             }
 
             $normalized[] = $entry;
