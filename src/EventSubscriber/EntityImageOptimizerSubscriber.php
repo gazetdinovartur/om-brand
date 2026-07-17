@@ -3,10 +3,11 @@
 namespace App\EventSubscriber;
 
 use App\Entity\CaseStudy;
+use App\Entity\CaseStudyImage;
 use App\Entity\SiteSettings;
 use App\Service\ImageOptimizer;
-use EasyCorp\Bundle\EasyAdminBundle\Event\BeforeEntityUpdatedEvent;
 use EasyCorp\Bundle\EasyAdminBundle\Event\BeforeEntityPersistedEvent;
+use EasyCorp\Bundle\EasyAdminBundle\Event\BeforeEntityUpdatedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 final class EntityImageOptimizerSubscriber implements EventSubscriberInterface
@@ -35,7 +36,12 @@ final class EntityImageOptimizerSubscriber implements EventSubscriberInterface
         }
 
         if ($entity instanceof CaseStudy) {
-            $this->optimizeCaseCover($entity);
+            $this->optimizeCaseImageField($entity, 'cover');
+            $this->optimizeCaseImageField($entity, 'og');
+            $this->normalizeAudioPath($entity);
+            foreach ($entity->getGalleryImages() as $image) {
+                $this->optimizeGalleryImage($image);
+            }
         }
     }
 
@@ -56,14 +62,68 @@ final class EntityImageOptimizerSubscriber implements EventSubscriberInterface
         $settings->setAvatarPath(basename($result['path']));
     }
 
-    private function optimizeCaseCover(CaseStudy $caseStudy): void
+    private function optimizeCaseImageField(CaseStudy $caseStudy, string $kind): void
     {
-        $path = $caseStudy->getCoverImagePath();
-        if (null === $path || '' === $path || str_ends_with($path, '.webp')) {
+        $path = 'cover' === $kind ? $caseStudy->getCoverImagePath() : $caseStudy->getOgImagePath();
+        if (null === $path || '' === $path) {
             return;
         }
 
-        $result = $this->imageOptimizer->optimizeToWebp($path, maxWidth: 1200, thumbWidth: 640);
-        $caseStudy->setCoverImagePath($result['path']);
+        $filename = basename(str_replace('\\', '/', $path));
+        $relative = 'cases/'.$filename;
+
+        if (str_ends_with(strtolower($filename), '.webp')) {
+            if ('cover' === $kind) {
+                $caseStudy->setCoverImagePath($filename);
+            } else {
+                $caseStudy->setOgImagePath($filename);
+            }
+
+            return;
+        }
+
+        $result = $this->imageOptimizer->optimizeToWebp(
+            $relative,
+            maxWidth: 'cover' === $kind ? 1400 : 1200,
+            thumbWidth: 'cover' === $kind ? 640 : null,
+        );
+        $optimized = basename($result['path']);
+
+        if ('cover' === $kind) {
+            $caseStudy->setCoverImagePath($optimized);
+        } else {
+            $caseStudy->setOgImagePath($optimized);
+        }
+    }
+
+    private function optimizeGalleryImage(CaseStudyImage $image): void
+    {
+        $path = $image->getImagePath();
+        if ('' === $path) {
+            return;
+        }
+
+        $filename = basename(str_replace('\\', '/', $path));
+        $relative = 'cases/gallery/'.$filename;
+
+        if (str_ends_with(strtolower($filename), '.webp')) {
+            $image->setImagePath($filename);
+
+            return;
+        }
+
+        $result = $this->imageOptimizer->optimizeToWebp($relative, maxWidth: 1400, thumbWidth: 640);
+        $image->setImagePath(basename($result['path']));
+    }
+
+    private function normalizeAudioPath(CaseStudy $caseStudy): void
+    {
+        $path = $caseStudy->getAudioPath();
+        if (null === $path || '' === $path) {
+            return;
+        }
+
+        // EasyAdmin FileField stores filename relative to upload dir → keep basename only.
+        $caseStudy->setAudioPath(basename(str_replace('\\', '/', $path)));
     }
 }

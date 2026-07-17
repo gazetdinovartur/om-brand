@@ -121,7 +121,7 @@ URL: `/admin` · Throttling: 5 попыток входа / 15 мин.
 |--------|------------|
 | Настройки сайта | Имя, tagline, аватар, ссылки, email заявок |
 | Блоки контента | Тексты по slug |
-| Кейсы | Портфолио на главной |
+| Кейсы | Портфолио: главная (medium), `/cases` (хаб), `/cases/{slug}` (история) |
 | Заявки | Обращения + скачать вложение |
 | Оплаты | Ссылки `/oplata/{token}` |
 | Админы | Доступ в панель |
@@ -251,7 +251,7 @@ php bin/console cache:warmup --env=prod
 #### 8. Права на запись
 
 ```bash
-mkdir -p var/private/uploads public/uploads/avatars public/uploads/cases
+mkdir -p var/private/uploads public/uploads/avatars public/uploads/cases public/uploads/cases/gallery public/uploads/cases/audio
 chmod -R 775 var/
 chmod -R 775 public/uploads/
 ```

@@ -17,8 +17,12 @@ parameters:
     env(APP_SITE_URL): ''
     env(ADMIN_EMAIL): ''
     env(ADMIN_PASSWORD): ''
+    env(OM_PLAYER_SCRIPT_URL): 'https://music.arturlun.ru/build/player/om-player.iife.js'
+    env(OM_PLAYER_API_BASE): 'https://music.arturlun.ru/api/v1'
     app.site_url: ''
     app.sbp_payment_url_template: ''
+    app.om_player_script_url: 'https://music.arturlun.ru/build/player/om-player.iife.js'
+    app.om_player_api_base: 'https://music.arturlun.ru/api/v1'
 
 services:
     _defaults:
@@ -32,6 +36,11 @@ services:
         arguments:
             $siteUrl: '%env(default:app.site_url:APP_SITE_URL)%'
             $projectDir: '%kernel.project_dir%'
+
+    App\Service\CaseMediaEmbedFactory:
+        arguments:
+            $omPlayerScriptUrl: '%env(default:app.om_player_script_url:OM_PLAYER_SCRIPT_URL)%'
+            $omPlayerApiBase: '%env(default:app.om_player_api_base:OM_PLAYER_API_BASE)%'
 
     App\Service\InquiryAttachmentStorage:
         arguments:

@@ -126,6 +126,16 @@
 
     <a class="site-fab" href="#contact">Написать мне</a>
 
+    <dialog class="case-lightbox" data-lightbox hidden>
+        <div class="case-lightbox__inner">
+            <button type="button" class="case-lightbox__close" data-lightbox-close aria-label="Закрыть">×</button>
+            <button type="button" class="case-lightbox__nav case-lightbox__nav--prev" data-lightbox-prev aria-label="Предыдущий">‹</button>
+            <img class="case-lightbox__img" data-lightbox-img src="" alt="">
+            <button type="button" class="case-lightbox__nav case-lightbox__nav--next" data-lightbox-next aria-label="Следующий">›</button>
+            <p class="case-lightbox__caption" data-lightbox-caption></p>
+        </div>
+    </dialog>
+
     <script src="{{ asset('js/site.js') }}" defer></script>
     {% block javascripts %}{% endblock %}
 </body>

@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPricingAccordion();
     initCapabilitiesMap();
     initProcessPath();
+    initCaseLightbox();
 
     const updateFabVisibility = () => {
         if (!(fab instanceof HTMLElement) || document.body.classList.contains('site-body--nav-open')) {
@@ -944,4 +945,102 @@ function initCapabilitiesMap() {
     });
 
     activate(0);
+}
+
+function initCaseLightbox() {
+    const dialog = document.querySelector('[data-lightbox]');
+    if (!(dialog instanceof HTMLDialogElement)) {
+        return;
+    }
+
+    const img = dialog.querySelector('[data-lightbox-img]');
+    const captionEl = dialog.querySelector('[data-lightbox-caption]');
+    const closeBtn = dialog.querySelector('[data-lightbox-close]');
+    const prevBtn = dialog.querySelector('[data-lightbox-prev]');
+    const nextBtn = dialog.querySelector('[data-lightbox-next]');
+    const triggers = [...document.querySelectorAll('[data-lightbox-open]')];
+
+    if (!(img instanceof HTMLImageElement) || triggers.length === 0) {
+        return;
+    }
+
+    dialog.hidden = false;
+    let items = [];
+    let index = 0;
+
+    const collectGroup = (trigger) => {
+        const gallery = trigger.closest('[data-lightbox-gallery]');
+        const scope = gallery ? [...gallery.querySelectorAll('[data-lightbox-open]')] : [trigger];
+        return scope.map((btn) => ({
+            src: btn.getAttribute('data-lightbox-src') || '',
+            alt: btn.getAttribute('data-lightbox-alt') || '',
+            caption: btn.getAttribute('data-lightbox-caption') || '',
+        })).filter((item) => item.src !== '');
+    };
+
+    const render = () => {
+        const item = items[index];
+        if (!item) {
+            return;
+        }
+        img.src = item.src;
+        img.alt = item.alt;
+        if (captionEl instanceof HTMLElement) {
+            captionEl.textContent = item.caption;
+            captionEl.hidden = item.caption === '';
+        }
+        const multi = items.length > 1;
+        if (prevBtn instanceof HTMLButtonElement) {
+            prevBtn.hidden = !multi;
+        }
+        if (nextBtn instanceof HTMLButtonElement) {
+            nextBtn.hidden = !multi;
+        }
+    };
+
+    const openAt = (i) => {
+        if (items.length === 0) {
+            return;
+        }
+        index = (i + items.length) % items.length;
+        render();
+        if (!dialog.open) {
+            dialog.showModal();
+        }
+    };
+
+    const close = () => {
+        if (dialog.open) {
+            dialog.close();
+        }
+    };
+
+    triggers.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            items = collectGroup(btn);
+            const src = btn.getAttribute('data-lightbox-src') || '';
+            const start = Math.max(0, items.findIndex((item) => item.src === src));
+            openAt(start === -1 ? 0 : start);
+        });
+    });
+
+    closeBtn?.addEventListener('click', close);
+    prevBtn?.addEventListener('click', () => openAt(index - 1));
+    nextBtn?.addEventListener('click', () => openAt(index + 1));
+
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) {
+            close();
+        }
+    });
+
+    dialog.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            openAt(index - 1);
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            openAt(index + 1);
+        }
+    });
 }

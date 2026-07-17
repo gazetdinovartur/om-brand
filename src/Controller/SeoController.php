@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Repository\CaseStudyRepository;
 use App\Seo\SeoMetadataFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,28 +36,48 @@ TXT;
     }
 
     #[Route('/sitemap.xml', name: 'web_sitemap', methods: ['GET'])]
-    public function sitemap(): Response
+    public function sitemap(CaseStudyRepository $caseStudyRepository): Response
     {
         $homeUrl = $this->generateUrl('web_home', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $privacyUrl = $this->generateUrl('web_privacy', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $casesUrl = $this->generateUrl('web_cases', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $lastmod = (new \DateTimeImmutable())->format('Y-m-d');
+
+        $urls = [
+            [$homeUrl, $lastmod, 'weekly', '1.0'],
+            [$casesUrl, $lastmod, 'weekly', '0.8'],
+            [$privacyUrl, $lastmod, 'monthly', '0.4'],
+        ];
+
+        foreach ($caseStudyRepository->findPublishedOrdered() as $case) {
+            if (!$case->isDetailPublic()) {
+                continue;
+            }
+            $urls[] = [
+                $this->generateUrl('web_case_show', ['slug' => $case->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL),
+                $case->getCreatedAt()->format('Y-m-d'),
+                'monthly',
+                '0.7',
+            ];
+        }
+
+        $body = '';
+        foreach ($urls as [$loc, $mod, $freq, $priority]) {
+            $body .= <<<XML
+  <url>
+    <loc>{$this->escapeXml($loc)}</loc>
+    <lastmod>{$mod}</lastmod>
+    <changefreq>{$freq}</changefreq>
+    <priority>{$priority}</priority>
+  </url>
+
+XML;
+        }
 
         $xml = <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>{$this->escapeXml($homeUrl)}</loc>
-    <lastmod>{$lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>{$this->escapeXml($privacyUrl)}</loc>
-    <lastmod>{$lastmod}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
-  </url>
-</urlset>
+{$body}</urlset>
 XML;
 
         return new Response($xml, Response::HTTP_OK, [

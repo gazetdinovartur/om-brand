@@ -1,0 +1,46 @@
+{% macro cover(path, alt, class, sizes, directoryPrefix = 'cases') %}
+    {% set resolved = upload_path(path, directoryPrefix) %}
+    {% if resolved %}
+        {% set thumb = resolved|replace({'.webp': '.thumb.webp'}) %}
+        <img
+            class="{{ class }}"
+            src="{{ asset(resolved) }}"
+            alt="{{ alt }}"
+            {% if thumb != resolved %}
+                srcset="{{ asset(thumb) }} 640w, {{ asset(resolved) }} 1400w"
+                sizes="{{ sizes|default('(max-width: 768px) 100vw, 480px') }}"
+            {% endif %}
+            loading="lazy"
+            decoding="async"
+        >
+    {% endif %}
+{% endmacro %}
+
+{% macro meta(case) %}
+    {% set hasDomain = case.domain %}
+    {% set hasRole = case.role %}
+    {% set hasYear = case.year %}
+    {% if hasDomain or hasRole or hasYear %}
+        <ul class="case-meta" aria-label="Метки кейса">
+            {% if hasDomain %}
+                {% for part in case.domain|split('·') %}
+                    {% set label = part|trim %}
+                    {% if label %}
+                        <li class="case-meta__badge">{{ label }}</li>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if hasRole %}
+                {% for part in case.role|split(',') %}
+                    {% set label = part|trim %}
+                    {% if label %}
+                        <li class="case-meta__badge">{{ label }}</li>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if hasYear %}
+                <li class="case-meta__badge">{{ case.year }}</li>
+            {% endif %}
+        </ul>
+    {% endif %}
+{% endmacro %}

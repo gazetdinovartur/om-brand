@@ -34,11 +34,13 @@ final class SecurityHeaderSubscriber implements EventSubscriberInterface
         $headers->set(
             'Content-Security-Policy',
             "default-src 'self'; "
-            ."script-src 'self' 'unsafe-inline'; "
+            ."script-src 'self' 'unsafe-inline' https://music.arturlun.ru; "
             ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            ."img-src 'self' data: blob:; "
+            ."img-src 'self' data: blob: https://i.ytimg.com https://img.youtube.com; "
             ."font-src 'self' https://fonts.gstatic.com; "
-            ."connect-src 'self'; "
+            ."media-src 'self' https://music.arturlun.ru blob:; "
+            ."frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://rutube.ru; "
+            ."connect-src 'self' https://music.arturlun.ru; "
             ."base-uri 'self'; "
             ."form-action 'self'",
         );

@@ -29,7 +29,8 @@ final class HomeController extends AbstractController
     ): Response {
         $settings = $siteContext->getSettings();
         $blocksBySlug = $siteContext->getBlocksBySlug();
-        $cases = $caseStudyRepository->findPublishedOrdered();
+        $cases = $caseStudyRepository->findLandingOrdered();
+        $hasAnyCases = $caseStudyRepository->countPublished() > 0;
         $form = $this->createForm(InquiryFormType::class);
         $form->handleRequest($request);
 
@@ -94,7 +95,8 @@ final class HomeController extends AbstractController
             'blocks' => $siteContext->getVisibleBlocks(),
             'blocksBySlug' => $blocksBySlug,
             'cases' => $cases,
-            'navAnchors' => LandingContent::navigationAnchors(\count($cases) > 0),
+            'hasAnyCases' => $hasAnyCases,
+            'navAnchors' => LandingContent::navigationAnchors($hasAnyCases),
             'form' => $form,
         ]);
     }

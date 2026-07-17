@@ -229,32 +229,29 @@
     {% endif %}
 
     {% if cases is not empty %}
-        <section class="section" id="cases">
+        <section class="section cases-landing" id="cases">
             <div class="container">
-                <h2 class="section__title">Кейсы</h2>
-                <div class="cards">
+                <div class="section__head cases-landing__head">
+                    <h2 class="section__title">Кейсы</h2>
+                    <p class="section__subtitle">Истории проектов — коротко о смысле и результате</p>
+                </div>
+
+                <div class="cases-hub__list">
                     {% for case in cases %}
-                        <article class="card">
-                            {% if case.coverImagePath %}
-                                {% set cover = case.coverImagePath %}
-                                {% set thumb = cover|replace({'.webp': '.thumb.webp'}) %}
-                                <img
-                                    class="card__cover"
-                                    src="{{ asset('uploads/' ~ cover) }}"
-                                    alt="{{ case.title }}"
-                                    {% if thumb != cover %}
-                                        srcset="{{ asset('uploads/' ~ thumb) }} 640w, {{ asset('uploads/' ~ cover) }} 1200w"
-                                        sizes="(max-width: 768px) 100vw, 320px"
-                                    {% endif %}
-                                    loading="lazy"
-                                    decoding="async"
-                                >
-                            {% endif %}
-                            <h3 class="card__title">{{ case.title }}</h3>
-                            <p class="card__text">{{ case.summary }}</p>
-                        </article>
+                        {% include 'web/_partials/case_entry.html.twig' with {
+                            case: case,
+                            zoomable: false,
+                            withId: false,
+                            linkLabel: 'Читать'
+                        } %}
                     {% endfor %}
                 </div>
+
+                {% if hasAnyCases %}
+                    <p class="cases-landing__more">
+                        <a href="{{ path('web_cases') }}">Все кейсы</a>
+                    </p>
+                {% endif %}
             </div>
         </section>
     {% endif %}

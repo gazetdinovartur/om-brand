@@ -4,7 +4,9 @@ namespace App\Seo;
 
 use App\Content\LandingContent;
 use App\Content\LegalContent;
+use App\Entity\CaseStudy;
 use App\Entity\SiteSettings;
+use App\Twig\UploadPathExtension;
 use Symfony\Component\Asset\Packages;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -14,6 +16,7 @@ final class SeoMetadataFactory
     public function __construct(
         private readonly Packages $packages,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly UploadPathExtension $uploadPathExtension,
         private readonly string $siteUrl = '',
         private readonly string $projectDir = '',
     ) {
@@ -60,6 +63,7 @@ final class SeoMetadataFactory
                 ogType: 'website',
                 ogImageUrl: $ogImageUrl,
             ),
+            'web_cases' => $this->forCasesIndex($request, $settings, $blocksBySlug),
             default => new SeoMetadata(
                 title: LandingContent::metaTitle($personName),
                 description: $description,
@@ -71,6 +75,126 @@ final class SeoMetadataFactory
                 keywords: implode(', ', LandingContent::metaKeywords()),
             ),
         };
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forCasesIndex(Request $request, SiteSettings $settings, array $blocksBySlug): SeoMetadata
+    {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+        $title = sprintf('Кейсы · %s', $personName);
+        $description = 'Истории проектов: подход, опыт и результаты.';
+
+        return new SeoMetadata(
+            title: $title,
+            description: $description,
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_cases'),
+            robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+            ogType: 'website',
+            ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
+            keywords: implode(', ', array_merge(['кейсы', 'портфолио'], LandingContent::metaKeywords())),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forCaseStudy(
+        Request $request,
+        SiteSettings $settings,
+        array $blocksBySlug,
+        CaseStudy $case,
+    ): SeoMetadata {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+        $ogImageUrl = $this->resolveCaseOgImageUrl($case, $settings, $baseUrl);
+
+        return new SeoMetadata(
+            title: $case->resolveSeoTitle($personName),
+            description: $case->resolveSeoDescription(),
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_case_show', ['slug' => $case->getSlug()]),
+            robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+            ogType: 'article',
+            ogImageUrl: $ogImageUrl,
+            jsonLd: $this->caseJsonLd($case, $personName, $baseUrl, $ogImageUrl),
+        );
+    }
+
+    private function resolveCaseOgImageUrl(CaseStudy $case, SiteSettings $settings, string $baseUrl): ?string
+    {
+        foreach ([$case->getOgImagePath(), $case->getCoverImagePath()] as $path) {
+            $resolved = $this->uploadPathExtension->resolve($path, 'cases');
+            if (null !== $resolved) {
+                return $baseUrl.$this->packages->getUrl($resolved);
+            }
+        }
+
+        return $this->resolveOgImageUrl($settings, $baseUrl);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function caseJsonLd(
+        CaseStudy $case,
+        string $personName,
+        string $baseUrl,
+        ?string $ogImageUrl,
+    ): array {
+        $url = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_case_show', ['slug' => $case->getSlug()]);
+        $homeUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home');
+
+        $article = [
+            '@type' => 'Article',
+            '@id' => $url.'#article',
+            'headline' => $case->getTitle(),
+            'description' => $case->resolveSeoDescription(),
+            'datePublished' => $case->getCreatedAt()->format('c'),
+            'author' => [
+                '@type' => 'Person',
+                'name' => $personName,
+                'url' => $homeUrl,
+            ],
+            'mainEntityOfPage' => $url,
+            'inLanguage' => 'ru-RU',
+        ];
+
+        if (null !== $ogImageUrl) {
+            $article['image'] = $ogImageUrl;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                $article,
+                [
+                    '@type' => 'BreadcrumbList',
+                    '@id' => $url.'#breadcrumb',
+                    'itemListElement' => [
+                        [
+                            '@type' => 'ListItem',
+                            'position' => 1,
+                            'name' => 'Главная',
+                            'item' => $homeUrl,
+                        ],
+                        [
+                            '@type' => 'ListItem',
+                            'position' => 2,
+                            'name' => 'Кейсы',
+                            'item' => rtrim($baseUrl, '/').$this->urlGenerator->generate('web_cases'),
+                        ],
+                        [
+                            '@type' => 'ListItem',
+                            'position' => 3,
+                            'name' => $case->getTitle(),
+                            'item' => $url,
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 
     /**

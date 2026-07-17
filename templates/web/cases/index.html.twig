@@ -1,0 +1,28 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block body %}
+<section class="section cases-hub">
+    <div class="container">
+        <header class="cases-hub__head">
+            <p class="cases-hub__eyebrow">Кейсы</p>
+            <h1 class="section__title cases-hub__title">Работы</h1>
+            <p class="section__subtitle cases-hub__lead">Истории проектов — как думал, что выбирал и чем закончилось.</p>
+        </header>
+
+        {% if cases is empty %}
+            <p class="cases-hub__empty">Скоро здесь появятся первые истории.</p>
+        {% else %}
+            <div class="cases-hub__list" data-lightbox-gallery>
+                {% for case in cases %}
+                    {% include 'web/_partials/case_entry.html.twig' with {
+                        case: case,
+                        zoomable: true,
+                        withId: true,
+                        linkLabel: 'Читать кейс'
+                    } %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

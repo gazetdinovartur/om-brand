@@ -1,0 +1,161 @@
+{% extends 'web/layout.html.twig' %}
+
+{% import 'web/_partials/case_media.html.twig' as caseMedia %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% if audioEmbed and audioEmbed.mode == 'om-player' %}
+        <script type="module" src="{{ omPlayerScriptUrl }}"></script>
+    {% endif %}
+{% endblock %}
+
+{% block body %}
+<article class="case-detail">
+    {% set coverUrl = upload_path(case.coverImagePath, 'cases') %}
+    <header
+        class="case-detail__hero{% if coverUrl %} case-detail__hero--has-cover{% endif %}"
+        {% if coverUrl %}style="--case-cover: url('{{ asset(coverUrl) }}')"{% endif %}
+    >
+        <div class="case-detail__hero-backdrop" aria-hidden="true"></div>
+        <div class="case-detail__hero-inner">
+            <div class="case-detail__hero-panel">
+                {{ caseMedia.meta(case) }}
+                <h1 class="case-detail__title">{{ case.title }}</h1>
+                {% if case.outcomeLine %}
+                    <p class="case-detail__outcome">{{ case.outcomeLine }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="container narrow case-detail__content">
+        <nav class="case-crumb" aria-label="Навигация">
+            <a href="{{ path('web_home') }}">Главная</a>
+            <span class="case-crumb__sep" aria-hidden="true">/</span>
+            <a href="{{ path('web_cases') }}">Кейсы</a>
+            <span class="case-crumb__sep" aria-hidden="true">/</span>
+            <span class="case-crumb__current" aria-current="page">{{ case.title }}</span>
+        </nav>
+
+        {% if case.storyHook %}
+            <p class="case-detail__hook">{{ case.storyHook }}</p>
+        {% endif %}
+
+        {% if videoEmbed or audioEmbed %}
+            <section class="case-presentation" aria-label="Презентация кейса">
+                {% if case.presentationIntro %}
+                    <p class="case-presentation__intro">{{ case.presentationIntro }}</p>
+                {% endif %}
+                {% if case.presentationDuration %}
+                    <p class="case-presentation__duration">{{ case.presentationDuration }}</p>
+                {% endif %}
+
+                {% if videoEmbed %}
+                    <div class="case-presentation__video">
+                        {% if videoEmbed.provider == 'link' %}
+                            <a class="btn btn-secondary" href="{{ videoEmbed.embedUrl }}" rel="noopener" target="_blank">{{ videoEmbed.title }}</a>
+                        {% else %}
+                            <div class="case-presentation__frame">
+                                <iframe
+                                    src="{{ videoEmbed.embedUrl }}"
+                                    title="{{ videoEmbed.title }}"
+                                    loading="lazy"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen
+                                ></iframe>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if audioEmbed %}
+                    <div class="case-presentation__audio">
+                        {% if audioEmbed.mode == 'om-player' %}
+                            <om-player
+                                mode="embed"
+                                track="{{ audioEmbed.trackSlug }}"
+                                api-base="{{ audioEmbed.apiBase }}"
+                                theme="{{ audioEmbed.theme }}"
+                                aria-label="{{ audioEmbed.title }}"
+                            ></om-player>
+                        {% else %}
+                            <audio controls preload="metadata" title="{{ audioEmbed.title }}">
+                                <source src="{% if audioEmbed.mode == 'file' %}{{ asset(audioEmbed.src) }}{% else %}{{ audioEmbed.src }}{% endif %}">
+                                Ваш браузер не поддерживает аудио.
+                            </audio>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {% for section in case.storySections %}
+            {% if section.label != 'Вступление' %}
+                <section class="case-story-block">
+                    <h2 class="case-story-block__label">{{ section.label }}</h2>
+                    <div class="case-story-block__text">{{ section.text|nl2br }}</div>
+                </section>
+            {% endif %}
+        {% endfor %}
+
+        {% if case.galleryImages is not empty %}
+            <section class="case-gallery" aria-label="Галерея" data-lightbox-gallery>
+                <div class="case-gallery__grid">
+                    {% for image in case.galleryImages %}
+                        {% set full = upload_path(image.imagePath, 'cases/gallery') %}
+                        {% if full %}
+                            <figure class="case-gallery__item">
+                                <button
+                                    type="button"
+                                    class="case-gallery__trigger"
+                                    data-lightbox-open
+                                    data-lightbox-src="{{ asset(full) }}"
+                                    data-lightbox-alt="{{ image.caption|default(case.title) }}"
+                                    data-lightbox-caption="{{ image.caption|default('') }}"
+                                    data-lightbox-index="{{ loop.index0 }}"
+                                >
+                                    {{ caseMedia.cover(image.imagePath, image.caption|default(case.title), 'case-gallery__img', '(max-width: 768px) 100vw, 33vw', 'cases/gallery') }}
+                                </button>
+                                {% if image.caption %}
+                                    <figcaption>{{ image.caption }}</figcaption>
+                                {% endif %}
+                            </figure>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <div class="case-detail__cta">
+            <a class="btn btn-primary" href="{{ path('web_home') }}#contact">Обсудить похожий запрос</a>
+        </div>
+
+        {% if relatedCases is not empty %}
+            <section class="case-related" aria-label="Ещё работы">
+                <div class="case-related__head">
+                    <p class="case-related__label">Ещё работы</p>
+                    <a class="case-related__all" href="{{ path('web_cases') }}">Смотреть все</a>
+                </div>
+                <div class="case-related__grid">
+                    {% for related in relatedCases %}
+                        <a class="case-related__card" href="{{ path('web_case_show', {slug: related.slug}) }}">
+                            {% if related.coverImagePath %}
+                                <span class="case-related__media">
+                                    {{ caseMedia.cover(related.coverImagePath, related.title, 'case-related__cover', '(max-width: 768px) 100vw, 280px') }}
+                                </span>
+                            {% endif %}
+                            <span class="case-related__meta">
+                                {% if related.domain %}<span class="case-related__domain">{{ related.domain }}</span>{% endif %}
+                                <span class="case-related__title">{{ related.title }}</span>
+                                {% if related.outcomeLine %}
+                                    <span class="case-related__outcome">{{ related.outcomeLine }}</span>
+                                {% endif %}
+                            </span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}

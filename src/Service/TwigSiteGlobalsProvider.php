@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Content\LandingContent;
+use App\Repository\CaseStudyRepository;
 use App\Seo\SeoMetadataFactory;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -14,6 +15,7 @@ final class TwigSiteGlobalsProvider
         private readonly PublicSiteContext $siteContext,
         private readonly SeoMetadataFactory $seoMetadataFactory,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly CaseStudyRepository $caseStudyRepository,
     ) {
     }
 
@@ -28,6 +30,7 @@ final class TwigSiteGlobalsProvider
             : $settings->getName();
 
         $navPrefix = 'web_home' === $route ? '' : $this->urlGenerator->generate('web_home');
+        $hasCases = $this->caseStudyRepository->countPublished() > 0;
 
         $twig->addGlobal('settings', $settings);
         $twig->addGlobal('blocksBySlug', $blocksBySlug);
@@ -35,7 +38,7 @@ final class TwigSiteGlobalsProvider
         $twig->addGlobal('legalName', LandingContent::personName());
         $twig->addGlobal('alsoKnownAs', LandingContent::alsoKnownAs());
         $twig->addGlobal('navPrefix', $navPrefix);
-        $twig->addGlobal('navAnchors', LandingContent::navigationAnchors());
+        $twig->addGlobal('navAnchors', LandingContent::navigationAnchors($hasCases));
         $twig->addGlobal('seo', $this->seoMetadataFactory->forRoute(
             $route,
             $request,
