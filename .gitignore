@@ -19,3 +19,4 @@ _symfony_tmp/
 /.env
 /node_modules
 .DS_Store
+.vk_token
