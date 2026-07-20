@@ -1,0 +1,89 @@
+{% import 'web/_partials/case_media.html.twig' as caseMedia %}
+
+{% for block in blocks %}
+    {% set type = block.type.value %}
+    {% if type == 'paragraph' %}
+        <div class="chronicle-block chronicle-block--paragraph">
+            {{ block.body|chronicle_markdown|raw }}
+        </div>
+    {% elseif type == 'heading' %}
+        {% set anchor = block.anchorId %}
+        <h{{ block.headingLevel }} class="chronicle-block chronicle-block--heading"{% if anchor %} id="{{ anchor }}"{% endif %}>{{ block.body }}</h{{ block.headingLevel }}>
+    {% elseif type == 'quote' %}
+        <blockquote class="chronicle-block chronicle-block--quote">
+            <p>{{ block.body|chronicle_markdown|raw }}</p>
+            {% if block.author %}<footer>— {{ block.author }}</footer>{% endif %}
+        </blockquote>
+    {% elseif type == 'callout' %}
+        <aside class="chronicle-block chronicle-block--callout chronicle-block--callout-{{ block.calloutStyle|default('note') }}">
+            {{ block.body|chronicle_markdown|raw }}
+        </aside>
+    {% elseif type == 'divider' %}
+        <hr class="chronicle-block chronicle-block--divider">
+    {% elseif type == 'image' %}
+        {% set full = upload_path(block.imagePath, 'chronicle/inline') %}
+        {% if full %}
+            <figure class="chronicle-block chronicle-block--image" data-lightbox-gallery>
+                <button
+                    type="button"
+                    class="chronicle-block__image-trigger"
+                    data-lightbox-open
+                    data-lightbox-src="{{ asset(full) }}"
+                    data-lightbox-alt="{{ block.alt|default(entry.title) }}"
+                    data-lightbox-caption="{{ block.caption|default('') }}"
+                >
+                    {{ caseMedia.cover(block.imagePath, block.alt|default(entry.title), 'chronicle-block__image', '(max-width: 768px) 100vw, 42rem', 'chronicle/inline') }}
+                </button>
+                {% if block.caption %}<figcaption>{{ block.caption }}</figcaption>{% endif %}
+            </figure>
+        {% endif %}
+    {% elseif type == 'gallery' and block.images is not empty %}
+        <section class="chronicle-block case-gallery" aria-label="Галерея" data-lightbox-gallery>
+            <div class="case-gallery__grid">
+                {% for image in block.images %}
+                    {% set full = upload_path(image.imagePath, 'chronicle/gallery') %}
+                    {% if full %}
+                        <figure class="case-gallery__item">
+                            <button
+                                type="button"
+                                class="case-gallery__trigger"
+                                data-lightbox-open
+                                data-lightbox-src="{{ asset(full) }}"
+                                data-lightbox-alt="{{ image.alt|default(entry.title) }}"
+                                data-lightbox-caption="{{ image.caption|default('') }}"
+                                data-lightbox-index="{{ loop.index0 }}"
+                            >
+                                {{ caseMedia.cover(image.imagePath, image.alt|default(entry.title), 'case-gallery__img', '(max-width: 768px) 100vw, 33vw', 'chronicle/gallery') }}
+                            </button>
+                            {% if image.caption %}<figcaption>{{ image.caption }}</figcaption>{% endif %}
+                        </figure>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+    {% elseif type == 'audio' and block.omTrackSlug %}
+        <section class="chronicle-block chronicle-block--audio">
+            <om-player
+                mode="embed"
+                track="{{ block.omTrackSlug }}"
+                api-base="{{ chronicle_om_player_api() }}"
+                theme="light"
+                aria-label="{{ block.caption|default('Аудио') }}"
+            ></om-player>
+            {% if block.caption %}<p class="chronicle-block__caption">{{ block.caption }}</p>{% endif %}
+        </section>
+    {% elseif type == 'video' and block.videoUrl %}
+        {% set videoEmbed = chronicle_video_embed(block) %}
+        {% if videoEmbed %}
+            <section class="chronicle-block chronicle-block--video">
+                {% if videoEmbed.provider == 'link' %}
+                    <a class="btn btn-secondary" href="{{ videoEmbed.embedUrl }}" rel="noopener" target="_blank">{{ videoEmbed.title }}</a>
+                {% else %}
+                    <div class="case-presentation__frame">
+                        <iframe src="{{ videoEmbed.embedUrl }}" title="{{ videoEmbed.title }}" loading="lazy" allowfullscreen></iframe>
+                    </div>
+                {% endif %}
+            </section>
+        {% endif %}
+    {% endif %}
+{% endfor %}

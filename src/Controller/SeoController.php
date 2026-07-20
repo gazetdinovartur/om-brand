@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Repository\CaseStudyRepository;
+use App\Repository\ChronicleEntryRepository;
 use App\Seo\SeoMetadataFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,16 +37,20 @@ TXT;
     }
 
     #[Route('/sitemap.xml', name: 'web_sitemap', methods: ['GET'])]
-    public function sitemap(CaseStudyRepository $caseStudyRepository): Response
-    {
+    public function sitemap(
+        CaseStudyRepository $caseStudyRepository,
+        ChronicleEntryRepository $chronicleEntryRepository,
+    ): Response {
         $homeUrl = $this->generateUrl('web_home', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $privacyUrl = $this->generateUrl('web_privacy', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $casesUrl = $this->generateUrl('web_cases', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $chronicleUrl = $this->generateUrl('web_chronicle', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $lastmod = (new \DateTimeImmutable())->format('Y-m-d');
 
         $urls = [
             [$homeUrl, $lastmod, 'weekly', '1.0'],
             [$casesUrl, $lastmod, 'weekly', '0.8'],
+            [$chronicleUrl, $lastmod, 'weekly', '0.8'],
             [$privacyUrl, $lastmod, 'monthly', '0.4'],
         ];
 
@@ -56,6 +61,15 @@ TXT;
             $urls[] = [
                 $this->generateUrl('web_case_show', ['slug' => $case->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL),
                 $case->getCreatedAt()->format('Y-m-d'),
+                'monthly',
+                '0.7',
+            ];
+        }
+
+        foreach ($chronicleEntryRepository->findForSitemap() as $entry) {
+            $urls[] = [
+                $this->generateUrl('web_chronicle_show', ['slug' => $entry->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL),
+                ($entry->getPublishedAt() ?? $entry->getCreatedAt())->format('Y-m-d'),
                 'monthly',
                 '0.7',
             ];

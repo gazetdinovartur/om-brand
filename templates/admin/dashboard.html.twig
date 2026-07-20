@@ -1,14 +1,102 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content_title %}Панель{% endblock %}
+{% block content_title %}Главная{% endblock %}
 
 {% block main %}
-    <div class="admin-home">
-        <p>Добро пожаловать. Здесь заявки, контент сайта и ссылки на оплату.</p>
-        <ul>
-            <li><a href="{{ ea_url().setController('App\\Admin\\InquiryCrudController').setAction('index') }}">Заявки</a></li>
-            <li><a href="{{ ea_url().setController('App\\Admin\\ContentBlockCrudController').setAction('index') }}">Контент</a></li>
-            <li><a href="{{ ea_url().setController('App\\Admin\\SiteSettingsCrudController').setAction('index') }}">Настройки</a></li>
-        </ul>
+    <div class="admin-dashboard">
+        <header class="admin-dashboard__hero">
+            <div class="admin-dashboard__hero-copy">
+                <p class="admin-dashboard__eyebrow">Панель управления</p>
+                <h2 class="admin-dashboard__title">Быстрый доступ</h2>
+                <p class="admin-dashboard__lead">Заявки, хроника, контент и оплаты — всё в одном месте.</p>
+            </div>
+            <div class="admin-dashboard__stats">
+                <div class="admin-dashboard__stat">
+                    <span class="admin-dashboard__stat-value">{{ newInquiries }}</span>
+                    <span class="admin-dashboard__stat-label">новых заявок</span>
+                </div>
+                <div class="admin-dashboard__stat">
+                    <span class="admin-dashboard__stat-value">{{ draftEntries }}</span>
+                    <span class="admin-dashboard__stat-label">черновиков</span>
+                </div>
+                <div class="admin-dashboard__stat">
+                    <span class="admin-dashboard__stat-value">{{ publishedEntries }}</span>
+                    <span class="admin-dashboard__stat-label">опубликовано</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="admin-dashboard__section" aria-labelledby="admin-dashboard-primary">
+            <h3 id="admin-dashboard-primary" class="admin-dashboard__section-title">Частые действия</h3>
+            <div class="admin-dashboard__grid admin-dashboard__grid--primary">
+                <a class="admin-dash-card admin-dash-card--accent" href="{{ path('admin_chronicle_editor_new') }}">
+                    <span class="admin-dash-card__icon" aria-hidden="true">✎</span>
+                    <span class="admin-dash-card__body">
+                        <span class="admin-dash-card__title">Новая запись</span>
+                        <span class="admin-dash-card__desc">Редактор хроники с автосохранением</span>
+                    </span>
+                    <span class="admin-dash-card__arrow" aria-hidden="true">→</span>
+                </a>
+                <a class="admin-dash-card" href="{{ ea_url().setController('App\\Admin\\InquiryCrudController').setAction('index') }}">
+                    <span class="admin-dash-card__icon" aria-hidden="true">📥</span>
+                    <span class="admin-dash-card__body">
+                        <span class="admin-dash-card__title">Заявки</span>
+                        <span class="admin-dash-card__desc">Входящие обращения с сайта</span>
+                    </span>
+                    {% if newInquiries > 0 %}
+                        <span class="admin-dash-card__badge">{{ newInquiries }}</span>
+                    {% endif %}
+                    <span class="admin-dash-card__arrow" aria-hidden="true">→</span>
+                </a>
+                <a class="admin-dash-card" href="{{ ea_url().setController('App\\Admin\\ChronicleEntryCrudController').setAction('index') }}">
+                    <span class="admin-dash-card__icon" aria-hidden="true">📖</span>
+                    <span class="admin-dash-card__body">
+                        <span class="admin-dash-card__title">Записи хроники</span>
+                        <span class="admin-dash-card__desc">Список, статусы, быстрый вход в редактор</span>
+                    </span>
+                    <span class="admin-dash-card__arrow" aria-hidden="true">→</span>
+                </a>
+                <a class="admin-dash-card" href="{{ ea_url().setController('App\\Admin\\PaymentOfferCrudController').setAction('index') }}">
+                    <span class="admin-dash-card__icon" aria-hidden="true">💳</span>
+                    <span class="admin-dash-card__body">
+                        <span class="admin-dash-card__title">Оплаты</span>
+                        <span class="admin-dash-card__desc">Ссылки и предложения для клиентов</span>
+                    </span>
+                    <span class="admin-dash-card__arrow" aria-hidden="true">→</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="admin-dashboard__section" aria-labelledby="admin-dashboard-content">
+            <h3 id="admin-dashboard-content" class="admin-dashboard__section-title">Сайт и контент</h3>
+            <div class="admin-dashboard__grid">
+                <a class="admin-dash-card admin-dash-card--compact" href="{{ ea_url().setController('App\\Admin\\ContentBlockCrudController').setAction('index') }}">
+                    <span class="admin-dash-card__title">Контент</span>
+                    <span class="admin-dash-card__desc">Тексты блоков на главной</span>
+                </a>
+                <a class="admin-dash-card admin-dash-card--compact" href="{{ ea_url().setController('App\\Admin\\CaseStudyCrudController').setAction('index') }}">
+                    <span class="admin-dash-card__title">Кейсы</span>
+                    <span class="admin-dash-card__desc">Портфолио и презентации</span>
+                </a>
+                <a class="admin-dash-card admin-dash-card--compact" href="{{ ea_url().setController('App\\Admin\\SiteSettingsCrudController').setAction('index') }}">
+                    <span class="admin-dash-card__title">Настройки</span>
+                    <span class="admin-dash-card__desc">Контакты, SEO, интеграции</span>
+                </a>
+                <a class="admin-dash-card admin-dash-card--compact" href="{{ path('web_chronicle') }}" target="_blank" rel="noopener">
+                    <span class="admin-dash-card__title">Хроника на сайте</span>
+                    <span class="admin-dash-card__desc">Открыть публичную ленту</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="admin-dashboard__section" aria-labelledby="admin-dashboard-chronicle">
+            <h3 id="admin-dashboard-chronicle" class="admin-dashboard__section-title">Хроника</h3>
+            <div class="admin-dashboard__grid admin-dashboard__grid--chips">
+                <a class="admin-dash-chip" href="{{ ea_url().setController('App\\Admin\\ChronicleEraCrudController').setAction('index') }}">Эпохи</a>
+                <a class="admin-dash-chip" href="{{ ea_url().setController('App\\Admin\\ChronicleTagCrudController').setAction('index') }}">Теги</a>
+                <a class="admin-dash-chip" href="{{ ea_url().setController('App\\Admin\\ChronicleSeriesCrudController').setAction('index') }}">Серии</a>
+                <a class="admin-dash-chip" href="{{ ea_url().setController('App\\Admin\\AdminUserCrudController').setAction('index') }}">Админы</a>
+            </div>
+        </section>
     </div>
 {% endblock %}

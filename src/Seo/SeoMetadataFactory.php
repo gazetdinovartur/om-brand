@@ -5,6 +5,9 @@ namespace App\Seo;
 use App\Content\LandingContent;
 use App\Content\LegalContent;
 use App\Entity\CaseStudy;
+use App\Entity\ChronicleEntry;
+use App\Entity\ChronicleEra;
+use App\Entity\ChronicleTag;
 use App\Entity\SiteSettings;
 use App\Twig\UploadPathExtension;
 use Symfony\Component\Asset\Packages;
@@ -64,6 +67,7 @@ final class SeoMetadataFactory
                 ogImageUrl: $ogImageUrl,
             ),
             'web_cases' => $this->forCasesIndex($request, $settings, $blocksBySlug),
+            'web_chronicle', 'web_chronicle_era', 'web_chronicle_tag' => $this->forChronicleIndex($request, $settings, $blocksBySlug),
             default => new SeoMetadata(
                 title: LandingContent::metaTitle($personName),
                 description: $description,
@@ -191,6 +195,146 @@ final class SeoMetadataFactory
                             'name' => $case->getTitle(),
                             'item' => $url,
                         ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forChronicleIndex(Request $request, SiteSettings $settings, array $blocksBySlug): SeoMetadata
+    {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+
+        return new SeoMetadata(
+            title: sprintf('Хроника · %s', $personName),
+            description: 'Тексты и фото — по эпохам жизни, без шума.',
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_chronicle'),
+            robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+            ogType: 'website',
+            ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forChronicleEra(Request $request, SiteSettings $settings, array $blocksBySlug, ChronicleEra $era): SeoMetadata
+    {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+
+        return new SeoMetadata(
+            title: sprintf('%s · Хроника · %s', $era->getTitle(), $personName),
+            description: $era->getDescription() ?: sprintf('Записи эпохи «%s».', $era->getTitle()),
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_chronicle_era', ['slug' => $era->getSlug()]),
+            robots: 'index, follow',
+            ogType: 'website',
+            ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forChronicleTag(Request $request, SiteSettings $settings, array $blocksBySlug, ChronicleTag $tag): SeoMetadata
+    {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+
+        return new SeoMetadata(
+            title: sprintf('#%s · Хроника · %s', $tag->getName(), $personName),
+            description: sprintf('Записи с тегом «%s».', $tag->getName()),
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_chronicle_tag', ['slug' => $tag->getSlug()]),
+            robots: 'index, follow',
+            ogType: 'website',
+            ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forChronicleEntry(
+        Request $request,
+        SiteSettings $settings,
+        array $blocksBySlug,
+        ChronicleEntry $entry,
+    ): SeoMetadata {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+        $ogImageUrl = $this->resolveChronicleOgImageUrl($entry, $settings, $baseUrl);
+
+        return new SeoMetadata(
+            title: $entry->resolveSeoTitle($personName),
+            description: $entry->resolveSeoDescription(),
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_chronicle_show', ['slug' => $entry->getSlug()]),
+            robots: $entry->isUnlisted() ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+            ogType: 'article',
+            ogImageUrl: $ogImageUrl,
+            jsonLd: $this->chronicleJsonLd($entry, $personName, $baseUrl, $ogImageUrl),
+        );
+    }
+
+    private function resolveChronicleOgImageUrl(ChronicleEntry $entry, SiteSettings $settings, string $baseUrl): ?string
+    {
+        foreach ([$entry->getOgImagePath(), $entry->getCoverImagePath()] as $path) {
+            $resolved = $this->uploadPathExtension->resolve($path, 'chronicle/covers');
+            if (null !== $resolved) {
+                return $baseUrl.$this->packages->getUrl($resolved);
+            }
+        }
+
+        return $this->resolveOgImageUrl($settings, $baseUrl);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function chronicleJsonLd(
+        ChronicleEntry $entry,
+        string $personName,
+        string $baseUrl,
+        ?string $ogImageUrl,
+    ): array {
+        $url = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_chronicle_show', ['slug' => $entry->getSlug()]);
+        $homeUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home');
+        $chronicleUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_chronicle');
+
+        $article = [
+            '@type' => 'Article',
+            '@id' => $url.'#article',
+            'headline' => $entry->getTitle(),
+            'description' => $entry->resolveSeoDescription(),
+            'datePublished' => ($entry->getPublishedAt() ?? $entry->getCreatedAt())->format('c'),
+            'dateModified' => $entry->getUpdatedAt()->format('c'),
+            'author' => [
+                '@type' => 'Person',
+                'name' => $personName,
+                'url' => $homeUrl,
+            ],
+            'mainEntityOfPage' => $url,
+            'inLanguage' => 'ru-RU',
+        ];
+
+        if (null !== $ogImageUrl) {
+            $article['image'] = $ogImageUrl;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                $article,
+                [
+                    '@type' => 'BreadcrumbList',
+                    '@id' => $url.'#breadcrumb',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Главная', 'item' => $homeUrl],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Хроника', 'item' => $chronicleUrl],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $entry->getTitle(), 'item' => $url],
                     ],
                 ],
             ],

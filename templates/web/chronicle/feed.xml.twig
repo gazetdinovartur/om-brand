@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+    <channel>
+        <title>{{ siteName }} · Хроника</title>
+        <link>{{ baseUrl }}/chronicle</link>
+        <description>Тексты и фото по эпохам жизни</description>
+        <language>ru-RU</language>
+        {% for entry in entries %}
+            <item>
+                <title>{{ entry.title|e('html') }}</title>
+                <link>{{ baseUrl }}{{ path('web_chronicle_show', {slug: entry.slug}) }}</link>
+                <guid isPermaLink="true">{{ baseUrl }}{{ path('web_chronicle_show', {slug: entry.slug}) }}</guid>
+                <pubDate>{{ (entry.publishedAt ?? entry.createdAt)|date('r') }}</pubDate>
+                <description>{{ entry.resolveTeaser()|e('html') }}</description>
+            </item>
+        {% endfor %}
+    </channel>
+</rss>

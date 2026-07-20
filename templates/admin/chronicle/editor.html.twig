@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Редактор · {{ entry.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ asset('css/admin-chronicle.css') }}" rel="stylesheet">
+</head>
+<body class="chronicle-editor-body" data-entry-id="{{ entry.id }}">
+    <header class="chronicle-editor-bar">
+        <div class="chronicle-editor-bar__left">
+            <a class="chronicle-editor-bar__back" href="{{ ea_url().setController('App\\Admin\\ChronicleEntryCrudController').setAction('index').generateUrl() }}">← Записи</a>
+            <span class="chronicle-editor-bar__status" data-save-status>Черновик</span>
+        </div>
+        <div class="chronicle-editor-bar__actions">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-action="preview">Предпросмотр</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-action="copy-short">/p/{{ entry.shortHash }}</button>
+            <button type="button" class="btn btn-primary btn-sm" data-action="publish">Опубликовать</button>
+        </div>
+    </header>
+
+    <main class="chronicle-editor-main container-fluid">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <section class="chronicle-editor-panel">
+                    <h2 class="chronicle-editor-panel__title">Hero</h2>
+                    <div class="mb-3">
+                        <label class="form-label">Заголовок</label>
+                        <input type="text" class="form-control" data-field="title" value="{{ entry.title }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Slug</label>
+                        <input type="text" class="form-control" data-field="slug" value="{{ entry.slug }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Lede</label>
+                        <textarea class="form-control" rows="3" data-field="lede">{{ entry.lede }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Excerpt (SEO / лента)</label>
+                        <textarea class="form-control" rows="2" data-field="excerpt">{{ entry.excerpt }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Обложка</label>
+                        <div class="chronicle-editor-drop" data-upload-kind="cover">
+                            {% set cover = upload_path(entry.coverImagePath, 'chronicle/covers') %}
+                            {% if cover %}
+                                <img src="{{ asset(cover) }}" alt="" class="chronicle-editor-drop__preview" data-cover-preview>
+                            {% else %}
+                                <img src="" alt="" class="chronicle-editor-drop__preview" data-cover-preview hidden>
+                            {% endif %}
+                            <p class="chronicle-editor-drop__hint">Перетащите или нажмите</p>
+                            <input type="file" accept="image/*" hidden data-upload-input>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Эпоха</label>
+                        <select class="form-select" data-field="eraId">
+                            <option value="">—</option>
+                            {% for era in eras %}
+                                <option value="{{ era.id }}"{% if entry.era and entry.era.id == era.id %} selected{% endif %}>{{ era.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Серия</label>
+                        <select class="form-select" data-field="seriesId">
+                            <option value="">—</option>
+                            {% for series in seriesList %}
+                                <option value="{{ series.id }}"{% if entry.series and entry.series.id == series.id %} selected{% endif %}>{{ series.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Теги</label>
+                        <div class="chronicle-editor-tags">
+                            {% for tag in tags %}
+                                <label class="chronicle-editor-tag">
+                                    <input type="checkbox" value="{{ tag.id }}" data-field="tagIds"{% if entry.tags.contains(tag) %} checked{% endif %}>
+                                    {{ tag.name }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Дата публикации</label>
+                        <input type="datetime-local" class="form-control" data-field="publishedAt" value="{{ entry.publishedAt ? entry.publishedAt|date('Y-m-d\\TH:i') : '' }}">
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" data-field="isFeatured" id="featured"{% if entry.isFeatured %} checked{% endif %}>
+                        <label class="form-check-label" for="featured">Featured в ленте</label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" data-field="isUnlisted" id="unlisted"{% if entry.isUnlisted %} checked{% endif %}>
+                        <label class="form-check-label" for="unlisted">Unlisted (только по ссылке)</label>
+                    </div>
+                </section>
+
+                <details class="chronicle-editor-panel mt-3">
+                    <summary class="chronicle-editor-panel__title">SEO</summary>
+                    <div class="mt-3">
+                        <input type="text" class="form-control mb-2" placeholder="SEO title" data-field="seoTitle" value="{{ entry.seoTitle }}">
+                        <textarea class="form-control mb-2" rows="2" placeholder="SEO description" data-field="seoDescription">{{ entry.seoDescription }}</textarea>
+                    </div>
+                </details>
+            </div>
+
+            <div class="col-lg-8">
+                <section class="chronicle-editor-panel">
+                    <div class="chronicle-editor-panel__head">
+                        <h2 class="chronicle-editor-panel__title">Контент</h2>
+                        <span class="text-muted" data-reading-time>{{ entry.readingTimeMin }} мин</span>
+                    </div>
+                    <div class="chronicle-editor-blocks" data-blocks-list></div>
+                    <div class="chronicle-editor-add">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="paragraph">+ Абзац</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="heading">+ Заголовок</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="image">+ Картинка</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="gallery">+ Галерея</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="quote">+ Цитата</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="audio">+ OmPlayer</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="divider">+ Разделитель</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-add-block="callout">+ Врезка</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        window.__CHRONICLE_EDITOR__ = {
+            entryId: {{ entry.id }},
+            data: {{ entryJson|raw }},
+            previewUrl: {{ previewUrl|json_encode|raw }},
+            shortUrl: {{ shortUrl|json_encode|raw }},
+            autosaveUrl: {{ path('admin_chronicle_autosave', {id: entry.id})|json_encode|raw }},
+            publishUrl: {{ path('admin_chronicle_publish', {id: entry.id})|json_encode|raw }},
+            uploadUrl: {{ path('admin_chronicle_upload')|json_encode|raw }},
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="{{ asset('js/admin-chronicle-editor.js') }}"></script>
+</body>
+</html>

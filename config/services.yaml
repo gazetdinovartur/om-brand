@@ -42,6 +42,15 @@ services:
             $omPlayerScriptUrl: '%env(default:app.om_player_script_url:OM_PLAYER_SCRIPT_URL)%'
             $omPlayerApiBase: '%env(default:app.om_player_api_base:OM_PLAYER_API_BASE)%'
 
+    App\Service\ChronicleMediaEmbedFactory:
+        arguments:
+            $omPlayerScriptUrl: '%env(default:app.om_player_script_url:OM_PLAYER_SCRIPT_URL)%'
+            $omPlayerApiBase: '%env(default:app.om_player_api_base:OM_PLAYER_API_BASE)%'
+
+    App\Service\ChronicleUploadStorage:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
     App\Service\InquiryAttachmentStorage:
         arguments:
             $uploadsDirectory: '%app.private_uploads_directory%'

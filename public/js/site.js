@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCapabilitiesMap();
     initProcessPath();
     initCaseLightbox();
+    initCopyLink();
 
     const updateFabVisibility = () => {
         if (!(fab instanceof HTMLElement) || document.body.classList.contains('site-body--nav-open')) {
@@ -1042,5 +1043,23 @@ function initCaseLightbox() {
             event.preventDefault();
             openAt(index + 1);
         }
+    });
+}
+
+function initCopyLink() {
+    document.querySelectorAll('[data-copy-link]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const path = btn.getAttribute('data-copy-link');
+            if (!path) return;
+            const url = path.startsWith('http') ? path : `${window.location.origin}${path}`;
+            try {
+                await navigator.clipboard.writeText(url);
+                const label = btn.textContent;
+                btn.textContent = 'Скопировано';
+                setTimeout(() => { btn.textContent = label; }, 1600);
+            } catch {
+                prompt('Ссылка:', url);
+            }
+        });
     });
 }

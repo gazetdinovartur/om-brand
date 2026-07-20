@@ -1,0 +1,61 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% if hasOmPlayer %}
+        <script type="module" src="{{ omPlayerScriptUrl }}"></script>
+    {% endif %}
+{% endblock %}
+
+{% block body %}
+<article class="chronicle-detail">
+    {% if isPreview|default(false) %}
+        <div class="container">
+            <p class="chronicle-preview-banner" role="status">Предпросмотр — запись не опубликована</p>
+        </div>
+    {% endif %}
+
+    {% include 'web/chronicle/_hero.html.twig' %}
+
+    <div class="container narrow chronicle-detail__content">
+        <nav class="case-crumb" aria-label="Навигация">
+            <a href="{{ path('web_home') }}">Главная</a>
+            <span class="case-crumb__sep" aria-hidden="true">/</span>
+            <a href="{{ path('web_chronicle') }}">Хроника</a>
+            <span class="case-crumb__sep" aria-hidden="true">/</span>
+            <span class="case-crumb__current" aria-current="page">{{ entry.title }}</span>
+        </nav>
+
+        {% if toc|length > 2 %}
+            <nav class="chronicle-toc" aria-label="Оглавление">
+                <p class="chronicle-toc__label">Оглавление</p>
+                <ol class="chronicle-toc__list">
+                    {% for item in toc %}
+                        <li class="chronicle-toc__item chronicle-toc__item--h{{ item.level }}">
+                            <a href="#{{ item.id }}">{{ item.label }}</a>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </nav>
+        {% endif %}
+
+        <div class="chronicle-blocks">
+            {% include 'web/chronicle/_blocks.html.twig' with {blocks: entry.blocks, entry: entry} %}
+        </div>
+
+        {% if related is not empty %}
+            <section class="chronicle-related" aria-label="Ещё из эпохи">
+                <div class="chronicle-related__head">
+                    <p class="chronicle-related__label">Ещё записи</p>
+                    <a href="{{ path('web_chronicle') }}">Вся хроника</a>
+                </div>
+                <div class="chronicle-related__grid">
+                    {% for item in related %}
+                        {% include 'web/chronicle/_entry.html.twig' with {entry: item} %}
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}

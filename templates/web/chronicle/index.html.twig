@@ -1,0 +1,45 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block body %}
+<section class="section chronicle-hub">
+    <div class="container">
+        <header class="chronicle-hub__head">
+            <p class="section__subtitle">Хроника</p>
+            <h1 class="section__title">Тексты и фото по эпохам</h1>
+            {% if activeEra %}
+                <p class="chronicle-hub__filter-note">Эпоха: <strong>{{ activeEra.title }}</strong></p>
+            {% elseif activeTag %}
+                <p class="chronicle-hub__filter-note">Тег: <strong>#{{ activeTag.name }}</strong></p>
+            {% endif %}
+        </header>
+
+        <div class="chronicle-hub__filters">
+            <div class="chronicle-hub__eras" role="navigation" aria-label="Эпохи">
+                <a class="chronicle-chip{% if not activeEra and not activeTag %} is-active{% endif %}" href="{{ path('web_chronicle') }}">Все</a>
+                {% for era in eras %}
+                    <a
+                        class="chronicle-chip{% if activeEra and activeEra.id == era.id %} is-active{% endif %}"
+                        href="{{ path('web_chronicle_era', {slug: era.slug}) }}"
+                        {% if era.color %}style="--chip-accent: {{ era.color }}"{% endif %}
+                    >{{ era.title }}</a>
+                {% endfor %}
+            </div>
+            {% if tags is not empty %}
+                <div class="chronicle-hub__tags">
+                    {% for tag in tags %}
+                        <a class="chronicle-tag{% if activeTag and activeTag.id == tag.id %} is-active{% endif %}" href="{{ path('web_chronicle_tag', {slug: tag.slug}) }}">#{{ tag.name }}</a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="chronicle-feed">
+            {% for entry in entries %}
+                {% include 'web/chronicle/_entry.html.twig' with {entry: entry, featured: entry.isFeatured} %}
+            {% else %}
+                <p class="chronicle-empty">Пока нет опубликованных записей.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
