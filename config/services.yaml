@@ -19,10 +19,14 @@ parameters:
     env(ADMIN_PASSWORD): ''
     env(OM_PLAYER_SCRIPT_URL): 'https://music.arturlun.ru/build/player/om-player.iife.js'
     env(OM_PLAYER_API_BASE): 'https://music.arturlun.ru/api/v1'
+    env(CONTENT_INSTAGRAM_PATH): ''
+    env(CONTENT_GOOGLE_PHOTOS_PATH): ''
     app.site_url: ''
     app.sbp_payment_url_template: ''
     app.om_player_script_url: 'https://music.arturlun.ru/build/player/om-player.iife.js'
     app.om_player_api_base: 'https://music.arturlun.ru/api/v1'
+    app.content_instagram_path: ''
+    app.content_google_photos_path: ''
 
 services:
     _defaults:
@@ -48,6 +52,18 @@ services:
             $omPlayerApiBase: '%env(default:app.om_player_api_base:OM_PLAYER_API_BASE)%'
 
     App\Service\ChronicleUploadStorage:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Twig\UploadPathExtension:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Content\ContentCatalog:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Command\ImportChronicleCorpusCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
 

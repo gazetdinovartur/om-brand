@@ -1,0 +1,46 @@
+.chronicle-admin-heart {
+    color: rgba(26, 22, 18, 0.25);
+    padding: 0.15rem;
+    line-height: 1;
+    text-decoration: none !important;
+}
+
+.chronicle-admin-heart.is-active,
+.chronicle-admin-heart:hover {
+    color: #c45c4a;
+}
+
+.chronicle-admin-heart svg {
+    display: block;
+}
+
+/* Editor / delete: icons only, one row */
+.ea-index .datagrid td.actions {
+    white-space: nowrap;
+    width: 1%;
+    vertical-align: middle;
+}
+
+.ea-index .datagrid td.actions .action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    flex-wrap: nowrap;
+}
+
+.ea-index .datagrid td.actions .chronicle-admin-row-action,
+.ea-index .datagrid td.actions a.action-editor,
+.ea-index .datagrid td.actions a.action-delete,
+.ea-index .datagrid td.actions button.action-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.35rem;
+    line-height: 1;
+}
+
+.ea-index .datagrid td.actions .action-label {
+    display: none;
+}

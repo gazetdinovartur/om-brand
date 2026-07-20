@@ -145,4 +145,27 @@ final class ChronicleEditorController extends AbstractController
             },
         ]);
     }
+
+    #[Route('/admin/chronicle/{id}/featured', name: 'admin_chronicle_toggle_featured', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function toggleFeatured(int $id, Request $request, \Doctrine\ORM\EntityManagerInterface $em): JsonResponse
+    {
+        $entry = $this->entries->find($id);
+        if (!$entry instanceof ChronicleEntry) {
+            return new JsonResponse(['error' => 'Not found'], 404);
+        }
+
+        $token = (string) $request->headers->get('X-CSRF-TOKEN', $request->request->getString('_token'));
+        if (!$this->isCsrfTokenValid('chronicle_featured', $token)) {
+            return new JsonResponse(['error' => 'Invalid CSRF'], 400);
+        }
+
+        $entry->setIsFeatured(!$entry->isFeatured());
+        $entry->setUpdatedAt(new \DateTimeImmutable());
+        $em->flush();
+
+        return new JsonResponse([
+            'ok' => true,
+            'isFeatured' => $entry->isFeatured(),
+        ]);
+    }
 }

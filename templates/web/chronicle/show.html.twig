@@ -40,14 +40,14 @@
         {% endif %}
 
         <div class="chronicle-blocks">
-            {% include 'web/chronicle/_blocks.html.twig' with {blocks: entry.blocks, entry: entry} %}
+            {% include 'web/chronicle/_blocks.html.twig' with {blocks: chronicle_blocks_for_display(entry), entry: entry} %}
         </div>
 
         {% if related is not empty %}
             <section class="chronicle-related" aria-label="Ещё из эпохи">
                 <div class="chronicle-related__head">
-                    <p class="chronicle-related__label">Ещё записи</p>
-                    <a href="{{ path('web_chronicle') }}">Вся хроника</a>
+                    <h2 class="chronicle-related__label">Ещё записи</h2>
+                    <a class="chronicle-related__all" href="{{ path('web_chronicle') }}">Вся хроника</a>
                 </div>
                 <div class="chronicle-related__grid">
                     {% for item in related %}

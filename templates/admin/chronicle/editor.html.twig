@@ -44,7 +44,7 @@
                     <div class="mb-3">
                         <label class="form-label">Обложка</label>
                         <div class="chronicle-editor-drop" data-upload-kind="cover">
-                            {% set cover = upload_path(entry.coverImagePath, 'chronicle/covers') %}
+                            {% set cover = chronicle_cover(entry.coverImagePath) %}
                             {% if cover %}
                                 <img src="{{ asset(cover) }}" alt="" class="chronicle-editor-drop__preview" data-cover-preview>
                             {% else %}

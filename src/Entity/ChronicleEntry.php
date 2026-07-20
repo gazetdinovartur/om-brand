@@ -83,6 +83,10 @@ class ChronicleEntry
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $ogImagePath = null;
 
+    /** Idempotent import key, e.g. tg:research:wave:12-15 */
+    #[ORM\Column(length: 160, unique: true, nullable: true)]
+    private ?string $sourceKey = null;
+
     /** @var Collection<int, ChronicleBlock> */
     #[ORM\OneToMany(targetEntity: ChronicleBlock::class, mappedBy: 'entry', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['sortOrder' => 'ASC', 'id' => 'ASC'])]
@@ -354,6 +358,18 @@ class ChronicleEntry
     public function setOgImagePath(?string $ogImagePath): static
     {
         $this->ogImagePath = $ogImagePath;
+
+        return $this;
+    }
+
+    public function getSourceKey(): ?string
+    {
+        return $this->sourceKey;
+    }
+
+    public function setSourceKey(?string $sourceKey): static
+    {
+        $this->sourceKey = $sourceKey;
 
         return $this;
     }

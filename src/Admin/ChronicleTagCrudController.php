@@ -3,6 +3,8 @@
 namespace App\Admin;
 
 use App\Entity\ChronicleTag;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
@@ -21,7 +23,14 @@ class ChronicleTagCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Тег')
             ->setEntityLabelInPlural('Теги')
-            ->setDefaultSort(['name' => 'ASC']);
+            ->setDefaultSort(['name' => 'ASC'])
+            ->showEntityActionsInlined();
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions
+            ->reorder(Crud::PAGE_INDEX, [Action::EDIT, Action::DELETE]);
     }
 
     public function configureFields(string $pageName): iterable

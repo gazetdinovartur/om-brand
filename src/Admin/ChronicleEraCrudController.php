@@ -3,6 +3,8 @@
 namespace App\Admin;
 
 use App\Entity\ChronicleEra;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ColorField;
@@ -24,7 +26,14 @@ class ChronicleEraCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Эпоха')
             ->setEntityLabelInPlural('Эпохи')
-            ->setDefaultSort(['sortOrder' => 'ASC']);
+            ->setDefaultSort(['sortOrder' => 'ASC'])
+            ->showEntityActionsInlined();
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions
+            ->reorder(Crud::PAGE_INDEX, [Action::EDIT, Action::DELETE]);
     }
 
     public function configureFields(string $pageName): iterable

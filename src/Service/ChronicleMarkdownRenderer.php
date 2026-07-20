@@ -13,6 +13,8 @@ final class ChronicleMarkdownRenderer
         }
 
         $text = htmlspecialchars($markdown, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        // VK mention tags left in imported text: [id123|Name] → Name
+        $text = preg_replace('/\[(?:id|club|public)\d+\|([^\]]+)\]/', '$1', $text) ?? $text;
         $text = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $text) ?? $text;
         $text = preg_replace('/\*(.+?)\*/s', '<em>$1</em>', $text) ?? $text;
         $text = preg_replace('/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/', '<a href="$2" rel="noopener" target="_blank">$1</a>', $text) ?? $text;

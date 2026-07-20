@@ -31,7 +31,17 @@ class ContentBlockCrudController extends AbstractCrudController
             ->setPageTitle(Crud::PAGE_INDEX, 'Контент сайта')
             ->setPageTitle(Crud::PAGE_NEW, 'Новый блок')
             ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать блок')
-            ->setPageTitle(Crud::PAGE_DETAIL, 'Блок контента');
+            ->setPageTitle(Crud::PAGE_DETAIL, 'Блок контента')
+            ->showEntityActionsInlined();
+    }
+
+    public function configureActions(\EasyCorp\Bundle\EasyAdminBundle\Config\Actions $actions): \EasyCorp\Bundle\EasyAdminBundle\Config\Actions
+    {
+        return $actions
+            ->reorder(Crud::PAGE_INDEX, [
+                \EasyCorp\Bundle\EasyAdminBundle\Config\Action::EDIT,
+                \EasyCorp\Bundle\EasyAdminBundle\Config\Action::DELETE,
+            ]);
     }
 
     public function configureFields(string $pageName): iterable

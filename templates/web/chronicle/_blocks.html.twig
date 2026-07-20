@@ -1,5 +1,3 @@
-{% import 'web/_partials/case_media.html.twig' as caseMedia %}
-
 {% for block in blocks %}
     {% set type = block.type.value %}
     {% if type == 'paragraph' %}
@@ -14,14 +12,15 @@
             <p>{{ block.body|chronicle_markdown|raw }}</p>
             {% if block.author %}<footer>— {{ block.author }}</footer>{% endif %}
         </blockquote>
-    {% elseif type == 'callout' %}
+    {% elseif type == 'callout' and block.calloutStyle|default('note') != 'meta' %}
+        {# meta (❤ likes) kept in DB, hidden on the site for now #}
         <aside class="chronicle-block chronicle-block--callout chronicle-block--callout-{{ block.calloutStyle|default('note') }}">
             {{ block.body|chronicle_markdown|raw }}
         </aside>
     {% elseif type == 'divider' %}
         <hr class="chronicle-block chronicle-block--divider">
     {% elseif type == 'image' %}
-        {% set full = upload_path(block.imagePath, 'chronicle/inline') %}
+        {% set full = chronicle_image(block.imagePath, ['chronicle/inline', 'chronicle/covers', 'chronicle/gallery']) %}
         {% if full %}
             <figure class="chronicle-block chronicle-block--image" data-lightbox-gallery>
                 <button
@@ -32,7 +31,13 @@
                     data-lightbox-alt="{{ block.alt|default(entry.title) }}"
                     data-lightbox-caption="{{ block.caption|default('') }}"
                 >
-                    {{ caseMedia.cover(block.imagePath, block.alt|default(entry.title), 'chronicle-block__image', '(max-width: 768px) 100vw, 42rem', 'chronicle/inline') }}
+                    <img
+                        class="chronicle-block__image"
+                        src="{{ asset(full) }}"
+                        alt="{{ block.alt|default(entry.title) }}"
+                        loading="lazy"
+                        decoding="async"
+                    >
                 </button>
                 {% if block.caption %}<figcaption>{{ block.caption }}</figcaption>{% endif %}
             </figure>
@@ -41,7 +46,7 @@
         <section class="chronicle-block case-gallery" aria-label="Галерея" data-lightbox-gallery>
             <div class="case-gallery__grid">
                 {% for image in block.images %}
-                    {% set full = upload_path(image.imagePath, 'chronicle/gallery') %}
+                    {% set full = chronicle_image(image.imagePath, ['chronicle/gallery', 'chronicle/inline', 'chronicle/covers']) %}
                     {% if full %}
                         <figure class="case-gallery__item">
                             <button
@@ -53,7 +58,13 @@
                                 data-lightbox-caption="{{ image.caption|default('') }}"
                                 data-lightbox-index="{{ loop.index0 }}"
                             >
-                                {{ caseMedia.cover(image.imagePath, image.alt|default(entry.title), 'case-gallery__img', '(max-width: 768px) 100vw, 33vw', 'chronicle/gallery') }}
+                                <img
+                                    class="case-gallery__img"
+                                    src="{{ asset(full) }}"
+                                    alt="{{ image.alt|default(entry.title) }}"
+                                    loading="lazy"
+                                    decoding="async"
+                                >
                             </button>
                             {% if image.caption %}<figcaption>{{ image.caption }}</figcaption>{% endif %}
                         </figure>

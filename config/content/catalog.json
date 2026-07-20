@@ -1,0 +1,274 @@
+{
+  "eras": [
+    {
+      "slug": "shchorsa",
+      "title": "Щорса",
+      "order": 10,
+      "period_label": "11.2012–11.2015",
+      "ranges": [["2012-11-01", "2015-11-30"]]
+    },
+    {
+      "slug": "dobrolyubova",
+      "title": "Добролюбова",
+      "order": 20,
+      "period_label": "03.2016–09.2016",
+      "ranges": [["2016-03-01", "2016-09-30"]]
+    },
+    {
+      "slug": "ryabinovoe-gosudarstvo",
+      "title": "Рябиновое государство",
+      "order": 30,
+      "period_label": "09.2016–01.2017",
+      "color": "#8b4513",
+      "ranges": [["2016-09-01", "2017-01-31"]]
+    },
+    {
+      "slug": "leninapyat",
+      "title": "Ленина пять",
+      "order": 40,
+      "period_label": "10.2016–06.2018 · 08.2025–н.в.",
+      "ranges": [
+        ["2016-10-01", "2018-06-30"],
+        ["2025-08-01", "2099-12-31"]
+      ]
+    },
+    {
+      "slug": "krasnolesye",
+      "title": "Краснолесье",
+      "order": 50,
+      "period_label": "07.2018–06.2019",
+      "ranges": [["2018-07-01", "2019-06-30"]]
+    },
+    {
+      "slug": "zhbi",
+      "title": "ЖБИ",
+      "order": 60,
+      "period_label": "07.2019–02.2020",
+      "ranges": [["2019-07-01", "2020-02-29"]]
+    },
+    {
+      "slug": "narodnaya-volya",
+      "title": "Народная воля",
+      "order": 70,
+      "period_label": "03.2020–09.2020",
+      "ranges": [["2020-03-01", "2020-09-30"]]
+    },
+    {
+      "slug": "stranstviya",
+      "title": "Странствия",
+      "order": 75,
+      "period_label": "07.2020–10.2020",
+      "ranges": [["2020-07-01", "2020-10-31"]]
+    },
+    {
+      "slug": "tatarstan",
+      "title": "Татарстан",
+      "order": 80,
+      "period_label": "10.2020–08.2021",
+      "ranges": [["2020-10-01", "2021-08-31"]]
+    },
+    {
+      "slug": "botanika",
+      "title": "Ботаника",
+      "order": 85,
+      "period_label": "09.2021–10.2021",
+      "ranges": [["2021-09-01", "2021-10-31"]]
+    },
+    {
+      "slug": "rassvetnaya",
+      "title": "Рассветная",
+      "order": 90,
+      "period_label": "10.2021–07.2025",
+      "color": "#e8a849",
+      "ranges": [["2021-10-01", "2025-07-31"]]
+    },
+    {
+      "slug": "zelenograd",
+      "title": "Зеленоград",
+      "order": 95,
+      "period_label": "04.2024 · 06.2024–08.2024",
+      "ranges": [
+        ["2024-04-01", "2024-04-30"],
+        ["2024-06-01", "2024-08-31"]
+      ]
+    },
+    {
+      "slug": "kommuna",
+      "title": "Коммуна",
+      "order": 100,
+      "period_label": "26.12.2025–13.05.2026 · внутри Ленина пять",
+      "color": "#c87828",
+      "ranges": [["2025-12-26", "2026-05-13"]],
+      "nested_in": "leninapyat"
+    },
+    {
+      "slug": "delaiogu",
+      "title": "Делайогу",
+      "order": 110,
+      "period_label": null,
+      "ranges": []
+    }
+  ],
+  "era_priority": [
+    "kommuna",
+    "zelenograd",
+    "botanika",
+    "stranstviya",
+    "tatarstan",
+    "narodnaya-volya",
+    "rassvetnaya",
+    "zhbi",
+    "krasnolesye",
+    "leninapyat",
+    "ryabinovoe-gosudarstvo",
+    "dobrolyubova",
+    "shchorsa",
+    "delaiogu"
+  ],
+  "theme_tags": [
+    {"slug": "telo", "name": "тело"},
+    {"slug": "otnosheniya", "name": "отношения"},
+    {"slug": "granitsy", "name": "границы"},
+    {"slug": "gorod", "name": "город"},
+    {"slug": "praktika", "name": "практика"},
+    {"slug": "yazyk", "name": "язык"},
+    {"slug": "dengi", "name": "деньги"},
+    {"slug": "kollektiv", "name": "коллектив"},
+    {"slug": "gore", "name": "горе"},
+    {"slug": "put", "name": "путь"},
+    {"slug": "kod", "name": "код"},
+    {"slug": "snovidenie-taro", "name": "сновидение/таро"},
+    {"slug": "zerkalo", "name": "зеркало"}
+  ],
+  "channel_tags": [
+    {"slug": "somaticheskaya-psikhologiya", "name": "Соматическая психология"},
+    {"slug": "magicheskiy", "name": "Магический"},
+    {"slug": "issledovatelskiy", "name": "Исследовательский"},
+    {"slug": "kultura", "name": "Культура"}
+  ],
+  "series": [
+    {
+      "slug": "da-i-da",
+      "title": "Да и Да",
+      "order": 10,
+      "description": "Публичный канал · соматическая психология"
+    },
+    {
+      "slug": "omnes-colores",
+      "title": "omnes colores",
+      "order": 20,
+      "description": "Приватный магический дневник"
+    },
+    {
+      "slug": "issledovanie",
+      "title": "исследование и есть терапия",
+      "order": 30,
+      "description": "Главный исследовательский корпус"
+    },
+    {
+      "slug": "cultura-nova",
+      "title": "Cultura nova",
+      "order": 40,
+      "description": "Культура и практика мышления"
+    },
+    {
+      "slug": "vk-wall",
+      "title": "ВКонтакте",
+      "order": 50,
+      "description": "Стена VK"
+    },
+    {
+      "slug": "instagram",
+      "title": "Instagram",
+      "order": 60,
+      "description": "Посты и длинные подписи"
+    }
+  ],
+  "channels": [
+    {
+      "id": "da-i-da",
+      "platform": "telegram",
+      "path": "content/ChatExport_2026-07-20/result.json",
+      "media_dir": "content/ChatExport_2026-07-20",
+      "series": "da-i-da",
+      "channel_tag": "somaticheskaya-psikhologiya",
+      "status": "published",
+      "wave_gap_minutes": 20,
+      "min_chars": 40,
+      "comments_path": null
+    },
+    {
+      "id": "om",
+      "platform": "telegram",
+      "path": "content/ChatExport_2026-07-20_om/result.json",
+      "media_dir": "content/ChatExport_2026-07-20_om",
+      "series": "omnes-colores",
+      "channel_tag": "magicheskiy",
+      "status": "draft",
+      "wave_gap_minutes": 45,
+      "min_chars": 40,
+      "comments_path": null
+    },
+    {
+      "id": "research",
+      "platform": "telegram",
+      "path": "content/ChatExport_2026-07-20_research/result.json",
+      "media_dir": "content/ChatExport_2026-07-20_research",
+      "series": "issledovanie",
+      "channel_tag": "issledovatelskiy",
+      "status": "draft",
+      "wave_gap_minutes": 45,
+      "min_chars": 120,
+      "comments_path": "content/ChatExport_2026-07-20_research/ChatExport_2026-07-20/result.json",
+      "comments_forward_name": "исследование и есть терапия"
+    },
+    {
+      "id": "culture",
+      "platform": "telegram",
+      "path": "content/ChatExport_2026-07-20_culture/result.json",
+      "media_dir": "content/ChatExport_2026-07-20_culture",
+      "series": "cultura-nova",
+      "channel_tag": "kultura",
+      "status": "draft",
+      "wave_gap_minutes": 45,
+      "min_chars": 40,
+      "comments_path": "content/ChatExport_2026-07-20_culture/ChatExport_2026-07-21/result.json",
+      "comments_forward_name": "Cultura nova",
+      "notes": "Комменты — чат «Рефлексия» (private_supergroup). ChatExport_2026-07-20 — дубликат канала, не использовать."
+    },
+    {
+      "id": "vk",
+      "platform": "vk",
+      "path": "content/vk",
+      "series": "vk-wall",
+      "channel_tag": null,
+      "status": "published",
+      "min_chars": 1
+    }
+  ],
+  "theme_patterns": {
+    "telo": "\\b(тел[аоуые]|соматик|дыхани|нервн|напряж|расслаб|таз|позвоноч|мышц|фасци|сенсорн|заземл)\\w*",
+    "otnosheniya": "\\b(отношени|любов|близк|партнёр|партнер|встреч|ревност|привязан)\\w*",
+    "granitsy": "\\b(границ|сепарац|отделен|дистанц)\\w*",
+    "gorod": "\\b(улиц|город|екатеринбург|ленина|трамвай|двор|район|переулк|площад|мост|парк)\\w*",
+    "praktika": "\\b(йог|медитац|практик|ритуал|асана|пранаям|осознан)\\w*",
+    "yazyk": "\\b(язык|текст|писат|стих|песн|музык|голос|творчеств|поэти)\\w*",
+    "dengi": "\\b(деньг|оплат|зарплат|доход|стоимость|бизнес)\\w*",
+    "kollektiv": "\\b(коммун|коллектив|власт|групп|сообществ|иерарх)\\w*",
+    "gore": "\\b(горе|утрат|смерть|прощан|слёз|слез)\\w*",
+    "put": "\\b(путь|дорог|странств|переезд|предназначен)\\w*",
+    "kod": "\\b(код|проект|клиент|git|деплой|разработ|symfony|php|сервер)\\w*",
+    "snovidenie-taro": "\\b(маги|карт[аы]|таро|сновиден|символ|архетип|аффирмац|мандал)\\w*",
+    "zerkalo": "\\b(обратн\\w*\\s*связ|отражен|зеркал)\\w*"
+  },
+  "external_paths": {
+    "instagram_exports": [
+      "/Users/arturlun/Downloads/instagram-arturlun-2026-07-20-ENfx5HHQ.zip",
+      "/Users/arturlun/Downloads/instagram-arturlun-2026-07-20-GcuZXYxx.zip"
+    ],
+    "google_photos_takeouts": [
+      "/Users/arturlun/Downloads/takeout-20260720T153146Z-1-001.zip",
+      "/Users/arturlun/Downloads/takeout-20260720T153146Z-1-002.zip"
+    ]
+  }
+}

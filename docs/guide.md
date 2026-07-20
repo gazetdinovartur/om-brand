@@ -113,7 +113,195 @@ app:content:sync  # перезаписать все блоки из LandingConte
 
 ---
 
-## 4. Админка
+## 4. Хроника (блог)
+
+Публичная лента текстов и фото по **каналам / эпохам / тегам**: `/chronicle`.  
+Карточка записи: `/chronicle/{slug}`, короткая ссылка: `/c/{hash}`.
+
+### Что в репозитории, что только локально
+
+| В git | Только локально (`.gitignore`) |
+|-------|--------------------------------|
+| `config/content/catalog.json` — эпохи, теги, серии, пути к экспортам | `content/` — ChatExport, VK, Instagram-медиа |
+| Код: Entity, Command, Twig, CSS | `corpus/` — `chronicle_entries.jsonl` после сборки |
+| Миграции БД | `scripts/` — `corpus_build.py` и пр. |
+| | `analysis/` — зеркала эпох, саммари |
+| | `public/uploads/chronicle/` — картинки после импорта |
+
+**Не тащите mysqldump с локалки на прод.** Источник правды для записей — corpus + `app:chronicle:import`.
+
+### Каталог
+
+`config/content/catalog.json`:
+
+- **eras** — эпохи с датами и цветами  
+- **theme_tags** / **channel_tags** — теги  
+- **series** — каналы (Да и Да, VK, Instagram, черновики TG)  
+- **channels** — откуда брать тексты + `status` (`published` / `draft`)  
+- **external_paths.instagram_exports** — пути к zip экспорта Instagram  
+
+После правок каталога:
+
+```bash
+docker compose exec php php bin/console app:chronicle:seed-meta
+```
+
+### Сборка корпуса (локально)
+
+Скрипты лежат в `scripts/` (не в git). Нужны экспорты в `content/` и/или zip Instagram.
+
+```bash
+# TG + VK → corpus/chronicle_entries.jsonl
+python3 scripts/corpus_build.py
+
+# + Instagram (подписи ≥ 80 символов, фото из всех zip экспорта)
+python3 scripts/corpus_build.py --instagram
+```
+
+Особенности:
+
+- Заголовки собираются из текста (целые фразы, без обрывов на предлогах); посты VK только с картинками → «Пост от 10 мая 2026 года»
+- Instagram: медиа из **всех** zip в catalog; посты без картинок в хронику не попадают
+- Лайки VK пишутся в блоки `calloutStyle=meta` (в БД есть, **на сайте скрыты**)
+
+### Импорт в БД (локально)
+
+```bash
+docker compose exec php php bin/console app:chronicle:seed-meta
+docker compose exec php php bin/console app:chronicle:import --channel=da-i-da
+docker compose exec php php bin/console app:chronicle:import --channel=instagram
+docker compose exec php php bin/console app:chronicle:import --channel=vk
+# черновики TG (не на сайте, пока draft):
+# docker compose exec php php bin/console app:chronicle:import --channel=om --channel=research --channel=culture
+```
+
+Импорт идемпотентен по `source_key`. Обновляет title, lede, блоки, медиа.  
+**Не трогает** `isFeatured` (♥ в админке).
+
+### Поведение сайта
+
+- В фильтрах только каналы / эпохи / теги, у которых есть **опубликованные** записи  
+- Чип «Все теги» / «Все каналы» / «Все эпохи» — сброс фильтра  
+- Даты по-русски («10 мая 2026»)  
+- Запись без обложки: заголовок на всю ширину  
+- Серия — чип с обводкой; эпоха — мягкая заливка; теги — оранжевые пилюли  
+
+### Перенос хроники на прод (с media)
+
+Код — через `git`. Данные хроники **не в git**. Не делайте полный mysqldump локальной БД на прод.
+
+#### Сколько места (снимок на 2026-07-21)
+
+| Что | Размер | Файлов | Нужно на проде? |
+|-----|--------|--------|-----------------|
+| `corpus/` (jsonl + manifest) | **~8 МБ** | ~4 | да |
+| `content/instagram/` | **~340 МБ** | ~1600 | вариант A |
+| `content/vk/` | **~790 МБ** | ~430 | вариант A |
+| Итого исходники media | **~1.1 ГБ** | | |
+| `public/uploads/chronicle/` после чистого импорта published | **~540 МБ** | ~1400 | да (результат) |
+| То же локально сейчас (с «хвостами» от повторных импортов) | ~1.6 ГБ | ~5300 | не копировать как есть |
+
+**Свободно на диске прода закладывайте ~2.5–3 ГБ** на первый прогон (исходники + uploads + запас), потом исходники `content/` можно удалить с сервера.
+
+Опубликовано сейчас: ~300 записей (Да и Да + Instagram + VK).
+
+#### Два рабочих варианта
+
+**Вариант A — предпочтительный: corpus + исходные media + import на проде**
+
+Плюсы: пути картинок создаются на сервере, без таскания раздутого локального `uploads/`.  
+Минусы: первый импорт дольше, на сервере временно лежат `content/`.
+
+Локально:
+
+```bash
+python3 scripts/corpus_build.py --instagram
+```
+
+Залить на сервер (из корня проекта на машине разработчика):
+
+```bash
+# подставьте USER, HOST, REMOTE=/path/to/om-brand
+rsync -avz --progress corpus/ USER@HOST:REMOTE/corpus/
+
+mkdir -p content/instagram content/vk   # на сервере уже должно быть
+rsync -avz --progress content/instagram/ USER@HOST:REMOTE/content/instagram/
+rsync -avz --progress content/vk/ USER@HOST:REMOTE/content/vk/
+```
+
+На проде:
+
+```bash
+cd /path/to/om-brand
+
+mkdir -p \
+  corpus \
+  content/instagram \
+  content/vk \
+  public/uploads/chronicle/{covers,inline,gallery}
+chmod -R 775 public/uploads/chronicle
+
+php bin/console app:chronicle:seed-meta --env=prod
+
+php bin/console app:chronicle:import --channel=da-i-da --env=prod
+php bin/console app:chronicle:import --channel=instagram --env=prod
+php bin/console app:chronicle:import --channel=vk --env=prod
+
+php bin/console cache:clear --env=prod
+```
+
+После успешной проверки картинок на `/chronicle` исходники можно убрать с сервера (uploads остаются):
+
+```bash
+# осторожно: только если import уже прошёл
+rm -rf content/instagram content/vk
+# corpus/ лучше оставить — пригодится для повторного title/text sync
+```
+
+Повторное обновление текстов/заголовков без смены картинок: залить новый `corpus/chronicle_entries.jsonl` и снова `app:chronicle:import` (медиа перекопируются в новые UUID — место снова вырастет; периодически чистите сироты в `uploads/chronicle` или заливайте заново в пустую папку).
+
+---
+
+**Вариант B — быстрее по CPU: corpus + уже собранный `uploads/chronicle`**
+
+Имеет смысл, только если на локалке один «чистый» импорт и вы готовы тащить ~0.5–1.6 ГБ готовых файлов. Имена файлов в БД должны совпасть с именами в `uploads/` — значит, либо:
+
+1. вместе с uploads переносится **дамп таблиц хроники** с локалки, либо  
+2. на проде после rsync uploads всё равно делается import (тогда файлы в uploads размножатся — не делайте так).
+
+Практичный B:
+
+```bash
+# локально: дамп только хроники
+docker compose exec mysql mysqldump -usite -psite site \
+  chronicle_entry chronicle_block chronicle_block_image \
+  chronicle_entry_tag chronicle_era chronicle_series chronicle_tag \
+  > /tmp/chronicle.sql
+
+rsync -avz --progress public/uploads/chronicle/ USER@HOST:REMOTE/public/uploads/chronicle/
+scp /tmp/chronicle.sql USER@HOST:/tmp/chronicle.sql
+```
+
+На проде: импорт SQL в БД сайта, права на `public/uploads/chronicle`, `cache:clear`.  
+Код и `catalog` по-прежнему через git + `seed-meta` при смене эпох/тегов.
+
+Вариант A проще сопровождать; B — если import на слабом хостинге слишком долгий.
+
+#### Чеклист после деплоя хроники
+
+- [ ] `/chronicle` открывается, счётчик записей ≈ ожидаемому  
+- [ ] Фильтры: Да и Да / ВКонтакте / Instagram  
+- [ ] Карточка с галереей Instagram — все фото  
+- [ ] VK image-only — заголовок «Пост от …», картинка на месте  
+- [ ] Запись без обложки — заголовок на всю ширину  
+- [ ] ❤ лайки внизу поста не видны  
+- [ ] В админке ♥ избранное сохраняется после повторного import  
+
+Код (фильтры, вёрстка, даты) — обычным `git pull` + `./deploy-script.sh`.
+
+---
+
+## 5. Админка
 
 URL: `/admin` · Throttling: 5 попыток входа / 15 мин.
 
@@ -122,6 +310,7 @@ URL: `/admin` · Throttling: 5 попыток входа / 15 мин.
 | Настройки сайта | Имя, tagline, аватар, ссылки, email заявок |
 | Блоки контента | Тексты по slug |
 | Кейсы | Портфолио: главная (medium), `/cases` (хаб), `/cases/{slug}` (история) |
+| Хроника | Записи, эпохи, серии, теги; ♥ = избранное |
 | Заявки | Обращения + скачать вложение |
 | Оплаты | Ссылки `/oplata/{token}` |
 | Админы | Доступ в панель |
@@ -132,7 +321,7 @@ URL: `/admin` · Throttling: 5 попыток входа / 15 мин.
 
 ---
 
-## 5. Форма заявки
+## 6. Форма заявки
 
 POST `/` → сохранение в БД → Telegram (или email fallback).
 
@@ -140,7 +329,7 @@ POST `/` → сохранение в БД → Telegram (или email fallback).
 
 ---
 
-## 6. Защита формы: honeypot и rate limit
+## 7. Защита формы: honeypot и rate limit
 
 Два слоя защиты от спама и ботов.
 
@@ -158,7 +347,7 @@ Symfony form token — защита от подделки запросов с ч
 
 ---
 
-## 7. Деплой на хостинг (NetAngels, VPS, shared)
+## 8. Деплой на хостинг (NetAngels, VPS, shared)
 
 ### Требования сервера
 
@@ -251,7 +440,7 @@ php bin/console cache:warmup --env=prod
 #### 8. Права на запись
 
 ```bash
-mkdir -p var/private/uploads public/uploads/avatars public/uploads/cases public/uploads/cases/gallery public/uploads/cases/audio
+mkdir -p var/private/uploads public/uploads/avatars public/uploads/cases public/uploads/cases/gallery public/uploads/cases/audio public/uploads/chronicle/{covers,inline,gallery}
 chmod -R 775 var/
 chmod -R 775 public/uploads/
 ```
@@ -266,6 +455,7 @@ chmod -R 775 public/uploads/
 - [ ] Telegram/email уведомление (если настроено)
 - [ ] `view-source` — JSON-LD, canonical с prod-доменом
 - [ ] `/robots.txt`, `/sitemap.xml`
+- [ ] `/chronicle` — лента, фильтры, запись открывается
 - [ ] Загрузка аватара в админке
 
 ### Обновление (повторный деплой)
@@ -277,6 +467,8 @@ php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:content:sync    # если меняли LandingContent.php
 php bin/console cache:clear --env=prod
 ```
+
+Хронику (тексты/фото) при обновлении корпуса см. [§4 · Перенос хроники на прод](#перенос-хроники-на-прод-с-media) — отдельным rsync + `app:chronicle:import`, не через один только `git pull`.
 
 ### VPS с Docker
 
@@ -290,7 +482,7 @@ php bin/console cache:clear --env=prod
 
 ---
 
-## 8. Бэкапы и проблемы
+## 9. Бэкапы и проблемы
 
 ### Бэкап
 
@@ -314,25 +506,33 @@ tar -czf uploads.tar.gz public/uploads/ var/private/uploads/
 
 ---
 
-## 9. Структура проекта
+## 10. Структура проекта
 
 ```
-config/           Symfony-конфигурация
+bin/
+config/
+  content/catalog.json   ← эпохи, теги, каналы хроники
 docker/           nginx + PHP (локальная разработка)
 docs/guide.md     ← эта инструкция
 migrations/       Миграции БД
 public/           Document root (css, js, index.php)
 src/
-  Admin/          EasyAdmin CRUD
-  Command/        seed, sync, verify
+  Admin/          EasyAdmin CRUD (+ хроника)
+  Command/        seed, sync, chronicle:import, chronicle:seed-meta
   Content/        LandingContent, LegalContent
   Controller/     HTTP
   Entity/         Модели
   EventSubscriber/
   Form/
   Service/
-templates/web/    Twig-шаблоны
+templates/web/    Twig (landing + chronicle)
 var/              cache, log, private uploads
+
+# не в git (локально):
+content/          экспорты TG/VK/IG
+corpus/           chronicle_entries.jsonl
+scripts/          corpus_build.py и др.
+analysis/         зеркала эпох
 ```
 
 ### Маршруты
@@ -340,6 +540,9 @@ var/              cache, log, private uploads
 | URL | Назначение |
 |-----|------------|
 | `/` | Лендинг + форма |
+| `/chronicle` | Хроника (фильтры) |
+| `/chronicle/{slug}` | Запись |
+| `/c/{hash}` | Короткая ссылка записи |
 | `/politika-konfidencialnosti` | Политика |
 | `/oplata/{token}` | Оплата (noindex) |
 | `/admin` | Админка |
@@ -347,7 +550,7 @@ var/              cache, log, private uploads
 
 ---
 
-## 10. Безопасность (кратко)
+## 11. Безопасность (кратко)
 
 - CSRF на форме и admin login
 - Honeypot + rate limit + CSRF

@@ -90,10 +90,23 @@
     font-size: 0.85rem;
 }
 
-.chronicle-editor-blocks {
-    display: grid;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+.chronicle-block-card__body textarea.form-control {
+    min-height: 0;
+    field-sizing: content;
+    resize: vertical;
+}
+
+.chronicle-block-card__body textarea.chronicle-autosize {
+    display: block;
+    width: 100%;
+    min-height: 2.5rem;
+    max-height: none;
+    height: auto;
+    overflow: hidden;
+    resize: none;
+    line-height: 1.45;
+    field-sizing: content;
+    box-sizing: border-box;
 }
 
 .chronicle-block-card {

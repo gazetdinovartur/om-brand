@@ -29,19 +29,27 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class SeedChronicleCommand extends Command
 {
-    /** @var list<array{title: string, slug: string, order: int, color?: string}> */
+    /**
+     * Canonical eras live in config/content/catalog.json (app:chronicle:seed-meta).
+     * Kept here for backward-compatible seed of the sample VK entry.
+     *
+     * @var list<array{title: string, slug: string, order: int, color?: string, period?: string}>
+     */
     private const ERAS = [
-        ['title' => 'Рассветная', 'slug' => 'rassvetnaya', 'order' => 10, 'color' => '#e8a849'],
-        ['title' => 'Коммуна', 'slug' => 'kommuna', 'order' => 20, 'color' => '#c87828'],
-        ['title' => 'Ленина пять', 'slug' => 'leninapyat', 'order' => 30],
-        ['title' => 'Народная воля', 'slug' => 'narodnaya-volya', 'order' => 40],
-        ['title' => 'Добролюбова', 'slug' => 'dobrolyubova', 'order' => 50],
-        ['title' => 'Татарча', 'slug' => 'tatarcha', 'order' => 60],
-        ['title' => 'Делайогу', 'slug' => 'delaiogu', 'order' => 70],
-        ['title' => 'Краснолесье', 'slug' => 'krasnolesye', 'order' => 80],
-        ['title' => 'Щорса', 'slug' => 'shchorsa', 'order' => 90],
-        ['title' => 'ЖБИ', 'slug' => 'zhbi', 'order' => 100],
-        ['title' => 'Рябиновое государство', 'slug' => 'ryabinovoe-gosudarstvo', 'order' => 110, 'color' => '#8b4513'],
+        ['title' => 'Щорса', 'slug' => 'shchorsa', 'order' => 10, 'period' => '11.2012–11.2015'],
+        ['title' => 'Добролюбова', 'slug' => 'dobrolyubova', 'order' => 20, 'period' => '03.2016–09.2016'],
+        ['title' => 'Рябиновое государство', 'slug' => 'ryabinovoe-gosudarstvo', 'order' => 30, 'color' => '#8b4513', 'period' => '09.2016–01.2017'],
+        ['title' => 'Ленина пять', 'slug' => 'leninapyat', 'order' => 40, 'period' => '10.2016–06.2018 · 08.2025–н.в.'],
+        ['title' => 'Краснолесье', 'slug' => 'krasnolesye', 'order' => 50, 'period' => '07.2018–06.2019'],
+        ['title' => 'ЖБИ', 'slug' => 'zhbi', 'order' => 60, 'period' => '07.2019–02.2020'],
+        ['title' => 'Народная воля', 'slug' => 'narodnaya-volya', 'order' => 70, 'period' => '03.2020–09.2020'],
+        ['title' => 'Странствия', 'slug' => 'stranstviya', 'order' => 75, 'period' => '07.2020–10.2020'],
+        ['title' => 'Татарстан', 'slug' => 'tatarstan', 'order' => 80, 'period' => '10.2020–08.2021'],
+        ['title' => 'Ботаника', 'slug' => 'botanika', 'order' => 85, 'period' => '09.2021–10.2021'],
+        ['title' => 'Рассветная', 'slug' => 'rassvetnaya', 'order' => 90, 'color' => '#e8a849', 'period' => '10.2021–07.2025'],
+        ['title' => 'Зеленоград', 'slug' => 'zelenograd', 'order' => 95, 'period' => '04.2024 · 06.2024–08.2024'],
+        ['title' => 'Коммуна', 'slug' => 'kommuna', 'order' => 100, 'color' => '#c87828', 'period' => '26.12.2025–13.05.2026 · внутри Ленина пять'],
+        ['title' => 'Делайогу', 'slug' => 'delaiogu', 'order' => 110],
     ];
 
     public function __construct(
@@ -67,6 +75,9 @@ final class SeedChronicleCommand extends Command
             $era->setSortOrder($row['order']);
             if (isset($row['color'])) {
                 $era->setColor($row['color']);
+            }
+            if (isset($row['period'])) {
+                $era->setPeriodLabel($row['period']);
             }
             $this->em->persist($era);
             $eraMap[$row['slug']] = $era;

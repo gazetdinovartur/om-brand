@@ -1,4 +1,4 @@
-{% set coverUrl = upload_path(entry.coverImagePath, 'chronicle/covers') %}
+{% set coverUrl = chronicle_cover(entry.coverImagePath) %}
 
 <section class="chronicle-hero{% if coverUrl %} chronicle-hero--has-cover{% endif %}">
     {% if coverUrl %}
@@ -11,19 +11,29 @@
                     class="chronicle-hero__cover"
                     src="{{ asset(coverUrl) }}"
                     alt="{{ entry.title }}"
-                    width="480"
-                    height="480"
                     decoding="async"
                 >
             </div>
         {% endif %}
         <div class="chronicle-hero__info">
-            <div class="chronicle-hero__meta">
-                {% if entry.era %}
-                    <a class="chronicle-hero__era" href="{{ path('web_chronicle_era', {slug: entry.era.slug}) }}"{% if entry.era.color %} style="--era-color: {{ entry.era.color }}"{% endif %}>{{ entry.era.title }}</a>
-                    <span class="chronicle-hero__meta-sep" aria-hidden="true">·</span>
-                {% endif %}
-                {% if entry.publishedAt %}
+            {% if entry.isFeatured or entry.series or entry.era %}
+                <div class="chronicle-hero__context">
+                    {% if entry.isFeatured %}
+                        <span class="chronicle-entry__heart" title="Избранное">♥</span>
+                    {% endif %}
+                    {% if entry.series %}
+                        <a class="chronicle-series-chip" href="{{ path('web_chronicle', {series: entry.series.slug}) }}">{{ entry.series.title }}</a>
+                    {% endif %}
+                    {% if entry.era %}
+                        <a class="chronicle-era-chip" href="{{ path('web_chronicle', {era: entry.era.slug}) }}"{% if entry.era.color %} style="--era-color: {{ entry.era.color }}"{% endif %}>{{ entry.era.title }}</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <h1 class="chronicle-hero__title">{{ entry.title }}</h1>
+
+            {% if entry.publishedAt %}
+                <p class="chronicle-hero__meta">
                     <time datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('full') }}</time>
                     <span class="chronicle-hero__meta-sep" aria-hidden="true">·</span>
                     <span>{{ entry.readingTimeMin }} мин чтения</span>
@@ -31,21 +41,24 @@
                         <span class="chronicle-hero__meta-sep" aria-hidden="true">·</span>
                         <span class="chronicle-hero__updated">обновлено {{ entry.updatedAt|chronicle_date('short') }}</span>
                     {% endif %}
-                {% endif %}
-            </div>
-            <h1 class="chronicle-hero__title">{{ entry.title }}</h1>
-            {% if entry.lede %}
+                </p>
+            {% endif %}
+
+            {% if chronicle_show_hero_lede(entry) %}
                 <p class="chronicle-hero__lede">{{ entry.lede }}</p>
             {% endif %}
-            {% if entry.tags is not empty %}
-                <div class="chronicle-hero__tags">
-                    {% for tag in entry.tags %}
-                        <a class="chronicle-tag" href="{{ path('web_chronicle_tag', {slug: tag.slug}) }}">#{{ tag.name }}</a>
-                    {% endfor %}
+
+            <div class="chronicle-hero__actions">
+                {% if entry.tags is not empty %}
+                    <div class="chronicle-hero__tags">
+                        {% for tag in entry.tags %}
+                            <a class="chronicle-tag" href="{{ path('web_chronicle', {tag: tag.slug}) }}">#{{ tag.name }}</a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="chronicle-hero__share">
+                    <button type="button" class="btn btn-secondary btn-sm" data-copy-link="{{ url('web_chronicle_short', {hash: entry.shortHash}) }}">Короткая ссылка</button>
                 </div>
-            {% endif %}
-            <div class="chronicle-hero__share">
-                <button type="button" class="btn btn-secondary btn-sm" data-copy-link="{{ url('web_chronicle_short', {hash: entry.shortHash}) }}">Короткая ссылка</button>
             </div>
         </div>
     </div>

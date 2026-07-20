@@ -33,7 +33,8 @@ class InquiryCrudController extends AbstractCrudController
             ->setPageTitle(Crud::PAGE_INDEX, 'Заявки')
             ->setPageTitle(Crud::PAGE_NEW, 'Новая заявка')
             ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать заявку')
-            ->setPageTitle(Crud::PAGE_DETAIL, 'Заявка');
+            ->setPageTitle(Crud::PAGE_DETAIL, 'Заявка')
+            ->showEntityActionsInlined();
     }
 
     public function configureActions(Actions $actions): Actions

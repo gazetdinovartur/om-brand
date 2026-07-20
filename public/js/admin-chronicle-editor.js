@@ -300,7 +300,7 @@
         let body = '';
 
         if (type === 'paragraph' || type === 'callout') {
-            body = `<textarea class="form-control" rows="5" data-block-field="body" placeholder="Markdown: **жирный**, *курсив*, [ссылка](url)">${escapeHtml(block.body || '')}</textarea>`;
+            body = `<textarea class="form-control chronicle-autosize" rows="1" data-block-field="body" placeholder="Markdown: **жирный**, *курсив*, [ссылка](url)">${escapeHtml(block.body || '')}</textarea>`;
         } else if (type === 'heading') {
             body = `
                 <select class="form-select form-select-sm mb-2" data-block-field="headingLevel">
@@ -310,7 +310,7 @@
                 <input type="text" class="form-control" data-block-field="body" value="${escapeAttr(block.body || '')}" placeholder="Заголовок">`;
         } else if (type === 'quote') {
             body = `
-                <textarea class="form-control mb-2" rows="3" data-block-field="body">${escapeHtml(block.body || '')}</textarea>
+                <textarea class="form-control chronicle-autosize mb-2" rows="1" data-block-field="body">${escapeHtml(block.body || '')}</textarea>
                 <input type="text" class="form-control" data-block-field="author" value="${escapeAttr(block.author || '')}" placeholder="Автор">`;
         } else if (type === 'image') {
             body = renderImageBlock(block);
@@ -332,12 +332,51 @@
             </div>
             <div class="chronicle-block-card__body">${body}</div>`;
 
+        queueMicrotask(() => {
+            card.querySelectorAll('textarea.chronicle-autosize').forEach((el) => {
+                autosizeTextarea(el);
+                requestAnimationFrame(() => autosizeTextarea(el));
+            });
+        });
+
         return card;
+    }
+
+    function autosizeTextarea(el) {
+        if (!(el instanceof HTMLTextAreaElement)) return;
+        // Reset so scrollHeight reflects content, not the previous fixed height.
+        el.style.height = '0px';
+        const next = Math.max(el.scrollHeight, 40);
+        el.style.height = `${next}px`;
+    }
+
+    function imgWithFallback(filename, dirs, className = '') {
+        if (!filename) return '';
+        const primary = `/uploads/${dirs[0]}/${filename}`;
+        const rest = dirs.slice(1).map((d) => `/uploads/${d}/${filename}`);
+        const fallbackAttr = rest.length
+            ? ` data-fallback-srcs="${escapeAttr(rest.join('|'))}" onerror="window.__chronicleImgFallback && window.__chronicleImgFallback(this)"`
+            : '';
+        const cls = className ? ` class="${className}"` : '';
+        return `<img src="${primary}" alt=""${cls}${fallbackAttr}>`;
+    }
+
+    if (!window.__chronicleImgFallback) {
+        window.__chronicleImgFallback = function (img) {
+            const raw = img.getAttribute('data-fallback-srcs') || '';
+            const next = raw.split('|').filter(Boolean);
+            if (!next.length) {
+                img.onerror = null;
+                return;
+            }
+            img.src = next.shift();
+            img.setAttribute('data-fallback-srcs', next.join('|'));
+        };
     }
 
     function renderImageBlock(block) {
         const preview = block.imagePath
-            ? `<img src="/uploads/chronicle/inline/${block.imagePath}" alt="" class="chronicle-editor-drop__preview">`
+            ? imgWithFallback(block.imagePath, ['chronicle/inline', 'chronicle/covers', 'chronicle/gallery'], 'chronicle-editor-drop__preview')
             : '';
 
         return `
@@ -357,7 +396,7 @@
 
             return `
             <div class="chronicle-gallery-item" data-gallery-item data-client-id="${img._clientId}">
-                ${img.imagePath ? `<img src="/uploads/chronicle/gallery/${img.imagePath}" alt="">` : ''}
+                ${img.imagePath ? imgWithFallback(img.imagePath, ['chronicle/gallery', 'chronicle/inline', 'chronicle/covers']) : ''}
                 <input type="text" class="form-control form-control-sm mt-1" data-gallery-caption placeholder="Подпись" value="${escapeAttr(img.caption || '')}">
                 <button type="button" class="btn btn-sm btn-link text-danger" data-gallery-remove>удалить</button>
             </div>`;
@@ -472,6 +511,9 @@
     els.blocksList?.addEventListener('input', (e) => {
         const target = e.target;
         if (!(target instanceof HTMLElement) || !target.matches('[data-block-field], [data-gallery-caption]')) return;
+        if (target instanceof HTMLTextAreaElement) {
+            autosizeTextarea(target);
+        }
         markDirty();
     });
 

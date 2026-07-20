@@ -4,9 +4,11 @@ namespace App\Repository;
 
 use App\Entity\ChronicleEntry;
 use App\Entity\ChronicleEra;
+use App\Entity\ChronicleSeries;
 use App\Entity\ChronicleTag;
 use App\Enum\ChronicleStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -19,22 +21,67 @@ class ChronicleEntryRepository extends ServiceEntityRepository
         parent::__construct($registry, ChronicleEntry::class);
     }
 
-    /** @return list<ChronicleEntry> */
-    public function findFeedOrdered(int $limit = 50, int $offset = 0): array
+    /**
+     * @param array{
+     *     era?: ?ChronicleEra,
+     *     tag?: ?ChronicleTag,
+     *     series?: ?ChronicleSeries,
+     *     year?: ?int,
+     *     featured?: bool|null
+     * } $filters
+     *
+     * @return list<ChronicleEntry>
+     */
+    public function findFiltered(array $filters = [], int $limit = 24, int $offset = 0): array
     {
-        return $this->createQueryBuilder('e')
-            ->andWhere('e.status = :status')
-            ->andWhere('e.publishedAt IS NOT NULL')
-            ->andWhere('e.publishedAt <= :now')
-            ->andWhere('e.isUnlisted = false')
-            ->setParameter('status', ChronicleStatus::Published)
-            ->setParameter('now', new \DateTimeImmutable())
+        return $this->filteredQuery($filters)
             ->orderBy('e.isFeatured', 'DESC')
             ->addOrderBy('e.publishedAt', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * @param array{
+     *     era?: ?ChronicleEra,
+     *     tag?: ?ChronicleTag,
+     *     series?: ?ChronicleSeries,
+     *     year?: ?int,
+     *     featured?: bool|null
+     * } $filters
+     */
+    public function countFiltered(array $filters = []): int
+    {
+        return (int) $this->filteredQuery($filters)
+            ->select('COUNT(DISTINCT e.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** @return list<int> */
+    public function findPublishedYears(): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        $rows = $conn->fetchFirstColumn(
+            'SELECT DISTINCT YEAR(published_at) AS y
+             FROM chronicle_entry
+             WHERE status = ?
+               AND published_at IS NOT NULL
+               AND published_at <= ?
+               AND is_unlisted = 0
+             ORDER BY y DESC',
+            [ChronicleStatus::Published->value, (new \DateTimeImmutable())->format('Y-m-d H:i:s')]
+        );
+
+        return array_map(static fn ($y) => (int) $y, $rows);
+    }
+
+    /** @return list<ChronicleEntry> */
+    public function findFeedOrdered(int $limit = 50, int $offset = 0): array
+    {
+        return $this->findFiltered([], $limit, $offset);
     }
 
     public function findPublishedBySlug(string $slug): ?ChronicleEntry
@@ -71,40 +118,15 @@ class ChronicleEntryRepository extends ServiceEntityRepository
     }
 
     /** @return list<ChronicleEntry> */
-    public function findByEra(ChronicleEra $era, int $limit = 50): array
+    public function findByEra(ChronicleEra $era, int $limit = 50, int $offset = 0): array
     {
-        return $this->createQueryBuilder('e')
-            ->andWhere('e.era = :era')
-            ->andWhere('e.status = :status')
-            ->andWhere('e.publishedAt IS NOT NULL')
-            ->andWhere('e.publishedAt <= :now')
-            ->andWhere('e.isUnlisted = false')
-            ->setParameter('era', $era)
-            ->setParameter('status', ChronicleStatus::Published)
-            ->setParameter('now', new \DateTimeImmutable())
-            ->orderBy('e.publishedAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
+        return $this->findFiltered(['era' => $era], $limit, $offset);
     }
 
     /** @return list<ChronicleEntry> */
-    public function findByTag(ChronicleTag $tag, int $limit = 50): array
+    public function findByTag(ChronicleTag $tag, int $limit = 50, int $offset = 0): array
     {
-        return $this->createQueryBuilder('e')
-            ->innerJoin('e.tags', 't')
-            ->andWhere('t = :tag')
-            ->andWhere('e.status = :status')
-            ->andWhere('e.publishedAt IS NOT NULL')
-            ->andWhere('e.publishedAt <= :now')
-            ->andWhere('e.isUnlisted = false')
-            ->setParameter('tag', $tag)
-            ->setParameter('status', ChronicleStatus::Published)
-            ->setParameter('now', new \DateTimeImmutable())
-            ->orderBy('e.publishedAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
+        return $this->findFiltered(['tag' => $tag], $limit, $offset);
     }
 
     /** @return list<ChronicleEntry> */
@@ -169,5 +191,54 @@ class ChronicleEntryRepository extends ServiceEntityRepository
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult() > 0;
+    }
+
+    /**
+     * @param array{
+     *     era?: ?ChronicleEra,
+     *     tag?: ?ChronicleTag,
+     *     series?: ?ChronicleSeries,
+     *     year?: ?int,
+     *     featured?: bool|null
+     * } $filters
+     */
+    private function filteredQuery(array $filters): QueryBuilder
+    {
+        $qb = $this->createQueryBuilder('e')
+            ->andWhere('e.status = :status')
+            ->andWhere('e.publishedAt IS NOT NULL')
+            ->andWhere('e.publishedAt <= :now')
+            ->andWhere('e.isUnlisted = false')
+            ->setParameter('status', ChronicleStatus::Published)
+            ->setParameter('now', new \DateTimeImmutable());
+
+        if (!empty($filters['era'])) {
+            $qb->andWhere('e.era = :era')->setParameter('era', $filters['era']);
+        }
+
+        if (!empty($filters['series'])) {
+            $qb->andWhere('e.series = :series')->setParameter('series', $filters['series']);
+        }
+
+        if (!empty($filters['tag'])) {
+            $qb->innerJoin('e.tags', 't')
+                ->andWhere('t = :tag')
+                ->setParameter('tag', $filters['tag']);
+        }
+
+        if (!empty($filters['year'])) {
+            $year = (int) $filters['year'];
+            $qb->andWhere('e.publishedAt >= :yearStart')
+                ->andWhere('e.publishedAt < :yearEnd')
+                ->setParameter('yearStart', new \DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year)))
+                ->setParameter('yearEnd', new \DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year + 1)));
+        }
+
+        if (\array_key_exists('featured', $filters) && null !== $filters['featured']) {
+            $qb->andWhere('e.isFeatured = :featured')
+                ->setParameter('featured', (bool) $filters['featured']);
+        }
+
+        return $qb;
     }
 }

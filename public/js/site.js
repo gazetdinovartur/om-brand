@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initProcessPath();
     initCaseLightbox();
     initCopyLink();
+    initChronicleFeed();
 
     const updateFabVisibility = () => {
         if (!(fab instanceof HTMLElement) || document.body.classList.contains('site-body--nav-open')) {
@@ -1061,5 +1062,121 @@ function initCopyLink() {
                 prompt('Ссылка:', url);
             }
         });
+    });
+}
+
+function initChronicleFeed() {
+    const feed = document.querySelector('[data-chronicle-feed]');
+    const moreBtn = document.querySelector('[data-chronicle-more]');
+    const moreWrap = document.querySelector('.chronicle-hub__more');
+    const filters = document.querySelector('[data-chronicle-filters]');
+    const heartBtn = document.querySelector('[data-chronicle-heart]');
+    const featuredInput = document.querySelector('[data-featured-input]');
+
+    if (heartBtn instanceof HTMLButtonElement && filters instanceof HTMLFormElement) {
+        heartBtn.addEventListener('click', () => {
+            const next = heartBtn.getAttribute('aria-pressed') !== 'true';
+            heartBtn.classList.toggle('is-active', next);
+            heartBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
+            if (featuredInput instanceof HTMLInputElement) {
+                featuredInput.disabled = !next;
+            }
+            const year = filters.querySelector('select[name="year"]');
+            if (year instanceof HTMLSelectElement && !year.value) {
+                year.disabled = true;
+            }
+            filters.submit();
+        });
+    }
+
+    if (filters instanceof HTMLFormElement) {
+        filters.querySelectorAll('[data-chronicle-auto]').forEach((el) => {
+            el.addEventListener('change', () => {
+                const year = filters.querySelector('select[name="year"]');
+                if (year instanceof HTMLSelectElement && !year.value) {
+                    year.disabled = true;
+                }
+                if (featuredInput instanceof HTMLInputElement && featuredInput.disabled) {
+                    // keep disabled
+                }
+                filters.submit();
+            });
+        });
+    }
+
+    if (!(feed instanceof HTMLElement) || !(moreBtn instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    let nextOffset = Number(feed.dataset.nextOffset || '0');
+    let hasMore = feed.dataset.hasMore === '1';
+    let loading = false;
+
+    const setHasMore = (value) => {
+        hasMore = value;
+        feed.dataset.hasMore = value ? '1' : '0';
+        if (!value) {
+            moreWrap?.remove();
+            return;
+        }
+        if (moreWrap instanceof HTMLElement) {
+            moreWrap.hidden = false;
+        }
+    };
+
+    if (!hasMore) {
+        moreWrap?.remove();
+        return;
+    }
+
+    moreBtn.addEventListener('click', async () => {
+        if (loading || !hasMore) {
+            return;
+        }
+        loading = true;
+        moreBtn.disabled = true;
+        moreBtn.textContent = 'Загрузка…';
+
+        try {
+            let query = {};
+            try {
+                query = JSON.parse(feed.dataset.query || '{}') || {};
+            } catch {
+                query = {};
+            }
+            const params = new URLSearchParams();
+            Object.entries(query).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && value !== '') {
+                    params.set(key, String(value));
+                }
+            });
+            params.set('offset', String(nextOffset));
+
+            const url = `${feed.dataset.moreUrl}?${params.toString()}`;
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error('more failed');
+            }
+            const data = await response.json();
+            if (typeof data.html === 'string' && data.html.trim() !== '') {
+                feed.insertAdjacentHTML('beforeend', data.html);
+            }
+            nextOffset = Number(data.nextOffset || nextOffset);
+            feed.dataset.nextOffset = String(nextOffset);
+            setHasMore(Boolean(data.hasMore));
+        } catch {
+            moreBtn.textContent = 'Не удалось загрузить';
+            setTimeout(() => {
+                moreBtn.textContent = 'Смотреть ещё';
+            }, 1800);
+        } finally {
+            loading = false;
+            moreBtn.disabled = false;
+            if (hasMore) {
+                moreBtn.textContent = 'Смотреть ещё';
+            }
+        }
     });
 }
