@@ -43,6 +43,12 @@
             {% include 'web/chronicle/_blocks.html.twig' with {blocks: chronicle_blocks_for_display(entry), entry: entry} %}
         </div>
 
+        {% if entry.publishedAt %}
+            <footer class="chronicle-posted">
+                <time class="chronicle-posted__date" datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('full') }}</time>
+            </footer>
+        {% endif %}
+
         {% if related is not empty %}
             <section class="chronicle-related" aria-label="Ещё из эпохи">
                 <div class="chronicle-related__head">

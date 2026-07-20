@@ -2981,9 +2981,10 @@ select.form-control:focus {
 .case-gallery__trigger {
     display: block;
     width: 100%;
+    aspect-ratio: 1;
     padding: 0;
     border: 0;
-    background: transparent;
+    background: rgba(26, 22, 18, 0.05);
     cursor: zoom-in;
     border-radius: calc(var(--radius) - 0.25rem);
     overflow: hidden;
@@ -2996,10 +2997,10 @@ select.form-control:focus {
 
 .case-gallery__img {
     width: 100%;
+    height: 100%;
     aspect-ratio: 1;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
-    background: rgba(26, 22, 18, 0.05);
     display: block;
     transition: transform 0.35s ease;
 }
@@ -3311,7 +3312,7 @@ select.form-control:focus {
 .chronicle-hero__cover {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
     display: block;
 }
@@ -3634,19 +3635,30 @@ select.form-control:focus {
     display: grid;
     grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
     gap: 1rem;
+    align-items: start;
     padding: 1rem;
     border-radius: var(--radius);
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid rgba(26, 22, 18, 0.08);
 }
 
-.chronicle-entry:not(:has(.chronicle-entry__media)) {
-    grid-template-columns: minmax(0, 1fr);
-}
-
 .chronicle-entry--featured {
     grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
     background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(232, 168, 73, 0.08));
+}
+
+.chronicle-entry:not(:has(.chronicle-entry__media)),
+.chronicle-entry--featured:not(:has(.chronicle-entry__media)) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.chronicle-entry__media {
+    display: block;
+    width: 100%;
+    border-radius: 0.85rem;
+    overflow: hidden;
+    background: rgba(26, 22, 18, 0.06);
+    align-self: start;
 }
 
 .chronicle-entry__heart {
@@ -3658,7 +3670,7 @@ select.form-control:focus {
     width: 100%;
     aspect-ratio: 1;
     object-fit: cover;
-    border-radius: 0.85rem;
+    object-position: center;
     display: block;
 }
 
@@ -3813,6 +3825,39 @@ select.form-control:focus {
     color: #664d03;
 }
 
+.chronicle-posted {
+    margin: 2.75rem 0 0.35rem;
+    text-align: center;
+}
+
+.chronicle-posted__date {
+    display: inline-block;
+    position: relative;
+    padding: 0 1.1rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    color: rgba(26, 22, 18, 0.45);
+    font-variant-numeric: tabular-nums;
+}
+
+.chronicle-posted__date::before,
+.chronicle-posted__date::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 2.25rem;
+    height: 1px;
+    background: rgba(26, 22, 18, 0.14);
+}
+
+.chronicle-posted__date::before {
+    right: 100%;
+}
+
+.chronicle-posted__date::after {
+    left: 100%;
+}
+
 .chronicle-related {
     margin-top: 3.25rem;
     padding: 2rem 0 0.25rem;
@@ -3861,7 +3906,8 @@ select.form-control:focus {
     box-shadow: none;
 }
 
-.chronicle-related__grid .chronicle-entry:not(:has(.chronicle-entry__media)) {
+.chronicle-related__grid .chronicle-entry:not(:has(.chronicle-entry__media)),
+.chronicle-related__grid .chronicle-entry--featured:not(:has(.chronicle-entry__media)) {
     grid-template-columns: minmax(0, 1fr);
 }
 
@@ -3885,8 +3931,7 @@ select.form-control:focus {
     font-size: 0.86rem;
 }
 
-.chronicle-block__image-trigger,
-.case-gallery__trigger {
+.chronicle-block__image-trigger {
     display: block;
     width: 100%;
     padding: 0;
@@ -3902,8 +3947,7 @@ select.form-control:focus {
     border-radius: 0.85rem;
 }
 
-/* Full-size inline photos stay natural; gallery thumbs are square above. */
-.chronicle-block.case-gallery .case-gallery__img {
+.chronicle-block.case-gallery .case-gallery__trigger {
     border-radius: 0.85rem;
 }
 
@@ -3939,6 +3983,13 @@ select.form-control:focus {
 
     .chronicle-entry,
     .chronicle-entry--featured {
+        grid-template-columns: minmax(0, 6.5rem) minmax(0, 1fr);
+        gap: 0.85rem;
+        padding: 0.85rem;
+    }
+
+    .chronicle-entry:not(:has(.chronicle-entry__media)),
+    .chronicle-entry--featured:not(:has(.chronicle-entry__media)) {
         grid-template-columns: minmax(0, 1fr);
     }
 }

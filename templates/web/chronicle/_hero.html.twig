@@ -32,15 +32,9 @@
 
             <h1 class="chronicle-hero__title">{{ entry.title }}</h1>
 
-            {% if entry.publishedAt %}
+            {% if entry.wasUpdatedAfterPublish %}
                 <p class="chronicle-hero__meta">
-                    <time datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('full') }}</time>
-                    <span class="chronicle-hero__meta-sep" aria-hidden="true">·</span>
-                    <span>{{ entry.readingTimeMin }} мин чтения</span>
-                    {% if entry.wasUpdatedAfterPublish %}
-                        <span class="chronicle-hero__meta-sep" aria-hidden="true">·</span>
-                        <span class="chronicle-hero__updated">обновлено {{ entry.updatedAt|chronicle_date('short') }}</span>
-                    {% endif %}
+                    <span class="chronicle-hero__updated">обновлено {{ entry.updatedAt|chronicle_date('short') }}</span>
                 </p>
             {% endif %}
 

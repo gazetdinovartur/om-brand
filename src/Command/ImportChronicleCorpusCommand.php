@@ -326,6 +326,24 @@ final class ImportChronicleCorpusCommand extends Command
 
             $entry->addBlock($block);
         }
+
+        // Drop stale covers when the corpus row has no images (text-only posts).
+        if (!$coverSet && !$skipMedia) {
+            $hasImageBlocks = false;
+            foreach ($blocks as $blockRow) {
+                if (!\is_array($blockRow)) {
+                    continue;
+                }
+                $t = (string) ($blockRow['type'] ?? '');
+                if ('image' === $t || 'gallery' === $t) {
+                    $hasImageBlocks = true;
+                    break;
+                }
+            }
+            if (!$hasImageBlocks) {
+                $entry->setCoverImagePath(null);
+            }
+        }
     }
 
     private function copyImage(string $mediaDir, string $relativePath, string $subdir): ?string

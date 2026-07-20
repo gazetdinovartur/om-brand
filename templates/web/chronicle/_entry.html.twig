@@ -27,7 +27,6 @@
             {% if entry.publishedAt %}
                 <time datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('short') }}</time>
             {% endif %}
-            <span>{{ entry.readingTimeMin }} мин</span>
         </div>
         <h2 class="chronicle-entry__title"><a href="{{ href }}">{{ entry.title }}</a></h2>
         {% if chronicle_show_card_lede(entry) %}
