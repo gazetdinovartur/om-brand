@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-07-21T10:45:11.868657Z",
+  "total_entries": 0,
+  "by_channel": {},
+  "by_era": {},
+  "by_series": {},
+  "theme_hits": {},
+  "by_year": {},
+  "text_length": {
+    "min": 0,
+    "max": 0,
+    "mean": 0,
+    "median": 0
+  },
+  "corpus_path": "/workspace/corpus/chronicle_entries.jsonl",
+  "corpus_exists": false
+}

@@ -1,0 +1,60 @@
+{
+  "source": "vk.com/arturlun",
+  "fetched_at": "2026-07-21",
+  "note": "Публичная выборка для качественного анализа; полный экспорт в content/vk/",
+  "posts": [
+    {
+      "date": "2026-07-15",
+      "slug_hint": "na-seredinu-leta",
+      "type": "toponymic_hymn",
+      "excerpt": "на середину лета... тяжело дышать этим летом / и вместе с тем, жить - хорошо",
+      "themes": ["gorod", "telo", "yazyk", "put"],
+      "era": "leninapyat"
+    },
+    {
+      "date": "2026-07-06",
+      "type": "product_manifesto",
+      "product": "OmPlayer",
+      "excerpt": "music.arturlun.ru... просто побыть, пока песня длится",
+      "themes": ["yazyk", "kod", "praktika"]
+    },
+    {
+      "date": "2026-07-02",
+      "type": "product_manifesto",
+      "product": "Sacred Geometry Lab",
+      "excerpt": "Как ты сейчас? lab.arturlun.ru",
+      "themes": ["telo", "kod", "praktika", "zerkalo"]
+    },
+    {
+      "date": "2026-06-20",
+      "type": "product_manifesto",
+      "product": "arturlun.ru",
+      "excerpt": "разработчик веб-систем... человеческо-техническая поддержка",
+      "themes": ["kod"]
+    },
+    {
+      "date": "2026-06-13",
+      "type": "micro",
+      "text": "спустя месяц после тринадцатого мая. сегодня. зацвели липы",
+      "themes": ["gorod", "gore"]
+    },
+    {
+      "date": "2026-06-09",
+      "type": "ritual",
+      "excerpt": "мёртвое уходи к мёртвым / живое проступай к жизни",
+      "themes": ["put", "yazyk", "gore"]
+    },
+    {
+      "date": "2026-05-26",
+      "type": "music",
+      "excerpt": "первый альбом моей первой музыки... посвящаю / тебе, сердце моё",
+      "themes": ["yazyk", "put"]
+    },
+    {
+      "date": "2026-04-02",
+      "type": "crisis_narrative",
+      "excerpt": "35 лет... мама вчера проснулась во мне... всё измеряется в масле",
+      "themes": ["telo", "gore", "put", "praktika"]
+    }
+  ]
+}
