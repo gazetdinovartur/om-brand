@@ -25,4 +25,13 @@
         {% endif %}
     </div>
 </section>
+
+{% include 'web/_partials/page_nav.html.twig' with {
+    backFallback: path('web_home'),
+    related: [
+        { href: path('web_dev_landing'), label: 'Разработка' },
+        { href: path('web_chronicle'), label: 'Хроника' },
+        { href: path('web_contact'), label: 'Связь' },
+    ]
+} %}
 {% endblock %}

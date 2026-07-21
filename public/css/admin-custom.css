@@ -326,6 +326,24 @@ body.ea,
     padding: 0.95rem 1rem;
 }
 
+.admin-dash-card--hint {
+    cursor: default;
+    background: rgba(250, 247, 242, 0.9);
+    border-style: dashed;
+}
+
+.admin-dash-card--hint:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: rgba(31, 26, 20, 0.12);
+}
+
+.admin-dash-card--hint code {
+    font-size: 0.78rem;
+    color: #9f5d18;
+    word-break: break-all;
+}
+
 .admin-dash-card__icon {
     flex: 0 0 auto;
     width: 2.25rem;

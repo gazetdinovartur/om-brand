@@ -13,6 +13,8 @@ services:
     environment:
       APP_ENV: dev
       DEFAULT_URI: http://nginx
+      # Inside the compose network MySQL is `mysql`, not host-mapped 127.0.0.1
+      DATABASE_URL: mysql://${MYSQL_USER:-site}:${MYSQL_PASSWORD:-site}@mysql:3306/${MYSQL_DATABASE:-site}?serverVersion=8.0&charset=utf8mb4
     depends_on:
       mysql:
         condition: service_healthy

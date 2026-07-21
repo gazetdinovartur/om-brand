@@ -37,6 +37,11 @@ usage() {
   2. MySQL: БД и пользователь созданы
   3. cp .env.example .env.local — заполнить prod-переменные
   4. git clone / загрузка кода на сервер
+
+Маршруты после деплоя: / (дом), /dev--null, /contact, /cases, /chronicle, /admin
+Тексты дома: src/Content/HouseContent.php (без sync).
+Блоки лендинга: LandingContent.php → --sync-content при необходимости.
+Лайки после импорта VK: php bin/console app:chronicle:seed-likes --env=prod
 EOF
 }
 
@@ -99,7 +104,14 @@ fi
 
 log "Каталоги для cache, log и uploads"
 mkdir -p var/cache var/log var/private/uploads
-mkdir -p public/uploads/avatars public/uploads/cases
+mkdir -p \
+    public/uploads/avatars \
+    public/uploads/cases \
+    public/uploads/cases/gallery \
+    public/uploads/cases/audio \
+    public/uploads/chronicle/covers \
+    public/uploads/chronicle/inline \
+    public/uploads/chronicle/gallery
 
 chmod -R ug+rwx var/ 2>/dev/null || true
 chmod -R ug+rwx public/uploads/ 2>/dev/null || true
@@ -125,4 +137,6 @@ $CONSOLE cache:warmup --env=prod
 
 echo ""
 echo "✓ Деплой завершён."
-echo "  Проверьте: HTTPS, /admin/login, форма заявки, var/log/prod.log при ошибках."
+echo "  Проверьте: HTTPS, / , /dev--null , /contact , /cases , /chronicle ,"
+echo "  /admin/login , форма заявки, var/log/prod.log при ошибках."
+echo "  После импорта VK / миграции лайков: php bin/console app:chronicle:seed-likes --env=prod"

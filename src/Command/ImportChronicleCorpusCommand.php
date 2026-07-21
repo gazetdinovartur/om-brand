@@ -15,6 +15,7 @@ use App\Repository\ChronicleSeriesRepository;
 use App\Repository\ChronicleTagRepository;
 use App\Service\ChronicleHashGenerator;
 use App\Service\ChronicleMarkdownRenderer;
+use App\Service\ContentLikeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -39,6 +40,7 @@ final class ImportChronicleCorpusCommand extends Command
         private readonly ChronicleTagRepository $tags,
         private readonly ChronicleHashGenerator $hashGenerator,
         private readonly ChronicleMarkdownRenderer $markdown,
+        private readonly ContentLikeService $contentLikes,
         private readonly SluggerInterface $slugger,
         private readonly string $projectDir,
     ) {
@@ -187,6 +189,7 @@ final class ImportChronicleCorpusCommand extends Command
             }
 
             $this->replaceBlocks($entry, $row, $skipMedia);
+            $this->contentLikes->applyImportedCountFromBlocks($entry);
 
             $entry->setReadingTimeMin($this->markdown->estimateReadingMinutes($entry));
             $entry->setUpdatedAt(new \DateTimeImmutable());

@@ -1,5 +1,6 @@
 {% set cover = chronicle_cover(entry.coverImagePath) %}
 {% set href = path('web_chronicle_show', {slug: entry.slug}) %}
+{% set hubQuery = hubQuery|default({}) %}
 
 <article class="chronicle-entry{% if featured|default(false) %} chronicle-entry--featured{% endif %}">
     {% if cover %}
@@ -19,10 +20,10 @@
                 <span class="chronicle-entry__heart" title="Избранное" aria-label="Избранное">♥</span>
             {% endif %}
             {% if entry.series %}
-                <a class="chronicle-series-chip" href="{{ path('web_chronicle', {series: entry.series.slug}) }}">{{ entry.series.title }}</a>
+                <a class="chronicle-series-chip" href="{{ path('web_chronicle', hubQuery|merge({series: entry.series.slug})) }}">{{ entry.series.title }}</a>
             {% endif %}
             {% if entry.era %}
-                <a class="chronicle-era-chip" href="{{ path('web_chronicle', {era: entry.era.slug}) }}"{% if entry.era.color %} style="--era-color: {{ entry.era.color }}"{% endif %}>{{ entry.era.title }}</a>
+                <a class="chronicle-era-chip" href="{{ path('web_chronicle', hubQuery|merge({era: entry.era.slug})) }}"{% if entry.era.color %} style="--era-color: {{ entry.era.color }}"{% endif %}>{{ entry.era.title }}</a>
             {% endif %}
             {% if entry.publishedAt %}
                 <time datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('short') }}</time>
@@ -35,7 +36,7 @@
         {% if entry.tags is not empty %}
             <div class="chronicle-entry__tags">
                 {% for tag in entry.tags %}
-                    <a class="chronicle-tag" href="{{ path('web_chronicle', {tag: tag.slug}) }}">#{{ tag.name }}</a>
+                    <a class="chronicle-tag" href="{{ path('web_chronicle', hubQuery|merge({tag: tag.slug})) }}">#{{ tag.name }}</a>
                 {% endfor %}
             </div>
         {% endif %}

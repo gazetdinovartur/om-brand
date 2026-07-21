@@ -1,6 +1,13 @@
-<nav class="site-nav site-nav--desktop" aria-label="Навигация по странице">
+<nav class="site-nav site-nav--desktop" aria-label="{{ siteShell|default('house') == 'landing' ? 'Навигация по странице' : 'Навигация по сайту' }}">
     {% for item in navAnchors|default([]) %}
-        <a class="site-nav__link" href="{{ navPrefix ~ item.href }}">{{ item.label }}</a>
+        <a
+            class="site-nav__link"
+            href="{{ navPrefix|default('') ~ item.href }}"
+            {% if item.persistFilters|default(false) %}
+                data-chronicle-hub-link
+                data-chronicle-hub-base="{{ item.href }}"
+            {% endif %}
+        >{{ item.label }}</a>
     {% endfor %}
 </nav>
 

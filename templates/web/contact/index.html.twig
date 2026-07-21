@@ -1,0 +1,141 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block body %}
+<section class="section contact-page" id="contact">
+    <div class="container narrow">
+        <header class="contact-page__head">
+            <p class="contact-page__eyebrow">Связь</p>
+            <h1 class="section__title">{{ pageTitle }}</h1>
+            <p class="section__subtitle">{{ pageLead }}</p>
+        </header>
+
+        <div class="contact-page__how">
+            <h2 class="contact-page__how-title">{{ howTitle }}</h2>
+            <p class="contact-page__how-body">{{ howBody }}</p>
+            <ul class="contact-page__channels">
+                {% if settings.telegramUrl %}
+                    <li>
+                        <a href="{{ settings.telegramUrl }}" rel="noopener">Telegram</a>
+                    </li>
+                {% endif %}
+                {% if settings.githubUrl %}
+                    <li>
+                        <a href="{{ settings.githubUrl }}" rel="noopener">GitHub</a>
+                    </li>
+                {% endif %}
+                {% if settings.email %}
+                    <li>
+                        <a href="mailto:{{ settings.email }}">{{ settings.email }}</a>
+                    </li>
+                {% endif %}
+                <li>
+                    <a href="{{ path('web_dev_landing') }}#contact">Форма заказа разработки</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="section__head text-center contact-page__form-head">
+            <h2 class="section__title">{{ formTitle }}</h2>
+            <p class="section__subtitle">{{ formSubtitle }}</p>
+        </div>
+
+        <div class="form-card" data-inquiry-card>
+            <div class="form-card__loader" data-inquiry-loader hidden aria-live="polite">
+                <span class="form-card__loader-spinner" aria-hidden="true"></span>
+                <span class="form-card__loader-text">Отправляем…</span>
+            </div>
+            {{ form_start(form, { attr: {
+                class: 'inquiry-form',
+                'data-inquiry-form': '',
+                'data-form-name': form.vars.name,
+                enctype: 'multipart/form-data',
+                novalidate: 'novalidate'
+            } }) }}
+                <div class="form-grid">
+                    <div class="form-field">
+                        {{ form_label(form.name) }}
+                        {{ form_widget(form.name, { attr: { class: 'form-control' } }) }}
+                        {{ form_errors(form.name) }}
+                    </div>
+                    <div class="form-field">
+                        {{ form_label(form.contactType) }}
+                        {{ form_widget(form.contactType, { attr: { class: 'form-control' } }) }}
+                        {{ form_errors(form.contactType) }}
+                    </div>
+                    <div class="form-field" data-contact-field>
+                        {{ form_label(form.contact) }}
+                        {{ form_widget(form.contact, { attr: { class: 'form-control' } }) }}
+                        <p class="form-field__hint" data-contact-hint hidden></p>
+                        {{ form_errors(form.contact) }}
+                    </div>
+                    <div class="form-field">
+                        {{ form_label(form.inquiryType) }}
+                        {{ form_widget(form.inquiryType, { attr: { class: 'form-control' } }) }}
+                        {{ form_errors(form.inquiryType) }}
+                    </div>
+                    <div class="form-field form-field--full">
+                        <div class="form-field__head">
+                            {{ form_label(form.message) }}
+                            <span class="form-field__optional">необязательно</span>
+                        </div>
+                        {{ form_widget(form.message, { attr: { class: 'form-control' } }) }}
+                        {{ form_errors(form.message) }}
+                    </div>
+                    <div class="form-field form-field--full">
+                        <div class="form-field__head">
+                            <span class="form-field__label">Прикрепить файл</span>
+                            <span class="form-field__optional">необязательно</span>
+                        </div>
+                        <div class="file-upload" data-file-upload>
+                            <div class="file-upload__dropzone" data-file-dropzone tabindex="0" role="button" aria-label="Выбрать файл для прикрепления">
+                                <span class="file-upload__icon" aria-hidden="true"></span>
+                                <span class="file-upload__prompt">Перетащите сюда или <span class="file-upload__accent">выберите файл</span></span>
+                                <span class="file-upload__hint">Фото, PDF, TXT или Word · до 5 МБ</span>
+                            </div>
+                            <div class="file-upload__preview" data-file-preview hidden>
+                                <div class="file-upload__file">
+                                    <span class="file-upload__file-icon" aria-hidden="true"></span>
+                                    <span class="file-upload__file-meta">
+                                        <span class="file-upload__file-name" data-file-name></span>
+                                        <span class="file-upload__file-size" data-file-size></span>
+                                    </span>
+                                </div>
+                                <button type="button" class="file-upload__remove" data-file-remove aria-label="Убрать файл">Убрать</button>
+                            </div>
+                            <div class="file-upload__input">
+                                {{ form_widget(form.attachment, { attr: {
+                                    class: 'file-upload__native',
+                                    'data-file-input': '',
+                                    accept: 'image/jpeg,image/png,image/webp,image/gif,text/plain,application/pdf,.doc,.docx'
+                                } }) }}
+                            </div>
+                            {{ form_errors(form.attachment) }}
+                        </div>
+                    </div>
+                </div>
+                {{ form_widget(form.website) }}
+                <div class="form-field form-field--full form-consent">
+                    <label class="form-consent__label" for="{{ form.consent.vars.id }}">
+                        {{ form_widget(form.consent, { attr: { class: 'form-consent__checkbox' } }) }}
+                        <span class="form-consent__text">
+                            Я согласен(а) на
+                            <a href="{{ path('web_privacy') }}" target="_blank" rel="noopener">обработку персональных данных</a>
+                        </span>
+                    </label>
+                    {{ form_errors(form.consent) }}
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" data-inquiry-submit>Отправить</button>
+                {% include 'web/_partials/form_feedback.html.twig' %}
+            {{ form_end(form) }}
+        </div>
+    </div>
+</section>
+
+{% include 'web/_partials/page_nav.html.twig' with {
+    backFallback: path('web_home'),
+    related: [
+        { href: path('web_dev_landing'), label: 'Разработка' },
+        { href: path('web_cases'), label: 'Кейсы' },
+    ]
+} %}
+{% endblock %}

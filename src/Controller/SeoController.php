@@ -42,6 +42,8 @@ TXT;
         ChronicleEntryRepository $chronicleEntryRepository,
     ): Response {
         $homeUrl = $this->generateUrl('web_home', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $devUrl = $this->generateUrl('web_dev_landing', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $contactUrl = $this->generateUrl('web_contact', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $privacyUrl = $this->generateUrl('web_privacy', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $casesUrl = $this->generateUrl('web_cases', [], UrlGeneratorInterface::ABSOLUTE_URL);
         $chronicleUrl = $this->generateUrl('web_chronicle', [], UrlGeneratorInterface::ABSOLUTE_URL);
@@ -49,8 +51,10 @@ TXT;
 
         $urls = [
             [$homeUrl, $lastmod, 'weekly', '1.0'],
+            [$devUrl, $lastmod, 'weekly', '0.9'],
             [$casesUrl, $lastmod, 'weekly', '0.8'],
             [$chronicleUrl, $lastmod, 'weekly', '0.8'],
+            [$contactUrl, $lastmod, 'monthly', '0.7'],
             [$privacyUrl, $lastmod, 'monthly', '0.4'],
         ];
 

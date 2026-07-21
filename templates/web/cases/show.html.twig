@@ -46,9 +46,6 @@
                 {% if case.presentationIntro %}
                     <p class="case-presentation__intro">{{ case.presentationIntro }}</p>
                 {% endif %}
-                {% if case.presentationDuration %}
-                    <p class="case-presentation__duration">{{ case.presentationDuration }}</p>
-                {% endif %}
 
                 {% if videoEmbed %}
                     <div class="case-presentation__video">
@@ -126,8 +123,19 @@
             </section>
         {% endif %}
 
+        <div class="case-detail__engage">
+            {% include 'web/_partials/content_engage.html.twig' with {
+                likeType: 'case',
+                likeId: case.id,
+                likeCount: case.likeCount,
+                liked: liked|default(false),
+                shareUrl: absolute_url(path('web_case_show', {slug: case.slug})),
+                shareTitle: case.title,
+            } %}
+        </div>
+
         <div class="case-detail__cta">
-            <a class="btn btn-primary" href="{{ path('web_home') }}#contact">Обсудить похожий запрос</a>
+            <a class="btn btn-primary" href="{{ path('web_dev_landing') }}#contact">Обсудить похожий запрос</a>
         </div>
 
         {% if relatedCases is not empty %}
@@ -158,4 +166,13 @@
         {% endif %}
     </div>
 </article>
+
+{% include 'web/_partials/page_nav.html.twig' with {
+    backFallback: path('web_cases'),
+    related: [
+        { href: path('web_dev_landing'), label: 'Разработка' },
+        { href: path('web_chronicle'), label: 'Хроника' },
+        { href: path('web_contact'), label: 'Связь' },
+    ]
+} %}
 {% endblock %}

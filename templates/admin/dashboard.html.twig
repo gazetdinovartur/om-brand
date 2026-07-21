@@ -1,6 +1,6 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content_title %}Главная{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block main %}
     <div class="admin-dashboard">
@@ -8,7 +8,7 @@
             <div class="admin-dashboard__hero-copy">
                 <p class="admin-dashboard__eyebrow">Панель управления</p>
                 <h2 class="admin-dashboard__title">Быстрый доступ</h2>
-                <p class="admin-dashboard__lead">Заявки, хроника, контент и оплаты — всё в одном месте.</p>
+                <p class="admin-dashboard__lead">Заявки, хроника, кейсы и оплаты — всё в одном месте.</p>
             </div>
             <div class="admin-dashboard__stats">
                 <div class="admin-dashboard__stat">
@@ -68,12 +68,8 @@
         </section>
 
         <section class="admin-dashboard__section" aria-labelledby="admin-dashboard-content">
-            <h3 id="admin-dashboard-content" class="admin-dashboard__section-title">Сайт и контент</h3>
+            <h3 id="admin-dashboard-content" class="admin-dashboard__section-title">Сайт</h3>
             <div class="admin-dashboard__grid">
-                <a class="admin-dash-card admin-dash-card--compact" href="{{ ea_url().setController('App\\Admin\\ContentBlockCrudController').setAction('index') }}">
-                    <span class="admin-dash-card__title">Контент</span>
-                    <span class="admin-dash-card__desc">Тексты блоков на главной</span>
-                </a>
                 <a class="admin-dash-card admin-dash-card--compact" href="{{ ea_url().setController('App\\Admin\\CaseStudyCrudController').setAction('index') }}">
                     <span class="admin-dash-card__title">Кейсы</span>
                     <span class="admin-dash-card__desc">Портфолио и презентации</span>
@@ -82,6 +78,10 @@
                     <span class="admin-dash-card__title">Настройки</span>
                     <span class="admin-dash-card__desc">Контакты, SEO, интеграции</span>
                 </a>
+                <div class="admin-dash-card admin-dash-card--compact admin-dash-card--hint">
+                    <span class="admin-dash-card__title">Тексты лендинга</span>
+                    <span class="admin-dash-card__desc">В коде: <code>src/Content/LandingContent.php</code>, дом — <code>HouseContent.php</code>. Синк: <code>app:content:sync</code></span>
+                </div>
                 <a class="admin-dash-card admin-dash-card--compact" href="{{ path('web_chronicle') }}" target="_blank" rel="noopener">
                     <span class="admin-dash-card__title">Хроника на сайте</span>
                     <span class="admin-dash-card__desc">Открыть публичную ленту</span>

@@ -1,360 +1,41 @@
 {% extends 'web/layout.html.twig' %}
-{% import 'web/_partials/pricing_accordion.html.twig' as pricingAccordion %}
 {% import 'web/_partials/avatar_image.html.twig' as avatarImage %}
 
 {% block body %}
-    {% set hero = blocksBySlug.hero|default(null) %}
-    {% set pains = blocksBySlug.pains|default(null) %}
-    {% set specialization = blocksBySlug.specialization|default(null) %}
-    {% set services = blocksBySlug.services|default(null) %}
-    {% set philosophy = blocksBySlug.philosophy|default(null) %}
-    {% set process = blocksBySlug.process|default(null) %}
-    {% set pricing = blocksBySlug.pricing|default(null) %}
-    {% set formIntro = blocksBySlug.form_intro|default(null) %}
-
-    <section class="hero" id="top">
-        <div class="container hero__inner">
-            <div class="hero__content">
-                {% if hero %}
-                    <h1 class="hero__title">{{ hero.title }}</h1>
-                    {% if hero.subtitle %}
-                        <p class="hero__subtitle">{{ hero.subtitle }}</p>
-                    {% endif %}
-                    {% set heroLead = hero.body|default('') %}
-                    {% if heroLead %}
-                        <p class="hero__lead">{{ heroLead }}</p>
-                    {% endif %}
-                {% endif %}
-            </div>
-            <div class="hero__visual">
-                <div class="hero__avatar-frame">
-                    {% if settings.avatarPath %}
-                        {{ avatarImage.avatar(settings.avatarPath, siteName, 'hero__avatar', true, '(max-width: 768px) 10rem, min(18rem, 70vw)') }}
-                    {% else %}
-                        <div class="hero__avatar hero__avatar--placeholder" aria-hidden="true">
-                            <span>{{ settings.name|slice(0, 1) }}</span>
-                        </div>
-                    {% endif %}
-                    <div class="hero__sun-ring" aria-hidden="true"></div>
-                </div>
-            </div>
-        </div>
-        <div class="hero__actions">
-            <div class="container">
-                <a class="btn btn-primary" href="#contact" data-hero-cta>Написать мне</a>
-            </div>
-        </div>
-        <div class="hero__arc" aria-hidden="true"></div>
-    </section>
-
-    {% if process %}
-        <section class="section section--soft" id="process">
-            <div class="container">
-                <div class="section__head text-center">
-                    <h2 class="section__title">{{ process.title }}</h2>
-                    {% if process.subtitle %}<p class="section__subtitle">{{ process.subtitle }}</p>{% endif %}
-                </div>
-                <div class="process-path" data-process-path>
-                    <svg class="process-path__track process-path__track--horizontal" aria-hidden="true">
-                        <path class="process-path__line process-path__line--base" data-process-path-base />
-                        <path class="process-path__line process-path__line--draw" data-process-path-draw pathLength="100" />
-                    </svg>
-                    <svg class="process-path__track process-path__track--vertical" aria-hidden="true">
-                        <path class="process-path__line process-path__line--base" data-process-path-base />
-                        <path class="process-path__line process-path__line--draw" data-process-path-draw pathLength="100" />
-                    </svg>
-                    <span class="process-path__orb" data-process-path-orb aria-hidden="true"></span>
-                    <ol class="process-path__steps">
-                        {% for item in process.items|default([]) %}
-                            <li class="process-path__step" style="--step-index: {{ loop.index0 }}">
-                                <span class="process-path__node-shell">
-                                    <span class="process-path__node">
-                                        <span class="process-path__charge" aria-hidden="true"></span>
-                                        <span class="process-path__num">{{ loop.index }}</span>
-                                    </span>
-                                </span>
-                                <div class="process-path__body">
-                                    <h3 class="process-path__title">{{ item.title }}</h3>
-                                    <p class="process-path__text">{{ item.text }}</p>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ol>
-                </div>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if pains %}
-        <section class="section section--pains-gradient" id="pains">
-            <div class="container">
-                <div class="section__head text-center">
-                    <h2 class="section__title">{{ pains.title }}</h2>
-                    {% if pains.subtitle %}<p class="section__subtitle">{{ pains.subtitle }}</p>{% endif %}
-                </div>
-                <ul class="pain-bento">
-                    {% for item in pains.items|default([]) %}
-                        <li class="pain-bento__item{{ item.featured|default(false) ? ' pain-bento__item--feature' : '' }}">{{ item.text }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if services %}
-        <section class="section section--soft capabilities-section" id="services">
-            <span class="section-anchor" id="formats" aria-hidden="true"></span>
-            <div class="container">
-                <div class="section__head capabilities-map__head">
-                    <p class="capabilities-map__eyebrow">Карта возможностей</p>
-                    <h2 class="section__title">{{ services.title }}</h2>
-                    <p class="section__subtitle">Выберите направление и посмотрите, во что может превратиться ваша задача — от первого разговора до рабочей системы</p>
-                </div>
-
-                <div class="capabilities-map" data-capabilities-map>
-                    <div class="capabilities-map__nav" role="tablist" aria-label="Направления возможностей">
-                        {% for item in services.items|default([]) %}
-                            <button
-                                class="capabilities-map__tab{{ loop.first ? ' is-active' : '' }}"
-                                type="button"
-                                id="capability-tab-{{ loop.index }}"
-                                role="tab"
-                                aria-controls="capability-panel-{{ loop.index }}"
-                                aria-selected="{{ loop.first ? 'true' : 'false' }}"
-                                data-capability-tab
-                            >
-                                <span class="capabilities-map__tab-index">{{ '%02d'|format(loop.index) }}</span>
-                                <span class="capabilities-map__tab-label">{{ item.title }}</span>
-                            </button>
-                        {% endfor %}
-                    </div>
-
-                    <div class="capabilities-map__stage">
-                        {% for item in services.items|default([]) %}
-                            <article
-                                class="capabilities-map__panel{{ loop.first ? ' is-active' : '' }}"
-                                id="capability-panel-{{ loop.index }}"
-                                role="tabpanel"
-                                aria-labelledby="capability-tab-{{ loop.index }}"
-                                data-capability-panel
-                            >
-                                <p class="capabilities-map__panel-kicker">Направление {{ '%02d'|format(loop.index) }}</p>
-                                <h3 class="capabilities-map__title">{{ item.title }}</h3>
-                                <p class="capabilities-map__text">{{ item.text }}</p>
-
-                                {% set examples = item.examples|default([]) is iterable ? item.examples|default([]) : item.examples|split(',') %}
-                                {% if examples is not empty %}
-                                    <div class="capabilities-map__group">
-                                        <p class="capabilities-map__label">Что может быть внутри</p>
-                                        <ul class="capabilities-map__chips">
-                                            {% for example in examples %}
-                                                {% if example|trim is not empty %}
-                                                    <li>{{ example|trim }}</li>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                {% endif %}
-
-                                {% if item.starts|default('') is not empty %}
-                                    <div class="capabilities-map__start">
-                                        <p class="capabilities-map__label">Как можно начать</p>
-                                        <p>{{ item.starts }}</p>
-                                    </div>
-                                {% endif %}
-                            </article>
-                        {% endfor %}
-                    </div>
-
-                    <div class="capabilities-map__mobile">
-                        {% for item in services.items|default([]) %}
-                            <details class="capabilities-map__details"{% if loop.first %} open{% endif %}>
-                                <summary class="capabilities-map__summary">
-                                    <span class="capabilities-map__tab-index">{{ '%02d'|format(loop.index) }}</span>
-                                    <span>{{ item.title }}</span>
-                                </summary>
-                                <div class="capabilities-map__details-body">
-                                    <p class="capabilities-map__text">{{ item.text }}</p>
-                                    {% set examples = item.examples|default([]) is iterable ? item.examples|default([]) : item.examples|split(',') %}
-                                    {% if examples is not empty %}
-                                        <ul class="capabilities-map__chips">
-                                            {% for example in examples %}
-                                                {% if example|trim is not empty %}
-                                                    <li>{{ example|trim }}</li>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                    {% if item.starts|default('') is not empty %}
-                                        <div class="capabilities-map__start">
-                                            <p class="capabilities-map__label">Как можно начать</p>
-                                            <p>{{ item.starts }}</p>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </details>
-                        {% endfor %}
-                    </div>
-
-                    <div class="capabilities-map__footer">
-                        <p>Не обязательно выбирать точно. Можно прийти с идеей, хаосом в процессе или вопросом — вместе найдём подходящий формат</p>
-                        <a class="btn btn-primary" href="#contact">Обсудить задачу</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-    {% endif %}
-    {% if philosophy %}
-        <section class="section section--accent" id="philosophy">
-            <div class="container narrow text-center">
-                <h2 class="section__title section__title--light">{{ philosophy.title }}</h2>
-                <p class="section__text section__text--light">{{ philosophy.body }}</p>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if pricing %}
-        <section class="section section--warm" id="pricing">
-            <div class="container narrow">
-                <div class="section__head text-center">
-                    <h2 class="section__title">{{ pricing.title }}</h2>
-                    {% if pricing.subtitle %}<p class="section__subtitle text--color-brand">{{ pricing.subtitle }}</p>{% endif %}
-                </div>
-                {{ pricingAccordion.accordion(pricing.items|default([])) }}
-                {% if pricing.body %}
-                    <p class="pricing-accordion__note">{{ pricing.body }}</p>
-                {% endif %}
-            </div>
-        </section>
-    {% endif %}
-
-    {% if cases is not empty %}
-        <section class="section cases-landing" id="cases">
-            <div class="container">
-                <div class="section__head cases-landing__head">
-                    <h2 class="section__title">Кейсы</h2>
-                    <p class="section__subtitle">Истории проектов — коротко о смысле и результате</p>
-                </div>
-
-                <div class="cases-hub__list">
-                    {% for case in cases %}
-                        {% include 'web/_partials/case_entry.html.twig' with {
-                            case: case,
-                            zoomable: false,
-                            withId: false,
-                            linkLabel: 'Читать'
-                        } %}
-                    {% endfor %}
-                </div>
-
-                {% if hasAnyCases %}
-                    <p class="cases-landing__more">
-                        <a href="{{ path('web_cases') }}">Все кейсы</a>
-                    </p>
-                {% endif %}
-            </div>
-        </section>
-    {% endif %}
-
-    <section class="section section--form" id="contact">
-        <div class="container narrow">
-            {% if formIntro %}
-                <div class="section__head text-center">
-                    <h2 class="section__title">{{ formIntro.title }}</h2>
-                    {% if formIntro.body %}<p class="section__text">{{ formIntro.body }}</p>{% endif %}
-                    {% if formIntro.subtitle %}<p class="section__text--brand">{{ formIntro.subtitle }}</p>{% endif %}
+<div class="house-screen">
+    <section class="house-greeting" aria-labelledby="house-greeting-title">
+        <div class="house-greeting__portrait">
+            {% if settings.avatarPath %}
+                {{ avatarImage.avatar(settings.avatarPath, siteName, 'house-greeting__avatar', true, '(max-width: 768px) 5.5rem, 7rem') }}
+            {% else %}
+                <div class="house-greeting__avatar house-greeting__avatar--placeholder" aria-hidden="true">
+                    <span>{{ settings.name|slice(0, 1) }}</span>
                 </div>
             {% endif %}
+            <span class="house-greeting__ring" aria-hidden="true"></span>
+        </div>
 
-            <div class="form-card" data-inquiry-card>
-                <div class="form-card__loader" data-inquiry-loader hidden aria-live="polite">
-                    <span class="form-card__loader-spinner" aria-hidden="true"></span>
-                    <span class="form-card__loader-text">Отправляем…</span>
-                </div>
-                {{ form_start(form, { attr: {
-                    class: 'inquiry-form',
-                    'data-inquiry-form': '',
-                    'data-form-name': form.vars.name,
-                    enctype: 'multipart/form-data',
-                    novalidate: 'novalidate'
-                } }) }}
-                    <div class="form-grid">
-                        <div class="form-field">
-                            {{ form_label(form.name) }}
-                            {{ form_widget(form.name, { attr: { class: 'form-control' } }) }}
-                            {{ form_errors(form.name) }}
-                        </div>
-                        <div class="form-field">
-                            {{ form_label(form.contactType) }}
-                            {{ form_widget(form.contactType, { attr: { class: 'form-control' } }) }}
-                            {{ form_errors(form.contactType) }}
-                        </div>
-                        <div class="form-field" data-contact-field>
-                            {{ form_label(form.contact) }}
-                            {{ form_widget(form.contact, { attr: { class: 'form-control' } }) }}
-                            <p class="form-field__hint" data-contact-hint hidden></p>
-                            {{ form_errors(form.contact) }}
-                        </div>
-                        <div class="form-field">
-                            {{ form_label(form.inquiryType) }}
-                            {{ form_widget(form.inquiryType, { attr: { class: 'form-control' } }) }}
-                            {{ form_errors(form.inquiryType) }}
-                        </div>
-                        <div class="form-field form-field--full">
-                            <div class="form-field__head">
-                                {{ form_label(form.message) }}
-                                <span class="form-field__optional">необязательно</span>
-                            </div>
-                            {{ form_widget(form.message, { attr: { class: 'form-control' } }) }}
-                            {{ form_errors(form.message) }}
-                        </div>
-                        <div class="form-field form-field--full">
-                            <div class="form-field__head">
-                                <span class="form-field__label">Прикрепить файл</span>
-                                <span class="form-field__optional">необязательно</span>
-                            </div>
-                            <div class="file-upload" data-file-upload>
-                                <div class="file-upload__dropzone" data-file-dropzone tabindex="0" role="button" aria-label="Выбрать файл для прикрепления">
-                                    <span class="file-upload__icon" aria-hidden="true"></span>
-                                    <span class="file-upload__prompt">Перетащите сюда или <span class="file-upload__accent">выберите файл</span></span>
-                                    <span class="file-upload__hint">Фото, PDF, TXT или Word · до 5 МБ</span>
-                                </div>
-                                <div class="file-upload__preview" data-file-preview hidden>
-                                    <div class="file-upload__file">
-                                        <span class="file-upload__file-icon" aria-hidden="true"></span>
-                                        <span class="file-upload__file-meta">
-                                            <span class="file-upload__file-name" data-file-name></span>
-                                            <span class="file-upload__file-size" data-file-size></span>
-                                        </span>
-                                    </div>
-                                    <button type="button" class="file-upload__remove" data-file-remove aria-label="Убрать файл">Убрать</button>
-                                </div>
-                                <div class="file-upload__input">
-                                    {{ form_widget(form.attachment, { attr: {
-                                        class: 'file-upload__native',
-                                        'data-file-input': '',
-                                        accept: 'image/jpeg,image/png,image/webp,image/gif,text/plain,application/pdf,.doc,.docx'
-                                    } }) }}
-                                </div>
-                                {{ form_errors(form.attachment) }}
-                            </div>
-                        </div>
-                    </div>
-                    {{ form_widget(form.website) }}
-                    <div class="form-field form-field--full form-consent">
-                        <label class="form-consent__label" for="{{ form.consent.vars.id }}">
-                            {{ form_widget(form.consent, { attr: { class: 'form-consent__checkbox' } }) }}
-                            <span class="form-consent__text">
-                                Я согласен(а) на
-                                <a href="{{ path('web_privacy') }}" target="_blank" rel="noopener">обработку персональных данных</a>
-                            </span>
-                        </label>
-                        {{ form_errors(form.consent) }}
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block" data-inquiry-submit>Отправить</button>
-                    {% include 'web/_partials/form_feedback.html.twig' %}
-                {{ form_end(form) }}
-            </div>
+        <div class="house-greeting__text">
+            <h1 class="house-greeting__title" id="house-greeting-title">{{ heroGreeting }}</h1>
+            <p class="house-greeting__lead">{{ heroLead }}</p>
         </div>
     </section>
+
+    <nav class="house-rooms" aria-label="Комнаты экосистемы">
+        <ul class="house-rooms__list">
+            {% for room in mapRooms %}
+                <li class="house-rooms__item">
+                    <a
+                        class="house-rooms__door"
+                        href="{{ room.href }}"
+                        {% if room.external %}target="_blank" rel="noopener"{% endif %}
+                    >
+                        <span class="house-rooms__label">{{ room.label }}</span>
+                        <span class="house-rooms__invite">{{ room.invite }}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </nav>
+</div>
 {% endblock %}

@@ -8,7 +8,6 @@ use App\Entity\ChronicleEntry;
 use App\Entity\ChronicleEra;
 use App\Entity\ChronicleSeries;
 use App\Entity\ChronicleTag;
-use App\Entity\ContentBlock;
 use App\Entity\Inquiry;
 use App\Entity\PaymentOffer;
 use App\Entity\SiteSettings;
@@ -50,16 +49,14 @@ final class DashboardController extends AbstractDashboardController
     public function configureAssets(): Assets
     {
         return Assets::new()
-            ->addCssFile('css/admin-custom.css')
-            ->addJsFile('js/admin-content-block.js');
+            ->addCssFile('css/admin-custom.css');
     }
 
     public function configureMenuItems(): iterable
     {
-        yield MenuItem::linkToDashboard('Главная', 'fa fa-home');
+        yield MenuItem::linkToDashboard('Навигация', 'fa fa-compass');
         yield MenuItem::section('Сайт');
         yield MenuItem::linkTo(SiteSettingsCrudController::class, 'Настройки', 'fa fa-sliders');
-        yield MenuItem::linkTo(ContentBlockCrudController::class, 'Контент', 'fa fa-file-lines');
         yield MenuItem::linkTo(CaseStudyCrudController::class, 'Кейсы', 'fa fa-briefcase');
         yield MenuItem::section('Хроника');
         yield MenuItem::linkTo(ChronicleEntryCrudController::class, 'Записи', 'fa fa-book');

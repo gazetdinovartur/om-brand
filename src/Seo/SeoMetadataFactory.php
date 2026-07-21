@@ -2,6 +2,7 @@
 
 namespace App\Seo;
 
+use App\Content\HouseContent;
 use App\Content\LandingContent;
 use App\Content\LegalContent;
 use App\Entity\CaseStudy;
@@ -46,7 +47,6 @@ final class SeoMetadataFactory
     ): SeoMetadata {
         $baseUrl = $this->resolveBaseUrl($request);
         $personName = $this->personName($blocksBySlug, $settings);
-        $description = $settings->getTagline() ?: LandingContent::metaDescription();
         $ogImageUrl = $this->resolveOgImageUrl($settings, $baseUrl);
 
         return match ($route) {
@@ -68,17 +68,90 @@ final class SeoMetadataFactory
             ),
             'web_cases' => $this->forCasesIndex($request, $settings, $blocksBySlug),
             'web_chronicle', 'web_chronicle_era', 'web_chronicle_tag' => $this->forChronicleIndex($request, $settings, $blocksBySlug),
+            'web_contact' => $this->forContact($request, $settings, $blocksBySlug),
+            'web_dev_landing' => $this->forDevLanding($request, $settings, $blocksBySlug, $personName, $ogImageUrl),
+            'web_home' => $this->forHouseHome($request, $settings, $blocksBySlug, $personName, $ogImageUrl),
             default => new SeoMetadata(
-                title: LandingContent::metaTitle($personName),
-                description: $description,
+                title: HouseContent::metaTitle($personName),
+                description: HouseContent::metaDescription(),
                 canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home'),
                 robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
                 ogType: 'website',
                 ogImageUrl: $ogImageUrl,
-                jsonLd: 'web_home' === $route ? $this->homeJsonLd($personName, $settings, $baseUrl, $description, $ogImageUrl) : null,
-                keywords: implode(', ', LandingContent::metaKeywords()),
             ),
         };
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forHouseHome(
+        Request $request,
+        SiteSettings $settings,
+        array $blocksBySlug,
+        ?string $personName = null,
+        ?string $ogImageUrl = null,
+    ): SeoMetadata {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName ??= $this->personName($blocksBySlug, $settings);
+        $ogImageUrl ??= $this->resolveOgImageUrl($settings, $baseUrl);
+        $description = HouseContent::metaDescription();
+
+        return new SeoMetadata(
+            title: HouseContent::metaTitle($personName),
+            description: $description,
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home'),
+            robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+            ogType: 'website',
+            ogImageUrl: $ogImageUrl,
+            jsonLd: $this->houseJsonLd($personName, $settings, $baseUrl, $description, $ogImageUrl),
+            keywords: implode(', ', HouseContent::metaKeywords()),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forDevLanding(
+        Request $request,
+        SiteSettings $settings,
+        array $blocksBySlug,
+        ?string $personName = null,
+        ?string $ogImageUrl = null,
+    ): SeoMetadata {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName ??= $this->personName($blocksBySlug, $settings);
+        $ogImageUrl ??= $this->resolveOgImageUrl($settings, $baseUrl);
+        $description = $settings->getTagline() ?: LandingContent::metaDescription();
+
+        return new SeoMetadata(
+            title: LandingContent::metaTitle($personName),
+            description: $description,
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_dev_landing'),
+            robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+            ogType: 'website',
+            ogImageUrl: $ogImageUrl,
+            jsonLd: $this->homeJsonLd($personName, $settings, $baseUrl, $description, $ogImageUrl),
+            keywords: implode(', ', LandingContent::metaKeywords()),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forContact(Request $request, SiteSettings $settings, array $blocksBySlug): SeoMetadata
+    {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+
+        return new SeoMetadata(
+            title: sprintf('%s · %s', HouseContent::contactPageTitle(), $personName),
+            description: HouseContent::contactPageLead(),
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_contact'),
+            robots: 'index, follow',
+            ogType: 'website',
+            ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
+        );
     }
 
     /**
@@ -128,7 +201,7 @@ final class SeoMetadataFactory
 
     private function resolveCaseOgImageUrl(CaseStudy $case, SiteSettings $settings, string $baseUrl): ?string
     {
-        foreach ([$case->getOgImagePath(), $case->getCoverImagePath()] as $path) {
+        foreach ([$case->getCoverImagePath(), $case->getOgImagePath()] as $path) {
             $resolved = $this->uploadPathExtension->resolve($path, 'cases');
             if (null !== $resolved) {
                 return $baseUrl.$this->packages->getUrl($resolved);
@@ -375,6 +448,83 @@ final class SeoMetadataFactory
     /**
      * @return array<string, mixed>
      */
+    private function houseJsonLd(
+        string $personName,
+        SiteSettings $settings,
+        string $baseUrl,
+        string $description,
+        ?string $ogImageUrl,
+    ): array {
+        $homeUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home');
+        $devUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_dev_landing');
+        $contactUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_contact');
+
+        $person = [
+            '@type' => 'Person',
+            '@id' => $homeUrl.'#person',
+            'name' => $personName,
+            'alternateName' => LandingContent::alsoKnownAs(),
+            'description' => $description,
+            'url' => $homeUrl,
+        ];
+
+        if (null !== $ogImageUrl) {
+            $person['image'] = $ogImageUrl;
+        }
+
+        $sameAs = array_values(array_filter([
+            $settings->getTelegramUrl(),
+            $settings->getGithubUrl(),
+            'https://music.arturlun.ru',
+        ]));
+        if ([] !== $sameAs) {
+            $person['sameAs'] = $sameAs;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'WebSite',
+                    '@id' => $homeUrl.'#website',
+                    'url' => $homeUrl,
+                    'name' => HouseContent::metaTitle($personName),
+                    'description' => $description,
+                    'inLanguage' => 'ru-RU',
+                    'publisher' => ['@id' => $homeUrl.'#person'],
+                ],
+                [
+                    '@type' => 'WebPage',
+                    '@id' => $homeUrl.'#webpage',
+                    'url' => $homeUrl,
+                    'name' => HouseContent::metaTitle($personName),
+                    'description' => $description,
+                    'isPartOf' => ['@id' => $homeUrl.'#website'],
+                    'about' => ['@id' => $homeUrl.'#person'],
+                    'inLanguage' => 'ru-RU',
+                    'potentialAction' => [
+                        '@type' => 'CommunicateAction',
+                        'name' => 'Написать',
+                        'target' => $contactUrl,
+                    ],
+                ],
+                $person,
+                [
+                    '@type' => 'ProfessionalService',
+                    '@id' => $devUrl.'#service',
+                    'name' => LandingContent::serviceName($personName),
+                    'url' => $devUrl,
+                    'provider' => ['@id' => $homeUrl.'#person'],
+                    'areaServed' => LandingContent::areaServed(),
+                    'serviceType' => LandingContent::serviceTypes(),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function homeJsonLd(
         string $personName,
         SiteSettings $settings,
@@ -383,6 +533,7 @@ final class SeoMetadataFactory
         ?string $ogImageUrl,
     ): array {
         $homeUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home');
+        $devUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_dev_landing');
         $jobTitle = LandingContent::headerSubtitle();
 
         $person = [
@@ -427,10 +578,10 @@ final class SeoMetadataFactory
 
         $service = [
             '@type' => 'ProfessionalService',
-            '@id' => $homeUrl.'#service',
+            '@id' => $devUrl.'#service',
             'name' => LandingContent::serviceName($personName),
             'description' => $description,
-            'url' => $homeUrl,
+            'url' => $devUrl,
             'provider' => ['@id' => $homeUrl.'#person'],
             'areaServed' => LandingContent::areaServed(),
             'serviceType' => LandingContent::serviceTypes(),
@@ -441,7 +592,7 @@ final class SeoMetadataFactory
 
         $faqPage = [
             '@type' => 'FAQPage',
-            '@id' => $homeUrl.'#faq',
+            '@id' => $devUrl.'#faq',
             'mainEntity' => array_map(
                 static fn (array $item): array => [
                     '@type' => 'Question',
@@ -457,8 +608,8 @@ final class SeoMetadataFactory
 
         $webPage = [
             '@type' => 'WebPage',
-            '@id' => $homeUrl.'#webpage',
-            'url' => $homeUrl,
+            '@id' => $devUrl.'#webpage',
+            'url' => $devUrl,
             'name' => LandingContent::metaTitle($personName),
             'description' => $description,
             'isPartOf' => ['@id' => $homeUrl.'#website'],
@@ -467,7 +618,7 @@ final class SeoMetadataFactory
             'potentialAction' => [
                 '@type' => 'CommunicateAction',
                 'name' => 'Оставить заявку',
-                'target' => $homeUrl.'#contact',
+                'target' => $devUrl.'#contact',
             ],
         ];
         if (null !== $ogImageUrl) {
@@ -481,8 +632,8 @@ final class SeoMetadataFactory
                     '@type' => 'WebSite',
                     '@id' => $homeUrl.'#website',
                     'url' => $homeUrl,
-                    'name' => LandingContent::metaTitle($personName),
-                    'description' => $description,
+                    'name' => HouseContent::metaTitle($personName),
+                    'description' => HouseContent::metaDescription(),
                     'inLanguage' => 'ru-RU',
                     'publisher' => ['@id' => $homeUrl.'#person'],
                 ],

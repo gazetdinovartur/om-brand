@@ -2,9 +2,11 @@
 
 namespace App\Controller;
 
+use App\Enum\ContentLikeTarget;
 use App\Repository\CaseStudyRepository;
 use App\Seo\SeoMetadataFactory;
 use App\Service\CaseMediaEmbedFactory;
+use App\Service\ContentLikeService;
 use App\Service\PublicSiteContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,6 +40,7 @@ final class CaseController extends AbstractController
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seoMetadataFactory,
         CaseMediaEmbedFactory $caseMediaEmbedFactory,
+        ContentLikeService $likes,
     ): Response {
         $case = $caseStudyRepository->findPublishedBySlug($slug);
         if (null === $case || !$case->isDetailPublic()) {
@@ -50,6 +53,7 @@ final class CaseController extends AbstractController
             static fn ($item): bool => $item->getId() !== $case->getId() && $item->isDetailPublic(),
         ));
         $related = \array_slice($related, 0, 3);
+        $likeStatus = $likes->status(ContentLikeTarget::Case, (int) $case->getId(), $request);
 
         return $this->render('web/cases/show.html.twig', [
             'case' => $case,
@@ -57,6 +61,7 @@ final class CaseController extends AbstractController
             'videoEmbed' => $case->hasVideoPresentation() ? $caseMediaEmbedFactory->videoEmbed($case) : null,
             'audioEmbed' => $case->hasAudioPresentation() ? $caseMediaEmbedFactory->audioEmbed($case) : null,
             'omPlayerScriptUrl' => $caseMediaEmbedFactory->omPlayerScriptUrl(),
+            'liked' => $likeStatus['liked'],
             'seo' => $seoMetadataFactory->forCaseStudy($request, $settings, $siteContext->getBlocksBySlugFiltered(['hero']), $case),
         ]);
     }

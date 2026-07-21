@@ -1,0 +1,24 @@
+<nav class="page-nav" aria-label="Продолжить путь">
+    <div class="container page-nav__inner">
+        <a
+            class="page-nav__back"
+            href="{{ backFallback }}"
+            data-page-back
+            data-back-fallback="{{ backFallback }}"
+            {% if backHubLink|default(false) %}
+                data-chronicle-hub-link
+                data-chronicle-hub-base="{{ backFallback }}"
+            {% endif %}
+        ><span class="page-nav__back-mark" aria-hidden="true">←</span> Назад</a>
+
+        {% if related is defined and related is not empty %}
+            <ul class="page-nav__related">
+                {% for item in related %}
+                    <li>
+                        <a href="{{ item.href }}"{% if item.external|default(false) %} target="_blank" rel="noopener"{% endif %}>{{ item.label }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+</nav>

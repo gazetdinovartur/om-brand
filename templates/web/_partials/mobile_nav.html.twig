@@ -11,10 +11,18 @@
 
         <nav class="mobile-nav__links" aria-label="Мобильная навигация">
             {% for item in navAnchors|default([]) %}
-                <a class="mobile-nav__link" href="{{ navPrefix ~ item.href }}" data-nav-link>{{ item.label }}</a>
+                <a
+                    class="mobile-nav__link"
+                    href="{{ navPrefix|default('') ~ item.href }}"
+                    data-nav-link
+                    {% if item.persistFilters|default(false) %}
+                        data-chronicle-hub-link
+                        data-chronicle-hub-base="{{ item.href }}"
+                    {% endif %}
+                >{{ item.label }}</a>
             {% endfor %}
         </nav>
 
-        <a class="btn btn-primary mobile-nav__cta" href="{{ navPrefix ~ '#contact' }}" data-nav-link>Написать мне</a>
+        <a class="btn btn-primary mobile-nav__cta" href="{{ fabHref|default(path('web_contact')) }}" data-nav-link>Написать мне</a>
     </div>
 </div>

@@ -1,0 +1,43 @@
+{#
+  Like + share controls.
+  Required: likeType ('chronicle'|'case'), likeId, likeCount, liked, shareUrl, shareTitle
+#}
+<div
+    class="content-engage"
+    data-engage
+    data-like-type="{{ likeType }}"
+    data-like-id="{{ likeId }}"
+    data-like-url="{{ path('web_content_like_toggle', {type: likeType, id: likeId}) }}"
+    data-csrf="{{ csrf_token('content_like') }}"
+    data-share-url="{{ shareUrl }}"
+    data-share-title="{{ shareTitle }}"
+    data-liked="{{ liked ? '1' : '0' }}"
+>
+    <button
+        type="button"
+        class="content-engage__like{% if liked %} is-liked{% endif %}"
+        data-engage-like
+        aria-pressed="{{ liked ? 'true' : 'false' }}"
+        aria-label="Нравится"
+    >
+        <span class="content-engage__heart" aria-hidden="true">♥</span>
+        <span class="content-engage__count" data-engage-count{% if likeCount == 0 %} hidden{% endif %}>{{ likeCount > 0 ? likeCount : '' }}</span>
+    </button>
+    <button
+        type="button"
+        class="content-engage__share"
+        data-engage-share
+        aria-label="Поделиться"
+    >
+        <span class="content-engage__share-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <path d="M8.59 13.51 15.42 17.49"/>
+                <path d="m15.41 6.51-6.82 3.98"/>
+            </svg>
+        </span>
+        <span class="content-engage__share-label" data-engage-share-label>Поделиться</span>
+    </button>
+</div>

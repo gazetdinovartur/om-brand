@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ChronicleEra;
 use App\Entity\ChronicleSeries;
 use App\Entity\ChronicleTag;
+use App\Enum\ContentLikeTarget;
 use App\Repository\ChronicleEntryRepository;
 use App\Repository\ChronicleEraRepository;
 use App\Repository\ChronicleSeriesRepository;
@@ -12,6 +13,7 @@ use App\Repository\ChronicleTagRepository;
 use App\Seo\SeoMetadataFactory;
 use App\Service\ChronicleMediaEmbedFactory;
 use App\Service\ChronicleWebAccess;
+use App\Service\ContentLikeService;
 use App\Service\PublicSiteContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -133,6 +135,7 @@ final class ChronicleController extends AbstractController
         SeoMetadataFactory $seo,
         ChronicleMediaEmbedFactory $media,
         ChronicleWebAccess $webAccess,
+        ContentLikeService $likes,
     ): Response {
         $entry = $entries->findPublishedBySlug($slug);
         if (null === $entry) {
@@ -141,7 +144,7 @@ final class ChronicleController extends AbstractController
 
         $webAccess->assertCanView($entry);
 
-        return $this->renderEntry($entry, $request, $siteContext, $seo, $media, $entries, false);
+        return $this->renderEntry($entry, $request, $siteContext, $seo, $media, $entries, false, $likes);
     }
 
     #[Route('/chronicle/preview/{id}', name: 'web_chronicle_preview', methods: ['GET'], requirements: ['id' => '\d+'], priority: 10)]
@@ -153,6 +156,7 @@ final class ChronicleController extends AbstractController
         SeoMetadataFactory $seo,
         ChronicleMediaEmbedFactory $media,
         ChronicleWebAccess $webAccess,
+        ContentLikeService $likes,
     ): Response {
         $token = (string) $request->query->get('token', '');
         $entry = $entries->find($id);
@@ -162,7 +166,7 @@ final class ChronicleController extends AbstractController
 
         $webAccess->assertCanView($entry);
 
-        return $this->renderEntry($entry, $request, $siteContext, $seo, $media, $entries, true);
+        return $this->renderEntry($entry, $request, $siteContext, $seo, $media, $entries, true, $likes);
     }
 
     #[Route('/chronicle/feed.xml', name: 'web_chronicle_feed', methods: ['GET'], priority: 10)]
@@ -316,6 +320,7 @@ final class ChronicleController extends AbstractController
         ChronicleMediaEmbedFactory $media,
         ChronicleEntryRepository $entries,
         bool $isPreview,
+        ContentLikeService $likes,
     ): Response {
         $settings = $siteContext->getSettings();
         $blocks = $entry->getBlocks()->toArray();
@@ -335,6 +340,15 @@ final class ChronicleController extends AbstractController
             );
         }
 
+        $likeStatus = ['liked' => false];
+        if (!$isPreview && $entry->isPublic()) {
+            $likeStatus = $likes->status(
+                ContentLikeTarget::Chronicle,
+                (int) $entry->getId(),
+                $request,
+            );
+        }
+
         return $this->render('web/chronicle/show.html.twig', [
             'entry' => $entry,
             'related' => $entries->findRelated($entry),
@@ -342,6 +356,7 @@ final class ChronicleController extends AbstractController
             'hasOmPlayer' => $hasOmPlayer,
             'omPlayerScriptUrl' => $media->omPlayerScriptUrl(),
             'isPreview' => $isPreview,
+            'liked' => $likeStatus['liked'],
             'seo' => $seoMeta,
         ]);
     }

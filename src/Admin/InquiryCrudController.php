@@ -57,8 +57,8 @@ class InquiryCrudController extends AbstractCrudController
         yield TextField::new('contact', 'Контакт');
         yield ChoiceField::new('inquiryType', 'Тип запроса')
             ->setChoices(array_combine(
-                array_map(static fn (InquiryType $t) => $t->label(), InquiryType::ordered()),
-                InquiryType::ordered(),
+                array_map(static fn (InquiryType $t) => $t->label(), InquiryType::allOrdered()),
+                InquiryType::allOrdered(),
             ));
         yield TextareaField::new('message', 'Сообщение')->hideOnIndex();
         yield ChoiceField::new('status', 'Статус')

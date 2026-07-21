@@ -16,6 +16,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\Length;
@@ -25,6 +26,9 @@ class InquiryFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var list<InquiryType> $inquiryTypes */
+        $inquiryTypes = $options['inquiry_types'];
+
         $builder
             ->add('name', TextType::class, [
                 'label' => 'Как к вам обращаться',
@@ -52,8 +56,8 @@ class InquiryFormType extends AbstractType
                 ],
             ])
             ->add('inquiryType', ChoiceType::class, [
-                'label' => 'О чём запрос',
-                'choices' => InquiryType::ordered(),
+                'label' => $options['inquiry_type_label'],
+                'choices' => $inquiryTypes,
                 'choice_label' => static fn (InquiryType $type) => $type->label(),
                 'choice_value' => static fn (?InquiryType $type) => $type?->value,
             ])
@@ -121,5 +125,15 @@ class InquiryFormType extends AbstractType
                 $event->getForm()->get('contact')->addError(new FormError($error));
             }
         });
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'inquiry_types' => InquiryType::developmentOrdered(),
+            'inquiry_type_label' => 'О чём запрос',
+        ]);
+        $resolver->setAllowedTypes('inquiry_types', 'array');
+        $resolver->setAllowedTypes('inquiry_type_label', 'string');
     }
 }

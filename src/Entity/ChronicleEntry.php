@@ -68,6 +68,10 @@ class ChronicleEntry
     #[ORM\Column]
     private bool $isFeatured = false;
 
+    /** Displayed like total: imported (VK/TG) baseline + anonymous visitor likes. */
+    #[ORM\Column]
+    private int $likeCount = 0;
+
     #[ORM\Column]
     private bool $isUnlisted = false;
 
@@ -302,6 +306,18 @@ class ChronicleEntry
     public function setIsFeatured(bool $isFeatured): static
     {
         $this->isFeatured = $isFeatured;
+
+        return $this;
+    }
+
+    public function getLikeCount(): int
+    {
+        return $this->likeCount;
+    }
+
+    public function setLikeCount(int $likeCount): static
+    {
+        $this->likeCount = max(0, $likeCount);
 
         return $this;
     }

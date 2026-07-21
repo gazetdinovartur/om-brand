@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Content\HouseContent;
 use App\Content\LandingContent;
 use App\Repository\CaseStudyRepository;
 use App\Seo\SeoMetadataFactory;
@@ -11,6 +12,9 @@ use Twig\Environment;
 
 final class TwigSiteGlobalsProvider
 {
+    /** @var list<string> */
+    private const LANDING_ROUTES = ['web_dev_landing'];
+
     public function __construct(
         private readonly PublicSiteContext $siteContext,
         private readonly SeoMetadataFactory $seoMetadataFactory,
@@ -29,8 +33,27 @@ final class TwigSiteGlobalsProvider
             ? $hero->getTitle()
             : $settings->getName();
 
-        $navPrefix = 'web_home' === $route ? '' : $this->urlGenerator->generate('web_home');
+        $isLanding = \in_array($route, self::LANDING_ROUTES, true);
         $hasCases = $this->caseStudyRepository->countPublished() > 0;
+
+        if ($isLanding) {
+            $navItems = LandingContent::navigationAnchors($hasCases);
+            $navPrefix = '';
+            $fabHref = '#contact';
+            $shell = 'landing';
+        } else {
+            $navItems = [];
+            foreach (HouseContent::navigationItems() as $item) {
+                $navItems[] = [
+                    'href' => $this->urlGenerator->generate($item['route']),
+                    'label' => $item['label'],
+                    'persistFilters' => !empty($item['persistFilters']),
+                ];
+            }
+            $navPrefix = '';
+            $fabHref = $this->urlGenerator->generate('web_contact');
+            $shell = 'house';
+        }
 
         $twig->addGlobal('settings', $settings);
         $twig->addGlobal('blocksBySlug', $blocksBySlug);
@@ -38,7 +61,9 @@ final class TwigSiteGlobalsProvider
         $twig->addGlobal('legalName', LandingContent::personName());
         $twig->addGlobal('alsoKnownAs', LandingContent::alsoKnownAs());
         $twig->addGlobal('navPrefix', $navPrefix);
-        $twig->addGlobal('navAnchors', LandingContent::navigationAnchors($hasCases));
+        $twig->addGlobal('navAnchors', $navItems);
+        $twig->addGlobal('siteShell', $shell);
+        $twig->addGlobal('fabHref', $fabHref);
         $twig->addGlobal('seo', $this->seoMetadataFactory->forRoute(
             $route,
             $request,

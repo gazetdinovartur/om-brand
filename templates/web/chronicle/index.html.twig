@@ -1,12 +1,13 @@
 {% extends 'web/layout.html.twig' %}
 
 {% block body %}
+{% set filterCount = (activeSeries ? 1 : 0) + (activeEra ? 1 : 0) + (activeTag ? 1 : 0) + (activeYear ? 1 : 0) + (activeFeatured ? 1 : 0) %}
 <section class="section chronicle-hub">
     <div class="container">
         <header class="chronicle-hub__head">
-            <p class="section__subtitle">Хроника</p>
-            <h1 class="section__title">Тексты и фото по эпохам</h1>
-            {% if activeSeries or activeEra or activeTag or activeYear or activeFeatured %}
+            <p class="chronicle-hub__eyebrow">Хроника</p>
+            <h1 class="chronicle-hub__title">Тексты и фото по эпохам</h1>
+            {% if filterCount > 0 %}
                 <p class="chronicle-hub__filter-note">
                     {% if activeSeries %}Канал: <strong>{{ activeSeries.title }}</strong>{% endif %}
                     {% if activeEra %}{% if activeSeries %} · {% endif %}Эпоха: <strong>{{ activeEra.title }}</strong>{% endif %}
@@ -55,45 +56,72 @@
                     </svg>
                     <span class="visually-hidden">Избранное</span>
                 </button>
+                <button
+                    type="button"
+                    class="chronicle-hub__filters-toggle{% if filterCount > 0 %} is-active{% endif %}"
+                    data-chronicle-filters-toggle
+                    aria-expanded="false"
+                    aria-controls="chronicle-filters-panel"
+                >
+                    Фильтры{% if filterCount > 0 %}<span class="chronicle-hub__filters-count">{{ filterCount }}</span>{% endif %}
+                </button>
+                {% if filterCount > 0 %}
+                    <a class="chronicle-hub__reset" href="{{ path('web_chronicle') }}" data-chronicle-filters-reset>Сбросить</a>
+                {% endif %}
             </div>
 
-            {% if seriesList is not empty %}
-                <div class="chronicle-hub__series" role="navigation" aria-label="Каналы">
-                    <a class="chronicle-chip{% if not activeSeries %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'series')) }}">Все каналы</a>
-                    {% for s in seriesList %}
-                        <a
-                            class="chronicle-chip{% if activeSeries and activeSeries.id == s.id %} is-active{% endif %}"
-                            href="{{ path('web_chronicle', filterQuery|merge({series: s.slug})) }}"
-                        >{{ s.title }}</a>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div
+                class="chronicle-hub__panels{% if filterCount > 0 %} is-open{% endif %}"
+                id="chronicle-filters-panel"
+                data-chronicle-filters-panel
+            >
+                {% if seriesList is not empty %}
+                    <div class="chronicle-hub__row" role="navigation" aria-label="Каналы">
+                        <p class="chronicle-hub__row-label">Каналы</p>
+                        <div class="chronicle-hub__scroller">
+                            <a class="chronicle-chip{% if not activeSeries %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'series')) }}">Все</a>
+                            {% for s in seriesList %}
+                                <a
+                                    class="chronicle-chip{% if activeSeries and activeSeries.id == s.id %} is-active{% endif %}"
+                                    href="{{ path('web_chronicle', filterQuery|merge({series: s.slug})) }}"
+                                >{{ s.title }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
 
-            <div class="chronicle-hub__eras" role="navigation" aria-label="Эпохи">
-                <a class="chronicle-chip{% if not activeEra %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'era')) }}">Все эпохи</a>
-                {% for era in eras %}
-                    <a
-                        class="chronicle-chip{% if activeEra and activeEra.id == era.id %} is-active{% endif %}"
-                        href="{{ path('web_chronicle', filterQuery|merge({era: era.slug})) }}"
-                        {% if era.color %}style="--chip-accent: {{ era.color }}"{% endif %}
-                    >{{ era.title }}</a>
-                {% endfor %}
+                <div class="chronicle-hub__row" role="navigation" aria-label="Эпохи">
+                    <p class="chronicle-hub__row-label">Эпохи</p>
+                    <div class="chronicle-hub__scroller">
+                        <a class="chronicle-chip{% if not activeEra %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'era')) }}">Все</a>
+                        {% for era in eras %}
+                            <a
+                                class="chronicle-chip{% if activeEra and activeEra.id == era.id %} is-active{% endif %}"
+                                href="{{ path('web_chronicle', filterQuery|merge({era: era.slug})) }}"
+                                {% if era.color %}style="--chip-accent: {{ era.color }}"{% endif %}
+                            >{{ era.title }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% if tags is not empty %}
+                    <div class="chronicle-hub__row" role="navigation" aria-label="Теги">
+                        <p class="chronicle-hub__row-label">Теги</p>
+                        <div class="chronicle-hub__scroller chronicle-hub__scroller--wrap">
+                            <a
+                                class="chronicle-tag{% if not activeTag %} is-active{% endif %}"
+                                href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'tag')) }}"
+                            >Все</a>
+                            {% for tag in tags %}
+                                <a
+                                    class="chronicle-tag{% if activeTag and activeTag.id == tag.id %} is-active{% endif %}"
+                                    href="{{ path('web_chronicle', filterQuery|merge({tag: tag.slug})) }}"
+                                >#{{ tag.name }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
             </div>
-
-            {% if tags is not empty %}
-                <div class="chronicle-hub__tags" role="navigation" aria-label="Теги">
-                    <a
-                        class="chronicle-tag{% if not activeTag %} is-active{% endif %}"
-                        href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'tag')) }}"
-                    >Все теги</a>
-                    {% for tag in tags %}
-                        <a
-                            class="chronicle-tag{% if activeTag and activeTag.id == tag.id %} is-active{% endif %}"
-                            href="{{ path('web_chronicle', filterQuery|merge({tag: tag.slug})) }}"
-                        >#{{ tag.name }}</a>
-                    {% endfor %}
-                </div>
-            {% endif %}
         </form>
 
         <div
@@ -104,7 +132,7 @@
             data-has-more="{{ hasMore ? '1' : '0' }}"
             data-query="{{ filterQuery|json_encode|e('html_attr') }}"
         >
-            {% include 'web/chronicle/_entries.html.twig' with {entries: entries} %}
+            {% include 'web/chronicle/_entries.html.twig' with {entries: entries, hubQuery: filterQuery} %}
         </div>
 
         {% if hasMore %}
@@ -116,4 +144,12 @@
         {% endif %}
     </div>
 </section>
+
+{% include 'web/_partials/page_nav.html.twig' with {
+    backFallback: path('web_home'),
+    related: [
+        { href: path('web_cases'), label: 'Кейсы' },
+        { href: path('web_contact'), label: 'Связь' },
+    ]
+} %}
 {% endblock %}

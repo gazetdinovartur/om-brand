@@ -36,13 +36,25 @@ final class EntityImageOptimizerSubscriber implements EventSubscriberInterface
         }
 
         if ($entity instanceof CaseStudy) {
-            $this->optimizeCaseImageField($entity, 'cover');
-            $this->optimizeCaseImageField($entity, 'og');
+            $this->optimizeCaseCover($entity);
+            $this->syncOgFromCover($entity);
             $this->normalizeAudioPath($entity);
             foreach ($entity->getGalleryImages() as $image) {
                 $this->optimizeGalleryImage($image);
             }
         }
+    }
+
+    private function syncOgFromCover(CaseStudy $caseStudy): void
+    {
+        $cover = $caseStudy->getCoverImagePath();
+        if (null === $cover || '' === $cover) {
+            $caseStudy->setOgImagePath(null);
+
+            return;
+        }
+
+        $caseStudy->setOgImagePath(basename(str_replace('\\', '/', $cover)));
     }
 
     private function optimizeAvatar(SiteSettings $settings): void
@@ -62,9 +74,9 @@ final class EntityImageOptimizerSubscriber implements EventSubscriberInterface
         $settings->setAvatarPath(basename($result['path']));
     }
 
-    private function optimizeCaseImageField(CaseStudy $caseStudy, string $kind): void
+    private function optimizeCaseCover(CaseStudy $caseStudy): void
     {
-        $path = 'cover' === $kind ? $caseStudy->getCoverImagePath() : $caseStudy->getOgImagePath();
+        $path = $caseStudy->getCoverImagePath();
         if (null === $path || '' === $path) {
             return;
         }
@@ -73,27 +85,17 @@ final class EntityImageOptimizerSubscriber implements EventSubscriberInterface
         $relative = 'cases/'.$filename;
 
         if (str_ends_with(strtolower($filename), '.webp')) {
-            if ('cover' === $kind) {
-                $caseStudy->setCoverImagePath($filename);
-            } else {
-                $caseStudy->setOgImagePath($filename);
-            }
+            $caseStudy->setCoverImagePath($filename);
 
             return;
         }
 
         $result = $this->imageOptimizer->optimizeToWebp(
             $relative,
-            maxWidth: 'cover' === $kind ? 1400 : 1200,
-            thumbWidth: 'cover' === $kind ? 640 : null,
+            maxWidth: 1400,
+            thumbWidth: 640,
         );
-        $optimized = basename($result['path']);
-
-        if ('cover' === $kind) {
-            $caseStudy->setCoverImagePath($optimized);
-        } else {
-            $caseStudy->setOgImagePath($optimized);
-        }
+        $caseStudy->setCoverImagePath(basename($result['path']));
     }
 
     private function optimizeGalleryImage(CaseStudyImage $image): void

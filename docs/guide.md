@@ -1,6 +1,27 @@
 # Руководство по проекту
 
-Лендинг личного бренда: Symfony 8, EasyAdmin, MySQL, форма заявок, оплата по ссылке.
+Цифровой дом и лендинг разработчика: Symfony 8, EasyAdmin, MySQL, формы заявок, кейсы, хроника, оплата по ссылке.
+
+---
+
+## 0. Карта сайта
+
+| URL | Роль |
+|-----|------|
+| `/` | Дом — приветствие и карта комнат экосистемы |
+| `/dev--null` | Лендинг разработчика + форма заказа |
+| `/contact` | Универсальная связь (соавторство, вопрос, просто написать) |
+| `/cases` | Хаб кейсов |
+| `/cases/{slug}` | Страница истории кейса |
+| `/chronicle` | Хроника (фильтры) |
+| `/chronicle/{slug}` | Запись |
+| `/p/{hash}` | Короткая ссылка записи |
+| `/politika-konfidencialnosti` | Политика |
+| `/oplata/{token}` | Оплата (noindex) |
+| `/admin` | Админка |
+| `/robots.txt`, `/sitemap.xml` | SEO |
+
+Оболочки: `house` (внутренние страницы) и `landing` (`/dev--null` — полная шапка/футер).
 
 ---
 
@@ -29,11 +50,19 @@ ADMIN_PASSWORD=ваш_надёжный_пароль
 docker compose up -d --build
 docker compose exec php php bin/console doctrine:migrations:migrate --no-interaction
 docker compose exec php php bin/console app:seed
+docker compose exec php php bin/console app:chronicle:seed-meta
+docker compose exec php php bin/console app:chronicle:seed-likes
 ```
+
+> В Docker `DATABASE_URL` внутри контейнера PHP должен указывать на хост `mysql` (не `127.0.0.1:33085`). Порт `33085` — только с хоста.
 
 | Сервис | URL |
 |--------|-----|
-| Сайт | http://localhost:8085 |
+| Дом | http://localhost:8085 |
+| Разработка | http://localhost:8085/dev--null |
+| Связь | http://localhost:8085/contact |
+| Кейсы | http://localhost:8085/cases |
+| Хроника | http://localhost:8085/chronicle |
 | Админка | http://localhost:8085/admin |
 | MySQL | `127.0.0.1:33085` (user/pass/db: `site`) |
 
@@ -42,8 +71,9 @@ docker compose exec php php bin/console app:seed
 ### Полезные команды
 
 ```bash
-docker compose exec php php bin/console app:content:sync   # тексты из кода → БД
-docker compose exec php php bin/console app:verify:inquiry # проверка формы
+docker compose exec php php bin/console app:content:sync        # тексты лендинга из кода → БД
+docker compose exec php php bin/console app:chronicle:seed-likes # счётчики лайков из импорта
+docker compose exec php php bin/console app:verify:inquiry      # проверка формы
 docker compose exec php php bin/console cache:clear
 docker compose logs -f php
 ```
@@ -68,34 +98,37 @@ docker compose logs -f php
 | `MAILER_DSN` | нет | Email fallback (`null://null` = выкл) |
 | `MAILER_FROM` | prod* | Отправитель, совпадает с логином SMTP (напр. `info@arturlun.ru`) |
 
-В админке → **Настройки сайта** → поле **Email для заявок** — куда слать fallback, если Telegram недоступен.
+В админке → **Настройки** → поле **Email для заявок** — куда слать fallback, если Telegram недоступен.
 
 ---
 
 ## 3. Контент
 
-**На сайте показывается то, что в базе.** Эталон текстов — в коде.
+**Лендинг `/dev--null`:** на сайте показываются блоки из БД. Эталон — в коде.  
+**Дом и связь:** тексты только из кода (`HouseContent`), без админки.
 
 ### Где править
 
 | Задача | Как |
 |--------|-----|
-| Тексты секций (деплой) | `src/Content/LandingContent.php` → `app:content:sync` |
-| Без деплоя | Админка → Блоки контента / Настройки |
+| Тексты секций лендинга | `src/Content/LandingContent.php` → `app:content:sync` |
+| Дом, комнаты, `/contact` | `src/Content/HouseContent.php` (деплой кода, sync не нужен) |
 | Политика конфиденциальности | `src/Content/LegalContent.php` |
-| Вёрстка секций | `templates/web/home/index.html.twig` |
+| Имя, аватар, ссылки, email | Админка → **Настройки** (одна запись, без «Создать») |
+| Вёрстка дома | `templates/web/home/index.html.twig` |
+| Вёрстка лендинга | `templates/web/dev/index.html.twig` |
 | Стили | `public/css/site.css` |
 
 ### Команды
 
 ```bash
-app:seed          # первый запуск: настройки + блоки + админ
-app:content:sync  # перезаписать все блоки из LandingContent.php
+app:seed          # первый запуск: настройки + блоки лендинга + админ
+app:content:sync  # перезаписать блоки лендинга из LandingContent.php
 ```
 
-⚠️ `sync` затирает правки блоков, сделанные в админке.
+⚠️ `sync` затирает правки блоков в БД. Редактировать блоки в админке больше не нужно — раздел убран из меню; ориентир — файлы в `src/Content/`.
 
-### Slug-блоки (ключ → секция)
+### Slug-блоки лендинга (ключ → секция на `/dev--null`)
 
 | slug | Секция |
 |------|--------|
@@ -107,16 +140,19 @@ app:content:sync  # перезаписать все блоки из LandingConte
 | `philosophy` | Своё решение |
 | `process` | Процесс |
 | `work_formats` | Форматы |
+| `pricing` | Стоимость |
 | `form_intro` | Заголовок формы |
 | `footer_hr` | Футер «Для HR» |
 | `footer_excludes` | Футер «Что не предлагаю» |
+
+Кейсы на лендинге — из БД (флаг «На лендинге»), не из ContentBlock.
 
 ---
 
 ## 4. Хроника (блог)
 
 Публичная лента текстов и фото по **каналам / эпохам / тегам**: `/chronicle`.  
-Карточка записи: `/chronicle/{slug}`, короткая ссылка: `/c/{hash}`.
+Карточка записи: `/chronicle/{slug}`, короткая ссылка: `/p/{hash}`.
 
 ### Что в репозитории, что только локально
 
@@ -162,7 +198,8 @@ python3 scripts/corpus_build.py --instagram
 
 - Заголовки собираются из текста (целые фразы, без обрывов на предлогах); посты VK только с картинками → «Пост от 10 мая 2026 года»
 - Instagram: медиа из **всех** zip в catalog; посты без картинок в хронику не попадают
-- Лайки VK пишутся в блоки `calloutStyle=meta` (в БД есть, **на сайте скрыты**)
+- Лайки VK пишутся в блоки `calloutStyle=meta`; на сайте поднимаются в `like_count` и показываются как живые лайки
+- После миграции / импорта: `php bin/console app:chronicle:seed-likes`
 
 ### Импорт в БД (локально)
 
@@ -171,6 +208,7 @@ docker compose exec php php bin/console app:chronicle:seed-meta
 docker compose exec php php bin/console app:chronicle:import --channel=da-i-da
 docker compose exec php php bin/console app:chronicle:import --channel=instagram
 docker compose exec php php bin/console app:chronicle:import --channel=vk
+docker compose exec php php bin/console app:chronicle:seed-likes
 # черновики TG (не на сайте, пока draft):
 # docker compose exec php php bin/console app:chronicle:import --channel=om --channel=research --channel=culture
 ```
@@ -185,6 +223,8 @@ docker compose exec php php bin/console app:chronicle:import --channel=vk
 - Даты по-русски («10 мая 2026»)  
 - Запись без обложки: заголовок на всю ширину  
 - Серия — чип с обводкой; эпоха — мягкая заливка; теги — оранжевые пилюли  
+- Лайк без регистрации; «Поделиться» — системный share / копирование `/p/…`  
+- Фильтры на мобилке запоминаются в `sessionStorage`
 
 ### Перенос хроники на прод (с media)
 
@@ -246,6 +286,7 @@ php bin/console app:chronicle:seed-meta --env=prod
 php bin/console app:chronicle:import --channel=da-i-da --env=prod
 php bin/console app:chronicle:import --channel=instagram --env=prod
 php bin/console app:chronicle:import --channel=vk --env=prod
+php bin/console app:chronicle:seed-likes --env=prod
 
 php bin/console cache:clear --env=prod
 ```
@@ -294,7 +335,9 @@ scp /tmp/chronicle.sql USER@HOST:/tmp/chronicle.sql
 - [ ] Карточка с галереей Instagram — все фото  
 - [ ] VK image-only — заголовок «Пост от …», картинка на месте  
 - [ ] Запись без обложки — заголовок на всю ширину  
-- [ ] ❤ лайки внизу поста не видны  
+- [ ] ❤ лайки из VK видны в блоке лайк/шеринг под постом  
+- [ ] лайк без регистрации работает; повторное нажатие снимает лайк  
+- [ ] на мобилке «Поделиться» открывает системный share; на десктопе копирует короткую ссылку `/p/…`  
 - [ ] В админке ♥ избранное сохраняется после повторного import  
 
 Код (фильтры, вёрстка, даты) — обычным `git pull` + `./deploy-script.sh`.
@@ -303,17 +346,27 @@ scp /tmp/chronicle.sql USER@HOST:/tmp/chronicle.sql
 
 ## 5. Админка
 
-URL: `/admin` · Throttling: 5 попыток входа / 15 мин.
+URL: `/admin` · меню «Навигация» · Throttling: 5 попыток входа / 15 мин.
 
 | Раздел | Назначение |
 |--------|------------|
-| Настройки сайта | Имя, tagline, аватар, ссылки, email заявок |
-| Блоки контента | Тексты по slug |
-| Кейсы | Портфолио: главная (medium), `/cases` (хаб), `/cases/{slug}` (история) |
+| Настройки | Имя, tagline, аватар, ссылки, email заявок (singleton — сразу edit) |
+| Кейсы | Портфолио: лендинг, `/cases`, `/cases/{slug}`; DnD порядка в списке и галереи |
 | Хроника | Записи, эпохи, серии, теги; ♥ = избранное |
 | Заявки | Обращения + скачать вложение |
 | Оплаты | Ссылки `/oplata/{token}` |
 | Админы | Доступ в панель |
+
+Тексты лендинга/дома в админке **не правятся** — на дашборде подсказка путей к `LandingContent.php` / `HouseContent.php`.
+
+### Кейсы (форма)
+
+- Вкладки: Основное · История · Медиа · SEO  
+- Порядок в списке — drag & drop (поле «Порядок» убрано)  
+- Галерея — drag & drop  
+- Видео/аудио — поля по типу презентации  
+- OG-картинка берётся из обложки автоматически  
+- Длительность презентации не используется  
 
 **Оплата:** сумма в **рублях** (например, 5000). После сохранения — карточка со **ссылкой для клиента**. **Ссылка СБП** подставляется из шаблона в настройках. Telegram при создании.
 
@@ -321,11 +374,17 @@ URL: `/admin` · Throttling: 5 попыток входа / 15 мин.
 
 ---
 
-## 6. Форма заявки
+## 6. Формы заявок
 
-POST `/` → сохранение в БД → Telegram (или email fallback).
+| Страница | Маршрут | Назначение |
+|----------|---------|------------|
+| `/dev--null` | POST на себя | Заказ разработки (InquiryForm) |
+| `/contact` | POST на себя | Универсальная связь (ContactForm) |
 
-Поля: имя, тип контакта, контакт, тип задачи, сообщение, файл (до 5 МБ), согласие на обработку данных.
+Обе сохраняют заявку в БД → Telegram (или email fallback).
+
+Поля (лендинг): имя, тип контакта, контакт, тип задачи, сообщение, файл (до 5 МБ), согласие.  
+Страница связи — упрощённый набор под общий контакт.
 
 ---
 
@@ -356,6 +415,29 @@ Symfony form token — защита от подделки запросов с ч
 - MySQL 8.0
 - Composer (через SSH)
 - Document root → **`public/`** (не корень репозитория)
+
+### Быстрый путь (скрипт)
+
+Из корня проекта по SSH, после настройки `.env.local`:
+
+```bash
+# Первый раз
+./deploy-script.sh --first
+
+# Обычное обновление
+./deploy-script.sh
+
+# + перезаписать блоки лендинга из кода
+./deploy-script.sh --sync-content
+```
+
+Скрипт делает: `git pull` → `composer install` → каталоги uploads → миграции → (seed / sync) → `cache:clear` + warmup.
+
+После миграции лайков / импорта VK на проде один раз:
+
+```bash
+php bin/console app:chronicle:seed-likes --env=prod
+```
 
 ### NetAngels (виртуальный хостинг / VPS)
 
@@ -432,15 +514,23 @@ MAILER_FROM=info@arturlun.ru
 
 ```bash
 php bin/console doctrine:migrations:migrate --no-interaction
-php bin/console app:seed              # первый раз
+php bin/console app:seed --env=prod              # первый раз
+php bin/console app:chronicle:seed-likes --env=prod  # после миграции лайков / импорта VK
 php bin/console cache:clear --env=prod
 php bin/console cache:warmup --env=prod
 ```
 
+Или одной командой: `./deploy-script.sh --first` (см. выше).
+
 #### 8. Права на запись
 
 ```bash
-mkdir -p var/private/uploads public/uploads/avatars public/uploads/cases public/uploads/cases/gallery public/uploads/cases/audio public/uploads/chronicle/{covers,inline,gallery}
+mkdir -p var/private/uploads \
+  public/uploads/avatars \
+  public/uploads/cases \
+  public/uploads/cases/gallery \
+  public/uploads/cases/audio \
+  public/uploads/chronicle/{covers,inline,gallery}
 chmod -R 775 var/
 chmod -R 775 public/uploads/
 ```
@@ -449,24 +539,33 @@ chmod -R 775 public/uploads/
 
 #### 9. Проверка после деплоя
 
-- [ ] Главная открывается по HTTPS
-- [ ] `/admin/login` — вход работает
+- [ ] `/` — дом (приветствие + комнаты), HTTPS
+- [ ] `/dev--null` — лендинг, форма разработки
+- [ ] `/contact` — форма связи
+- [ ] `/cases`, `/cases/{slug}` — хаб и история
+- [ ] `/admin/login` — вход; меню «Навигация»; настройки без «Создать»
+- [ ] Кейсы: DnD порядка в списке, форма с вкладками
 - [ ] Форма отправляется, заявка в админке
 - [ ] Telegram/email уведомление (если настроено)
 - [ ] `view-source` — JSON-LD, canonical с prod-доменом
-- [ ] `/robots.txt`, `/sitemap.xml`
-- [ ] `/chronicle` — лента, фильтры, запись открывается
-- [ ] Загрузка аватара в админке
+- [ ] `/robots.txt`, `/sitemap.xml` (дом, лендинг, кейсы, хроника, контакт)
+- [ ] `/chronicle` — лента, фильтры, лайки, шаринг
+- [ ] Загрузка аватара / обложки кейса в админке
 
 ### Обновление (повторный деплой)
 
 ```bash
+./deploy-script.sh
+# или вручную:
 git pull origin main
 composer install --no-dev --optimize-autoloader
 php bin/console doctrine:migrations:migrate --no-interaction
-php bin/console app:content:sync    # если меняли LandingContent.php
+php bin/console app:content:sync --env=prod   # только если меняли LandingContent.php
 php bin/console cache:clear --env=prod
+php bin/console cache:warmup --env=prod
 ```
+
+Изменения в `HouseContent.php` применяются сразу после деплоя кода (sync не нужен).
 
 Хронику (тексты/фото) при обновлении корпуса см. [§4 · Перенос хроники на прод](#перенос-хроники-на-прод-с-media) — отдельным rsync + `app:chronicle:import`, не через один только `git pull`.
 
@@ -501,8 +600,9 @@ tar -czf uploads.tar.gz public/uploads/ var/private/uploads/
 | 500 после деплоя | `var/log/prod.log`, права на `var/`, `cache:clear` |
 | Seed не проходит | Надёжный `ADMIN_PASSWORD` в `.env.local` |
 | Telegram молчит | Токен, chat_id, бот добавлен в чат; fallback email |
-| Старый контент | `cache:clear`, проверить правки в админке vs sync |
+| Старый контент лендинга | `app:content:sync` + `cache:clear` |
 | Белая страница | `APP_DEBUG=0` + смотреть `var/log/` |
+| Docker: БД недоступна из PHP | В compose `DATABASE_URL` с хостом `mysql`, не `127.0.0.1` |
 
 ---
 
@@ -517,15 +617,15 @@ docs/guide.md     ← эта инструкция
 migrations/       Миграции БД
 public/           Document root (css, js, index.php)
 src/
-  Admin/          EasyAdmin CRUD (+ хроника)
-  Command/        seed, sync, chronicle:import, chronicle:seed-meta
-  Content/        LandingContent, LegalContent
-  Controller/     HTTP
+  Admin/          EasyAdmin CRUD
+  Command/        seed, sync, chronicle:*, …
+  Content/        LandingContent, HouseContent, LegalContent
+  Controller/     HTTP (home, dev, contact, cases, chronicle, …)
   Entity/         Модели
   EventSubscriber/
   Form/
   Service/
-templates/web/    Twig (landing + chronicle)
+templates/web/    Twig (house, landing, cases, chronicle, contact)
 var/              cache, log, private uploads
 
 # не в git (локально):
@@ -537,22 +637,13 @@ analysis/         зеркала эпох
 
 ### Маршруты
 
-| URL | Назначение |
-|-----|------------|
-| `/` | Лендинг + форма |
-| `/chronicle` | Хроника (фильтры) |
-| `/chronicle/{slug}` | Запись |
-| `/c/{hash}` | Короткая ссылка записи |
-| `/politika-konfidencialnosti` | Политика |
-| `/oplata/{token}` | Оплата (noindex) |
-| `/admin` | Админка |
-| `/robots.txt`, `/sitemap.xml` | SEO |
+См. [§0 · Карта сайта](#0-карта-сайта).
 
 ---
 
 ## 11. Безопасность (кратко)
 
-- CSRF на форме и admin login
+- CSRF на формах и admin login
 - Honeypot + rate limit + CSRF
 - Вложения заявок — только через админку
 - CSP и security headers на публичных страницах
@@ -560,4 +651,15 @@ analysis/         зеркала эпох
 
 ---
 
-*Один файл — весь flow. Вопросы и доработки — в репозиторий или админку.*
+## 12. Changelog (2026-07-22)
+
+- Сайт как экосистема: дом `/`, лендинг `/dev--null`, связь `/contact`
+- Контент дома — `HouseContent.php`; блоки лендинга убраны из меню админки
+- Админка кейсов: вкладки, DnD порядка и галереи, медиа по типу презентации, OG из обложки
+- Настройки — singleton (без «Создать»)
+- Живые лайки + шаринг; импорт счётчиков VK → `app:chronicle:seed-likes`
+- Кейсы на лендинге: компактный список, центрирование с соседними блоками, выделенная секция
+
+---
+
+*Один файл — весь flow. Вопросы и доработки — в репозиторий.*

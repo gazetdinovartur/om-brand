@@ -21,7 +21,11 @@
         <nav class="case-crumb" aria-label="Навигация">
             <a href="{{ path('web_home') }}">Главная</a>
             <span class="case-crumb__sep" aria-hidden="true">/</span>
-            <a href="{{ path('web_chronicle') }}">Хроника</a>
+            <a
+                href="{{ path('web_chronicle') }}"
+                data-chronicle-hub-link
+                data-chronicle-hub-base="{{ path('web_chronicle') }}"
+            >Хроника</a>
             <span class="case-crumb__sep" aria-hidden="true">/</span>
             <span class="case-crumb__current" aria-current="page">{{ entry.title }}</span>
         </nav>
@@ -43,6 +47,19 @@
             {% include 'web/chronicle/_blocks.html.twig' with {blocks: chronicle_blocks_for_display(entry), entry: entry} %}
         </div>
 
+        {% if not isPreview|default(false) %}
+        <div class="chronicle-engage">
+            {% include 'web/_partials/content_engage.html.twig' with {
+                likeType: 'chronicle',
+                likeId: entry.id,
+                likeCount: entry.likeCount,
+                liked: liked|default(false),
+                shareUrl: absolute_url(path('web_chronicle_short', {hash: entry.shortHash})),
+                shareTitle: entry.title,
+            } %}
+        </div>
+        {% endif %}
+
         {% if entry.publishedAt %}
             <footer class="chronicle-posted">
                 <time class="chronicle-posted__date" datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('full') }}</time>
@@ -53,7 +70,12 @@
             <section class="chronicle-related" aria-label="Похожие записи">
                 <div class="chronicle-related__head">
                     <h2 class="chronicle-related__label">Ещё записи</h2>
-                    <a class="chronicle-related__all" href="{{ path('web_chronicle') }}">Вся хроника</a>
+                    <a
+                        class="chronicle-related__all"
+                        href="{{ path('web_chronicle') }}"
+                        data-chronicle-hub-link
+                        data-chronicle-hub-base="{{ path('web_chronicle') }}"
+                    >Вся хроника</a>
                 </div>
                 <div class="chronicle-related__grid">
                     {% for item in related %}
@@ -64,4 +86,13 @@
         {% endif %}
     </div>
 </article>
+
+{% include 'web/_partials/page_nav.html.twig' with {
+    backFallback: path('web_chronicle'),
+    backHubLink: true,
+    related: [
+        { href: path('web_cases'), label: 'Кейсы' },
+        { href: path('web_contact'), label: 'Связь' },
+    ]
+} %}
 {% endblock %}

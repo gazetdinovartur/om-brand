@@ -1,0 +1,16 @@
+{# Title + soft meta for cases index #}
+{% set case = entity.instance %}
+{% set flags = [] %}
+{% if case.isPublished %}{% set flags = flags|merge(['опубл.']) %}{% else %}{% set flags = flags|merge(['черновик']) %}{% endif %}
+{% if case.showOnLanding %}{% set flags = flags|merge(['лендинг']) %}{% endif %}
+{% if case.hasDetailPage %}{% set flags = flags|merge(['страница']) %}{% endif %}
+<div class="case-admin-title">
+    <strong class="case-admin-title__name">{{ field.formattedValue }}</strong>
+    <span class="case-admin-title__meta">
+        {% if case.domain %}{{ case.domain }}{% endif %}
+        {% if case.domain and case.year %} · {% endif %}
+        {% if case.year %}{{ case.year }}{% endif %}
+        {% if (case.domain or case.year) and flags %} · {% endif %}
+        {% if flags %}{{ flags|join(' · ') }}{% endif %}
+    </span>
+</div>

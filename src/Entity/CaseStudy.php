@@ -44,6 +44,9 @@ class CaseStudy
     private bool $isFeatured = false;
 
     #[ORM\Column]
+    private int $likeCount = 0;
+
+    #[ORM\Column]
     private bool $hasDetailPage = false;
 
     #[ORM\Column]
@@ -235,6 +238,18 @@ class CaseStudy
     public function setIsFeatured(bool $isFeatured): static
     {
         $this->isFeatured = $isFeatured;
+
+        return $this;
+    }
+
+    public function getLikeCount(): int
+    {
+        return $this->likeCount;
+    }
+
+    public function setLikeCount(int $likeCount): static
+    {
+        $this->likeCount = max(0, $likeCount);
 
         return $this;
     }

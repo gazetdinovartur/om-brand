@@ -2,15 +2,16 @@
 
 {#
   Shared case panel (hub + landing).
-  Expects: case, loop (optional, for index/flip), zoomable (bool, default false)
+  Expects: case, loop (optional, for index/flip), zoomable (bool, default false), compact (bool, default false)
 #}
-{% set flip = loop is defined and loop.index is even %}
+{% set compact = compact|default(false) %}
+{% set flip = not compact and loop is defined and loop.index is even %}
 {% set href = case.detailPublic
     ? path('web_case_show', {slug: case.slug})
     : path('web_cases') ~ '#' ~ case.slug %}
 {% set cover = upload_path(case.coverImagePath, 'cases') %}
 
-<article class="case-entry{% if flip %} case-entry--flip{% endif %}"{% if withId|default(false) %} id="{{ case.slug }}"{% endif %}>
+<article class="case-entry{% if compact %} case-entry--compact{% endif %}{% if flip %} case-entry--flip{% endif %}"{% if withId|default(false) %} id="{{ case.slug }}"{% endif %}>
     {% if cover %}
         <div class="case-entry__visual">
             {% if zoomable|default(false) %}
@@ -23,28 +24,37 @@
                     data-lightbox-caption="{{ case.title }}"
                     aria-label="Увеличить обложку: {{ case.title }}"
                 >
-                    {{ caseMedia.cover(case.coverImagePath, case.title, 'case-entry__cover', '(max-width: 900px) 100vw, 52vw') }}
+                    {{ caseMedia.cover(case.coverImagePath, case.title, 'case-entry__cover', compact ? '(max-width: 768px) 30vw, 7.5rem' : '(max-width: 900px) 100vw, 52vw') }}
                     <span class="case-entry__zoom-hint" aria-hidden="true">↗</span>
                 </button>
             {% else %}
                 <a class="case-entry__zoom case-entry__zoom--link" href="{{ href }}">
-                    {{ caseMedia.cover(case.coverImagePath, case.title, 'case-entry__cover', '(max-width: 900px) 100vw, 52vw') }}
+                    {{ caseMedia.cover(case.coverImagePath, case.title, 'case-entry__cover', compact ? '(max-width: 768px) 30vw, 7.5rem' : '(max-width: 900px) 100vw, 52vw') }}
                 </a>
             {% endif %}
         </div>
     {% endif %}
     <div class="case-entry__body">
-        {% if loop is defined %}
+        {% if not compact and loop is defined %}
             <span class="case-entry__index" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
         {% endif %}
-        {{ caseMedia.meta(case) }}
+        {% if not compact %}
+            {{ caseMedia.meta(case) }}
+        {% elseif case.domain or case.year %}
+            <p class="case-entry__compact-meta">
+                {% if case.domain %}{{ case.domain|split('·')|first|trim }}{% endif %}
+                {% if case.domain and case.year %} · {% endif %}
+                {% if case.year %}{{ case.year }}{% endif %}
+            </p>
+        {% endif %}
         <h2 class="case-entry__title">
             <a href="{{ href }}">{{ case.title }}</a>
         </h2>
         {% if case.outcomeLine %}
             <p class="case-entry__outcome">{{ case.outcomeLine }}</p>
         {% elseif case.summary %}
-            <p class="case-entry__text">{{ case.summary|length > 180 ? case.summary|slice(0, 180) ~ '…' : case.summary }}</p>
+            {% set limit = compact ? 110 : 180 %}
+            <p class="case-entry__text">{{ case.summary|length > limit ? case.summary|slice(0, limit) ~ '…' : case.summary }}</p>
         {% endif %}
         <a class="case-entry__link" href="{{ href }}">{{ linkLabel|default('Читать кейс') }}</a>
     </div>

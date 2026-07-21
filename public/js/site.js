@@ -13,7 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initProcessPath();
     initCaseLightbox();
     initCopyLink();
+    initContentEngage();
     initChronicleFeed();
+    initPageBack();
+    initChronicleFiltersPersist();
 
     const updateFabVisibility = () => {
         if (!(fab instanceof HTMLElement) || document.body.classList.contains('site-body--nav-open')) {
@@ -1065,6 +1068,160 @@ function initCopyLink() {
     });
 }
 
+function preferNativeShare() {
+    if (typeof navigator.share !== 'function') {
+        return false;
+    }
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const narrow = window.matchMedia('(max-width: 900px)').matches;
+    const touch = navigator.maxTouchPoints > 0;
+    return coarse || (narrow && touch);
+}
+
+function ensureToastHost() {
+    let host = document.querySelector('[data-toast-host]');
+    if (host instanceof HTMLElement) {
+        return host;
+    }
+    host = document.createElement('div');
+    host.className = 'site-toast-host';
+    host.setAttribute('data-toast-host', '');
+    host.setAttribute('aria-live', 'polite');
+    document.body.appendChild(host);
+    return host;
+}
+
+function showToast(message) {
+    const host = ensureToastHost();
+    const toast = document.createElement('div');
+    toast.className = 'site-toast';
+    toast.textContent = message;
+    host.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+    window.setTimeout(() => {
+        toast.classList.remove('is-visible');
+        window.setTimeout(() => toast.remove(), 280);
+    }, 2200);
+}
+
+async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    const input = document.createElement('textarea');
+    input.value = text;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    input.remove();
+}
+
+function formatLikeCount(count) {
+    const n = Number(count) || 0;
+    return n > 0 ? String(n) : '';
+}
+
+function initContentEngage() {
+    document.querySelectorAll('[data-engage]').forEach((root) => {
+        if (!(root instanceof HTMLElement)) {
+            return;
+        }
+
+        const likeBtn = root.querySelector('[data-engage-like]');
+        const shareBtn = root.querySelector('[data-engage-share]');
+        const countEl = root.querySelector('[data-engage-count]');
+        const shareLabel = root.querySelector('[data-engage-share-label]');
+
+        const applyLikeState = (liked, count) => {
+            if (likeBtn instanceof HTMLButtonElement) {
+                likeBtn.classList.toggle('is-liked', liked);
+                likeBtn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+            }
+            root.dataset.liked = liked ? '1' : '0';
+            if (countEl instanceof HTMLElement) {
+                countEl.textContent = formatLikeCount(count);
+                countEl.hidden = !(Number(count) > 0);
+            }
+        };
+
+        if (countEl instanceof HTMLElement) {
+            const initial = Number(countEl.textContent || '0');
+            countEl.hidden = !(initial > 0);
+            if (initial > 0) {
+                countEl.textContent = String(initial);
+            }
+        }
+
+        likeBtn?.addEventListener('click', async () => {
+            if (!(likeBtn instanceof HTMLButtonElement) || likeBtn.disabled) {
+                return;
+            }
+            const url = root.dataset.likeUrl;
+            const csrf = root.dataset.csrf;
+            if (!url || !csrf) {
+                return;
+            }
+
+            likeBtn.disabled = true;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    throw new Error('like failed');
+                }
+                const data = await response.json();
+                applyLikeState(Boolean(data.liked), Number(data.count) || 0);
+            } catch {
+                showToast('Не удалось сохранить лайк');
+            } finally {
+                likeBtn.disabled = false;
+            }
+        });
+
+        shareBtn?.addEventListener('click', async () => {
+            const url = root.dataset.shareUrl || window.location.href;
+            const title = root.dataset.shareTitle || document.title;
+            const label = shareLabel instanceof HTMLElement ? shareLabel.textContent : null;
+
+            if (preferNativeShare()) {
+                try {
+                    await navigator.share({ title, url, text: title });
+                    return;
+                } catch (error) {
+                    if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+                        return;
+                    }
+                    // fall through to clipboard
+                }
+            }
+
+            try {
+                await copyText(url);
+                if (shareLabel instanceof HTMLElement) {
+                    shareLabel.textContent = 'Скопировано';
+                    window.setTimeout(() => {
+                        shareLabel.textContent = label || 'Поделиться';
+                    }, 1600);
+                }
+                showToast('Ссылка скопирована');
+            } catch {
+                prompt('Ссылка:', url);
+            }
+        });
+    });
+}
+
 function initChronicleFeed() {
     const feed = document.querySelector('[data-chronicle-feed]');
     const moreBtn = document.querySelector('[data-chronicle-more]');
@@ -1072,6 +1229,28 @@ function initChronicleFeed() {
     const filters = document.querySelector('[data-chronicle-filters]');
     const heartBtn = document.querySelector('[data-chronicle-heart]');
     const featuredInput = document.querySelector('[data-featured-input]');
+    const filtersToggle = document.querySelector('[data-chronicle-filters-toggle]');
+    const filtersPanel = document.querySelector('[data-chronicle-filters-panel]');
+
+    if (filtersToggle instanceof HTMLButtonElement && filtersPanel instanceof HTMLElement) {
+        const syncToggle = () => {
+            const open = filtersPanel.classList.contains('is-open');
+            filtersToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        syncToggle();
+        filtersToggle.addEventListener('click', () => {
+            filtersPanel.classList.toggle('is-open');
+            syncToggle();
+        });
+    }
+
+    document.querySelector('[data-chronicle-filters-reset]')?.addEventListener('click', () => {
+        try {
+            sessionStorage.removeItem('chronicle.filters');
+        } catch {
+            // ignore
+        }
+    });
 
     if (heartBtn instanceof HTMLButtonElement && filters instanceof HTMLFormElement) {
         heartBtn.addEventListener('click', () => {
@@ -1178,5 +1357,78 @@ function initChronicleFeed() {
                 moreBtn.textContent = 'Смотреть ещё';
             }
         }
+    });
+}
+
+const CHRONICLE_FILTERS_KEY = 'chronicle.filters';
+
+function readChronicleFilters() {
+    try {
+        const raw = sessionStorage.getItem(CHRONICLE_FILTERS_KEY);
+        if (!raw) {
+            return {};
+        }
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function writeChronicleFilters(query) {
+    try {
+        sessionStorage.setItem(CHRONICLE_FILTERS_KEY, JSON.stringify(query || {}));
+    } catch {
+        // ignore quota / private mode
+    }
+}
+
+function chronicleHubUrl(basePath) {
+    const query = readChronicleFilters();
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+            params.set(key, String(value));
+        }
+    });
+    const suffix = params.toString();
+    return suffix ? `${basePath}?${suffix}` : basePath;
+}
+
+function initChronicleFiltersPersist() {
+    const feed = document.querySelector('[data-chronicle-feed]');
+    if (feed instanceof HTMLElement) {
+        try {
+            writeChronicleFilters(JSON.parse(feed.dataset.query || '{}') || {});
+        } catch {
+            writeChronicleFilters({});
+        }
+    }
+
+    document.querySelectorAll('[data-chronicle-hub-link]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        const base = link.dataset.chronicleHubBase || '/chronicle';
+        const url = chronicleHubUrl(base);
+        link.href = url;
+        if (link.hasAttribute('data-back-fallback')) {
+            link.dataset.backFallback = url;
+        }
+    });
+}
+
+function initPageBack() {
+    document.querySelectorAll('[data-page-back]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+
+        link.addEventListener('click', (event) => {
+            if (window.history.length > 1) {
+                event.preventDefault();
+                window.history.back();
+            }
+        });
     });
 }
