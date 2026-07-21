@@ -34,7 +34,26 @@
 | Instagram | zip-экспорты + `content/instagram/` | ❌ |
 | Собранный корпус | `corpus/chronicle_entries.jsonl` (~300 записей) | ❌ |
 
-**Важно:** этот анализ опирается на **репрезентативную выборку** (VK 2026, мета-структура, профессиональный контекст) и экстраполирует на полный корпус. После появления `corpus/` — запусти `scripts/analyze_corpus_deep.py` для количественного слоя.
+**Важно:** качественный анализ (разделы 01–10, `eras/`) опирается на репрезентативную выборку. **Corpus mirrors** (`mirror/`) — количественный слой из полного корпуса.
+
+### Полный прогон (локально, где есть `content/`)
+
+```bash
+python3 scripts/corpus_build.py --instagram
+python3 scripts/run_analysis_pipeline.py
+```
+
+Создаёт:
+- `corpus/chronicle_entries.jsonl` + `corpus/manifest.json`
+- `analysis/deep-2026-07-21/data/corpus-stats.json`
+- `analysis/deep-2026-07-21/mirror/` — by-era, by-channel, manifest.json
+
+Синхронизация на cloud agent (пример):
+
+```bash
+rsync -avz corpus/chronicle_entries.jsonl HOST:/path/to/om-brand/corpus/
+rsync -avz content/ HOST:/path/to/om-brand/content/   # или только corpus после сборки
+```
 
 ## Методы
 
@@ -53,9 +72,8 @@
 ## Следующий шаг для полноты
 
 ```bash
-# на машине с экспортами
 python3 scripts/corpus_build.py --instagram
-python3 scripts/analyze_corpus_deep.py --corpus corpus/chronicle_entries.jsonl
+python3 scripts/run_analysis_pipeline.py
 ```
 
-Результат дополнит `data/corpus-stats.json` и позволит уточнить все разделы количественно.
+Результат дополнит `data/corpus-stats.json`, `mirror/` и позволит уточнить качественный анализ количественно.

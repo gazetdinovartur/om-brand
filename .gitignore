@@ -28,7 +28,15 @@ _symfony_tmp/
 /analysis/*
 !/analysis/deep-2026-07-21/
 !/analysis/deep-2026-07-21/**
+/analysis/deep-2026-07-21/mirror/*
+!/analysis/deep-2026-07-21/mirror/README.md
+/analysis/deep-2026-07-21/data/corpus-stats.json
 /scripts/*
 !/scripts/analyze_corpus_deep.py
+!/scripts/corpus_build.py
+!/scripts/corpus_utils.py
+!/scripts/export_analysis_mirror.py
+!/scripts/run_analysis_pipeline.py
+!/scripts/vk_export.py
 /sgl-узоры/
 /public/uploads/chronicle/

@@ -17,17 +17,30 @@
 | [08-therapy-and-selfhelp.md](08-therapy-and-selfhelp.md) | Методы терапии и самопомощи |
 | [09-executive-summary.md](09-executive-summary.md) | Краткое резюме для автора |
 | [10-channel-architecture.md](10-channel-architecture.md) | Архитектура каналов и тематических тегов |
-| [eras/](eras/) | Зеркала эпох (биография как география) |
+| [eras/](eras/) | Зеркала эпох — качественные (ручные) |
+| [mirror/](mirror/) | Corpus mirrors — количественные (авто из jsonl) |
 
 ## Как обновить анализ
 
 Когда локально есть `content/` и `corpus/chronicle_entries.jsonl`:
 
 ```bash
+# 1. Собрать корпус (если обновились экспорты)
+python3 scripts/corpus_build.py --instagram
+
+# 2. Статистика + corpus mirrors
+python3 scripts/run_analysis_pipeline.py
+# или по шагам:
 python3 scripts/analyze_corpus_deep.py
+python3 scripts/export_analysis_mirror.py
 ```
 
-Скрипт пересчитает статистику языка, распределение по эпохам/каналам/тегам и допишет `data/corpus-stats.json`.
+Результат:
+- `data/corpus-stats.json` — количественная статистика
+- `mirror/by-era/`, `mirror/by-channel/` — **corpus mirrors** (авто)
+- `eras/` — качественные зеркала (ручные)
+
+См. `mirror/manifest.json` для индекса срезов.
 
 ## Дисклеймер
 
