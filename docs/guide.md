@@ -199,7 +199,14 @@ python3 scripts/corpus_build.py --instagram
 - Заголовки собираются из текста (целые фразы, без обрывов на предлогах); посты VK только с картинками → «Пост от 10 мая 2026 года»
 - Instagram: медиа из **всех** zip в catalog; посты без картинок в хронику не попадают
 - Лайки VK пишутся в блоки `calloutStyle=meta`; на сайте поднимаются в `like_count` и показываются как живые лайки
+- Telegram: в meta суммируются **все** реакции волны (`🔥 2 · ❤ 1` → 3)
+- Instagram: лайки из zip `past_instagram_insights` → meta `❤ N` (при `--instagram` / `enrich_corpus_likes.py`)
 - После миграции / импорта: `php bin/console app:chronicle:seed-likes`
+
+```bash
+# обновить meta лайков в уже собранном корпусе (TG + IG), без полной пересборки
+python3 scripts/enrich_corpus_likes.py
+```
 
 ### Импорт в БД (локально)
 

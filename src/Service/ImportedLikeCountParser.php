@@ -2,7 +2,14 @@
 
 namespace App\Service;
 
-/** Parses VK/Telegram imported like counts from meta callout bodies like "❤ 12". */
+/**
+ * Parses imported like/reaction totals from meta callout bodies.
+ *
+ * Examples:
+ *  - "❤ 12"
+ *  - "🔥 2 · ❤ 1" → 3
+ *  - "❤‍🔥 3 · 🕊 1" → 4
+ */
 final class ImportedLikeCountParser
 {
     public function parse(?string $body): ?int
@@ -11,8 +18,13 @@ final class ImportedLikeCountParser
             return null;
         }
 
-        if (preg_match('/❤\s*(\d+)/u', $body, $matches)) {
-            return max(0, (int) $matches[1]);
+        if (preg_match_all('/(\d+)/u', $body, $matches) && [] !== $matches[1]) {
+            $sum = 0;
+            foreach ($matches[1] as $n) {
+                $sum += max(0, (int) $n);
+            }
+
+            return $sum > 0 ? $sum : 0;
         }
 
         if (preg_match('/(?:^|\s)(\d+)\s*(?:лайк|like)/iu', $body, $matches)) {

@@ -415,7 +415,7 @@
       "series": "instagram",
       "media_subdir": "instagram",
       "status": "published",
-      "min_chars": 80,
+      "min_chars": 1,
       "tags": []
     },
     {

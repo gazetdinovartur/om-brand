@@ -80,6 +80,7 @@ final class ImportChronicleCorpusCommand extends Command
         $updated = 0;
         $skipped = 0;
         $n = 0;
+        $this->reservedSlugs = [];
 
         $handle = fopen($file, 'rb');
         if (false === $handle) {
@@ -507,6 +508,9 @@ final class ImportChronicleCorpusCommand extends Command
         }
     }
 
+    /** @var array<string, true> */
+    private array $reservedSlugs = [];
+
     private function uniqueSlug(string $hint, ?int $excludeId): string
     {
         $base = strtolower($this->slugger->slug($hint)->toString());
@@ -520,12 +524,17 @@ final class ImportChronicleCorpusCommand extends Command
             $slug = $base.'-'.$i;
             ++$i;
         }
+        $this->reservedSlugs[$slug] = true;
 
         return $slug;
     }
 
     private function slugTaken(string $slug, ?int $excludeId): bool
     {
+        if (isset($this->reservedSlugs[$slug])) {
+            return true;
+        }
+
         $existing = $this->entries->findOneBy(['slug' => $slug]);
         if (!$existing instanceof ChronicleEntry) {
             return false;
