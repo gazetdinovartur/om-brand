@@ -70,7 +70,7 @@ class ChronicleEntryCrudController extends AbstractCrudController
             ]))
             ->add(EntityFilter::new('series', 'Канал'))
             ->add(EntityFilter::new('era', 'Эпоха'))
-            ->add(EntityFilter::new('tags', 'Тег'))
+            ->add(EntityFilter::new('tags', 'Ключевое слово'))
             ->add(BooleanFilter::new('isFeatured', 'Избранное'))
             ->add(BooleanFilter::new('isUnlisted', 'Unlisted'))
             ->add(DateTimeFilter::new('publishedAt', 'Дата публикации'))

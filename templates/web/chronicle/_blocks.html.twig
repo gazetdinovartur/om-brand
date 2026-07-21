@@ -72,16 +72,35 @@
                 {% endfor %}
             </div>
         </section>
-    {% elseif type == 'audio' and block.omTrackSlug %}
-        <section class="chronicle-block chronicle-block--audio">
-            <om-player
-                mode="embed"
-                track="{{ block.omTrackSlug }}"
-                api-base="{{ chronicle_om_player_api() }}"
-                theme="light"
-                aria-label="{{ block.caption|default('Аудио') }}"
-            ></om-player>
-            {% if block.caption %}<p class="chronicle-block__caption">{{ block.caption }}</p>{% endif %}
+    {% elseif type == 'audio' %}
+        <section class="chronicle-block chronicle-block--audio chronicle-audio-premium">
+            <div class="chronicle-audio-premium__shell">
+                <div class="chronicle-audio-premium__meta">
+                    <span class="chronicle-audio-premium__badge" aria-hidden="true">♫</span>
+                    <div class="chronicle-audio-premium__titles">
+                        <p class="chronicle-audio-premium__label">Аудио</p>
+                        {% if block.caption %}
+                            <p class="chronicle-audio-premium__title">{{ block.caption }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="chronicle-audio-premium__player">
+                    {% if block.omTrackSlug %}
+                        <om-player
+                            mode="embed"
+                            track="{{ block.omTrackSlug }}"
+                            api-base="{{ chronicle_om_player_api() }}"
+                            theme="light"
+                            aria-label="{{ block.caption|default('Аудио') }}"
+                        ></om-player>
+                    {% elseif block.videoUrl %}
+                        {% set audioSrc = block.videoUrl matches '/^https?:\\/\\//' ? block.videoUrl : asset('uploads/' ~ block.videoUrl) %}
+                        <audio class="chronicle-audio-premium__native" controls preload="metadata" src="{{ audioSrc }}">
+                            Ваш браузер не поддерживает воспроизведение аудио.
+                        </audio>
+                    {% endif %}
+                </div>
+            </div>
         </section>
     {% elseif type == 'video' and block.videoUrl %}
         {% set videoEmbed = chronicle_video_embed(block) %}

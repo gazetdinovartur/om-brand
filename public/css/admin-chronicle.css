@@ -86,6 +86,29 @@
     gap: 0.35rem 0.75rem;
 }
 
+.chronicle-editor-tags__loading {
+    font-size: 0.85rem;
+}
+
+.chronicle-editor-keywords__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+
+.chronicle-editor-keywords__manage {
+    font-size: 0.82rem;
+    color: #6a6056;
+    text-decoration: none;
+}
+
+.chronicle-editor-keywords__manage:hover {
+    color: #1a1612;
+    text-decoration: underline;
+}
+
 .chronicle-editor-tag {
     font-size: 0.85rem;
 }

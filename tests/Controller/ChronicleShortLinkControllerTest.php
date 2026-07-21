@@ -20,7 +20,7 @@ final class ChronicleShortLinkControllerTest extends TestCase
         $controller = $this->createController();
 
         $this->expectException(NotFoundHttpException::class);
-        $controller->redirectToEntry('00000000', $repo);
+        $controller->redirectToEntry('00000000', $repo, $this->createMock(\App\Service\ChronicleWebAccess::class));
     }
 
     public function testKnownHashRedirectsPermanently(): void
@@ -32,8 +32,11 @@ final class ChronicleShortLinkControllerTest extends TestCase
         $repo = $this->createMock(ChronicleEntryRepository::class);
         $repo->method('findByShortHash')->with('abcd1234')->willReturn($entry);
 
+        $webAccess = $this->createMock(\App\Service\ChronicleWebAccess::class);
+        $webAccess->expects(self::once())->method('assertCanView')->with($entry);
+
         $controller = $this->createController();
-        $response = $controller->redirectToEntry('abcd1234', $repo);
+        $response = $controller->redirectToEntry('abcd1234', $repo, $webAccess);
 
         self::assertSame(Response::HTTP_MOVED_PERMANENTLY, $response->getStatusCode());
         self::assertStringContainsString('/chronicle/my-post', $response->headers->get('Location') ?? '');

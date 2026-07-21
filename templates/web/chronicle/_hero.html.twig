@@ -42,18 +42,13 @@
                 <p class="chronicle-hero__lede">{{ entry.lede }}</p>
             {% endif %}
 
-            <div class="chronicle-hero__actions">
-                {% if entry.tags is not empty %}
-                    <div class="chronicle-hero__tags">
-                        {% for tag in entry.tags %}
-                            <a class="chronicle-tag" href="{{ path('web_chronicle', {tag: tag.slug}) }}">#{{ tag.name }}</a>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                <div class="chronicle-hero__share">
-                    <button type="button" class="btn btn-secondary btn-sm" data-copy-link="{{ url('web_chronicle_short', {hash: entry.shortHash}) }}">Короткая ссылка</button>
+            {% if entry.tags is not empty %}
+                <div class="chronicle-hero__tags">
+                    {% for tag in entry.tags %}
+                        <a class="chronicle-tag" href="{{ path('web_chronicle', {tag: tag.slug}) }}">#{{ tag.name }}</a>
+                    {% endfor %}
                 </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </section>

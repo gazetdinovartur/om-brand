@@ -71,6 +71,10 @@ class ChronicleEntry
     #[ORM\Column]
     private bool $isUnlisted = false;
 
+    /** Visible in admin and by direct URL for admins only; never in public feed/sitemap. */
+    #[ORM\Column]
+    private bool $isAdminOnly = false;
+
     #[ORM\Column(length: 64)]
     private string $previewToken = '';
 
@@ -314,6 +318,18 @@ class ChronicleEntry
         return $this;
     }
 
+    public function isAdminOnly(): bool
+    {
+        return $this->isAdminOnly;
+    }
+
+    public function setIsAdminOnly(bool $isAdminOnly): static
+    {
+        $this->isAdminOnly = $isAdminOnly;
+
+        return $this;
+    }
+
     public function getPreviewToken(): string
     {
         return $this->previewToken;
@@ -414,7 +430,7 @@ class ChronicleEntry
 
     public function isVisibleInFeed(): bool
     {
-        return $this->isPublic() && !$this->isUnlisted;
+        return $this->isPublic() && !$this->isUnlisted && !$this->isAdminOnly;
     }
 
     public function wasUpdatedAfterPublish(): bool

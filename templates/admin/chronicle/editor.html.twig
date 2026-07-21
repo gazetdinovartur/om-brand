@@ -73,14 +73,17 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Теги</label>
-                        <div class="chronicle-editor-tags">
-                            {% for tag in tags %}
-                                <label class="chronicle-editor-tag">
-                                    <input type="checkbox" value="{{ tag.id }}" data-field="tagIds"{% if entry.tags.contains(tag) %} checked{% endif %}>
-                                    {{ tag.name }}
-                                </label>
-                            {% endfor %}
+                        <div class="chronicle-editor-keywords__head">
+                            <label class="form-label mb-0">Ключевые слова</label>
+                            <a class="chronicle-editor-keywords__manage" href="{{ ea_url().setController('App\\Admin\\ChronicleTagCrudController').setAction('index').generateUrl() }}" target="_blank" rel="noopener">Справочник</a>
+                        </div>
+                        <p class="form-text">Назначаются вручную. Импорт их не перезаписывает.</p>
+                        <div class="chronicle-editor-tags" data-tags-list>
+                            <p class="chronicle-editor-tags__loading text-muted mb-0" data-tags-loading>Загрузка ключевых слов…</p>
+                        </div>
+                        <div class="chronicle-editor-keywords__add input-group input-group-sm mt-2">
+                            <input type="text" class="form-control" placeholder="Новое слово" data-tag-create-input maxlength="80">
+                            <button type="button" class="btn btn-outline-secondary" data-tag-create>Добавить</button>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -131,15 +134,17 @@
     <script>
         window.__CHRONICLE_EDITOR__ = {
             entryId: {{ entry.id }},
-            data: {{ entryJson|raw }},
             previewUrl: {{ previewUrl|json_encode|raw }},
             shortUrl: {{ shortUrl|json_encode|raw }},
+            dataUrl: {{ path('admin_chronicle_editor_data', {id: entry.id})|json_encode|raw }},
+            tagsUrl: {{ path('admin_chronicle_tags_list', {entryId: entry.id})|json_encode|raw }},
             autosaveUrl: {{ path('admin_chronicle_autosave', {id: entry.id})|json_encode|raw }},
             publishUrl: {{ path('admin_chronicle_publish', {id: entry.id})|json_encode|raw }},
             uploadUrl: {{ path('admin_chronicle_upload')|json_encode|raw }},
+            tagCreateUrl: {{ path('admin_chronicle_tag_create')|json_encode|raw }},
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="{{ asset('js/admin-chronicle-editor.js') }}"></script>
+    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260721b' }}"></script>
 </body>
 </html>

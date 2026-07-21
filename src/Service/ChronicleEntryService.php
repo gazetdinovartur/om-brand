@@ -357,4 +357,43 @@ final class ChronicleEntryService
             'blocks' => $blocks,
         ];
     }
+
+    public function createTag(string $name): ChronicleTag
+    {
+        $name = trim($name);
+        if ('' === $name) {
+            throw new \InvalidArgumentException('Tag name is required.');
+        }
+
+        $slug = $this->uniqueTagSlug($name);
+        $existing = $this->tags->findOneBy(['slug' => $slug]);
+        if ($existing instanceof ChronicleTag) {
+            return $existing;
+        }
+
+        $tag = new ChronicleTag();
+        $tag->setName($name);
+        $tag->setSlug($slug);
+        $this->em->persist($tag);
+        $this->em->flush();
+
+        return $tag;
+    }
+
+    private function uniqueTagSlug(string $name): string
+    {
+        $base = $this->slugify($name);
+        if ('' === $base) {
+            $base = 'tag';
+        }
+
+        $slug = $base;
+        $i = 2;
+        while ($this->tags->findOneBy(['slug' => $slug]) instanceof ChronicleTag) {
+            $slug = $base.'-'.$i;
+            ++$i;
+        }
+
+        return $slug;
+    }
 }

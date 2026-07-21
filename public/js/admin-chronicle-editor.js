@@ -2,11 +2,12 @@
     const cfg = window.__CHRONICLE_EDITOR__;
     if (!cfg) return;
 
-    let state = initState(cfg.data);
+    let state = null;
     let saveTimer = null;
     let saving = false;
     let dirty = false;
     let sortable = null;
+    let bootstrapped = false;
 
     const els = {
         blocksList: document.querySelector('[data-blocks-list]'),
@@ -48,17 +49,26 @@
     }
 
     function initState(data) {
+        if (!data || typeof data !== 'object') {
+            return { blocks: [], status: 'draft', coverImagePath: null };
+        }
+
         const next = structuredClone(data);
-        (next.blocks || []).forEach(ensureClientId);
+        if (!Array.isArray(next.blocks)) {
+            next.blocks = [];
+        }
+        next.blocks.forEach(ensureClientId);
 
         return next;
     }
 
     function findBlock(clientId) {
+        if (!state) return null;
         return state.blocks.find((b) => b._clientId === clientId) ?? null;
     }
 
     function markDirty() {
+        if (!state) return;
         dirty = true;
         scheduleSave();
     }
@@ -76,6 +86,7 @@
     }
 
     function collectMeta() {
+        if (!state) return {};
         readMetaFieldsFromDom();
         const tagIds = [...document.querySelectorAll('[data-field="tagIds"]:checked')].map((el) => Number(el.value));
 
@@ -200,7 +211,7 @@
     }
 
     async function save() {
-        if (saving) return;
+        if (!state || saving) return;
         saving = true;
         readMetaFieldsFromDom();
         const clientIds = state.blocks.map((b) => b._clientId);
@@ -246,8 +257,14 @@
             alert('Не удалось опубликовать');
             return;
         }
-        state = initState(json.data);
-        renderBlocks();
+        if (json.data && state) {
+            const clientIds = state.blocks.map((b) => b._clientId);
+            const imageClientIds = state.blocks.map((b) =>
+                b.type === 'gallery' && Array.isArray(b.images) ? b.images.map((i) => i._clientId) : [],
+            );
+            state = mergeStateFromServer(json.data, clientIds, imageClientIds);
+            renderBlocks();
+        }
         setStatus(action === 'schedule' ? 'Запланировано' : 'Опубликовано', 'published');
         if (json.publicUrl) cfg.publicUrl = json.publicUrl;
     }
@@ -264,7 +281,7 @@
     }
 
     function renderBlocks(options = {}) {
-        if (!els.blocksList) return;
+        if (!els.blocksList || !state) return;
 
         const focus = options.restoreFocus ? captureFocus() : null;
         readMetaFieldsFromDom();
@@ -634,6 +651,153 @@
         });
     }
 
+    function appendTagCheckbox(tag, checked = true) {
+        const list = document.querySelector('[data-tags-list]');
+        if (!(list instanceof HTMLElement)) return;
+
+        const existing = list.querySelector(`[data-field="tagIds"][value="${tag.id}"]`);
+        if (existing instanceof HTMLInputElement) {
+            existing.checked = checked;
+            return;
+        }
+
+        const label = document.createElement('label');
+        label.className = 'chronicle-editor-tag';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = String(tag.id);
+        checkbox.dataset.field = 'tagIds';
+        checkbox.checked = checked;
+        label.appendChild(checkbox);
+        label.append(` ${tag.name}`);
+        list.appendChild(label);
+    }
+
+    function renderTagList(tags, selectedTagIds) {
+        const list = document.querySelector('[data-tags-list]');
+        if (!(list instanceof HTMLElement)) return;
+
+        const selected = new Set((selectedTagIds || []).map((id) => Number(id)));
+        list.querySelectorAll('.chronicle-editor-tag').forEach((el) => el.remove());
+        list.querySelector('[data-tags-loading]')?.remove();
+
+        if (!tags.length) {
+            const empty = document.createElement('p');
+            empty.className = 'text-muted mb-0';
+            empty.textContent = 'Пока нет ключевых слов — добавьте первое ниже.';
+            list.appendChild(empty);
+            return;
+        }
+
+        tags.forEach((tag) => appendTagCheckbox(tag, selected.has(Number(tag.id))));
+    }
+
+    async function loadTags() {
+        if (!cfg.tagsUrl) return;
+
+        try {
+            const res = await fetch(cfg.tagsUrl, { credentials: 'same-origin' });
+            const json = await res.json();
+            if (!res.ok || !json.ok) {
+                throw new Error(json.error || 'Не удалось загрузить ключевые слова');
+            }
+
+            renderTagList(json.tags || [], json.selectedTagIds || []);
+        } catch (err) {
+            const list = document.querySelector('[data-tags-list]');
+            list?.querySelector('[data-tags-loading]')?.remove();
+            if (list instanceof HTMLElement) {
+                const error = document.createElement('p');
+                error.className = 'text-danger mb-0';
+                error.textContent = err instanceof Error ? err.message : 'Не удалось загрузить ключевые слова';
+                list.appendChild(error);
+            }
+            console.error(err);
+        }
+    }
+
+    async function bootstrapEditor() {
+        if (bootstrapped) return;
+        bootstrapped = true;
+        setStatus('Загрузка…', 'pending');
+
+        const tagsPromise = loadTags();
+        let data = cfg.data;
+
+        if (!data && cfg.dataUrl) {
+            try {
+                const res = await fetch(cfg.dataUrl, { credentials: 'same-origin' });
+                const json = await res.json();
+                if (!res.ok || !json.ok || !json.data) {
+                    throw new Error(json.error || 'Не удалось загрузить запись');
+                }
+                data = json.data;
+            } catch (err) {
+                setStatus('Ошибка загрузки', 'error');
+                console.error(err);
+                alert(err instanceof Error ? err.message : 'Не удалось загрузить запись');
+                return;
+            }
+        }
+
+        if (!data) {
+            setStatus('Ошибка загрузки', 'error');
+            return;
+        }
+
+        state = initState(data);
+        await tagsPromise;
+        renderBlocks();
+        setStatus('Готово');
+    }
+
+    async function createKeyword() {
+        const input = document.querySelector('[data-tag-create-input]');
+        if (!(input instanceof HTMLInputElement)) return;
+
+        const name = input.value.trim();
+        if (!name) return;
+
+        const button = document.querySelector('[data-tag-create]');
+        if (button instanceof HTMLButtonElement) {
+            button.disabled = true;
+        }
+
+        try {
+            const res = await fetch(cfg.tagCreateUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.tag) {
+                throw new Error(data.error || 'Не удалось создать ключевое слово');
+            }
+
+            appendTagCheckbox(data.tag, true);
+            input.value = '';
+            markDirty();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Не удалось создать ключевое слово');
+            console.error(err);
+        } finally {
+            if (button instanceof HTMLButtonElement) {
+                button.disabled = false;
+            }
+        }
+    }
+
+    document.querySelector('[data-tag-create]')?.addEventListener('click', () => {
+        createKeyword();
+    });
+
+    document.querySelector('[data-tag-create-input]')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            createKeyword();
+        }
+    });
+
     window.addEventListener('beforeunload', (e) => {
         if (dirty) {
             e.preventDefault();
@@ -641,6 +805,5 @@
         }
     });
 
-    renderBlocks();
-    setStatus('Готово');
+    bootstrapEditor();
 })();

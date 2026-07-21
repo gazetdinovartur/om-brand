@@ -11,6 +11,7 @@ use App\Repository\ChronicleSeriesRepository;
 use App\Repository\ChronicleTagRepository;
 use App\Seo\SeoMetadataFactory;
 use App\Service\ChronicleMediaEmbedFactory;
+use App\Service\ChronicleWebAccess;
 use App\Service\PublicSiteContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -131,11 +132,14 @@ final class ChronicleController extends AbstractController
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seo,
         ChronicleMediaEmbedFactory $media,
+        ChronicleWebAccess $webAccess,
     ): Response {
         $entry = $entries->findPublishedBySlug($slug);
         if (null === $entry) {
             throw new NotFoundHttpException('Запись не найдена.');
         }
+
+        $webAccess->assertCanView($entry);
 
         return $this->renderEntry($entry, $request, $siteContext, $seo, $media, $entries, false);
     }
@@ -148,12 +152,15 @@ final class ChronicleController extends AbstractController
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seo,
         ChronicleMediaEmbedFactory $media,
+        ChronicleWebAccess $webAccess,
     ): Response {
         $token = (string) $request->query->get('token', '');
         $entry = $entries->find($id);
         if (!$entry instanceof \App\Entity\ChronicleEntry || !hash_equals($entry->getPreviewToken(), $token)) {
             throw new NotFoundHttpException('Предпросмотр недоступен.');
         }
+
+        $webAccess->assertCanView($entry);
 
         return $this->renderEntry($entry, $request, $siteContext, $seo, $media, $entries, true);
     }

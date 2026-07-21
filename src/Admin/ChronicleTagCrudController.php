@@ -21,8 +21,8 @@ class ChronicleTagCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Тег')
-            ->setEntityLabelInPlural('Теги')
+            ->setEntityLabelInSingular('Ключевое слово')
+            ->setEntityLabelInPlural('Ключевые слова')
             ->setDefaultSort(['name' => 'ASC'])
             ->showEntityActionsInlined();
     }

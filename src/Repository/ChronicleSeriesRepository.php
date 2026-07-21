@@ -36,6 +36,7 @@ class ChronicleSeriesRepository extends ServiceEntityRepository
             ->andWhere('e.publishedAt IS NOT NULL')
             ->andWhere('e.publishedAt <= :now')
             ->andWhere('e.isUnlisted = false')
+            ->andWhere('e.isAdminOnly = false')
             ->setParameter('status', ChronicleStatus::Published)
             ->setParameter('now', new \DateTimeImmutable())
             ->groupBy('s.id')

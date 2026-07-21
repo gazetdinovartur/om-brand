@@ -52,6 +52,7 @@ final class ImportChronicleCorpusCommand extends Command
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Максимум записей', '0')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Только посчитать')
             ->addOption('skip-media', null, InputOption::VALUE_NONE, 'Не копировать картинки')
+            ->addOption('sync-tags', null, InputOption::VALUE_NONE, 'Перезаписать теги из corpus (по умолчанию сохраняются заданные в админке)')
             ->addOption('file', null, InputOption::VALUE_REQUIRED, 'Путь к jsonl', 'corpus/chronicle_entries.jsonl');
     }
 
@@ -71,6 +72,7 @@ final class ImportChronicleCorpusCommand extends Command
         $limit = max(0, (int) $input->getOption('limit'));
         $dryRun = (bool) $input->getOption('dry-run');
         $skipMedia = (bool) $input->getOption('skip-media');
+        $syncTags = (bool) $input->getOption('sync-tags');
 
         $created = 0;
         $updated = 0;
@@ -142,6 +144,14 @@ final class ImportChronicleCorpusCommand extends Command
             $status = ChronicleStatus::tryFrom((string) ($row['status'] ?? 'draft')) ?? ChronicleStatus::Draft;
             $entry->setStatus($status);
 
+            if (\array_key_exists('unlisted', $row)) {
+                $entry->setIsUnlisted((bool) $row['unlisted']);
+            }
+
+            if (\array_key_exists('admin_only', $row)) {
+                $entry->setIsAdminOnly((bool) $row['admin_only']);
+            }
+
             $publishedAt = $this->parseDate((string) ($row['date'] ?? ''));
             if (null !== $publishedAt) {
                 // Original post date for both published and drafts (admin sorting / «Дата публикации»).
@@ -157,20 +167,22 @@ final class ImportChronicleCorpusCommand extends Command
             $seriesSlug = $row['series'] ?? null;
             $entry->setSeries(\is_string($seriesSlug) && isset($seriesCache[$seriesSlug]) ? $seriesCache[$seriesSlug] : null);
 
-            $entry->getTags()->clear();
-            if (isset($row['tags']) && \is_array($row['tags'])) {
-                foreach ($row['tags'] as $tagSlug) {
-                    if (!\is_string($tagSlug)) {
-                        continue;
+            if ($isNew || $syncTags) {
+                $entry->getTags()->clear();
+                if (isset($row['tags']) && \is_array($row['tags'])) {
+                    foreach ($row['tags'] as $tagSlug) {
+                        if (!\is_string($tagSlug)) {
+                            continue;
+                        }
+                        if (!isset($tagCache[$tagSlug])) {
+                            $tag = new ChronicleTag();
+                            $tag->setSlug($tagSlug);
+                            $tag->setName($tagSlug);
+                            $this->em->persist($tag);
+                            $tagCache[$tagSlug] = $tag;
+                        }
+                        $entry->addTag($tagCache[$tagSlug]);
                     }
-                    if (!isset($tagCache[$tagSlug])) {
-                        $tag = new ChronicleTag();
-                        $tag->setSlug($tagSlug);
-                        $tag->setName($tagSlug);
-                        $this->em->persist($tag);
-                        $tagCache[$tagSlug] = $tag;
-                    }
-                    $entry->addTag($tagCache[$tagSlug]);
                 }
             }
 
@@ -262,6 +274,12 @@ final class ImportChronicleCorpusCommand extends Command
             if (isset($blockRow['headingLevel'])) {
                 $block->setHeadingLevel((int) $blockRow['headingLevel']);
             }
+            if (isset($blockRow['author']) && \is_string($blockRow['author'])) {
+                $block->setAuthor($blockRow['author']);
+            }
+            if (isset($blockRow['caption']) && \is_string($blockRow['caption'])) {
+                $block->setCaption($blockRow['caption']);
+            }
 
             // Always resolve media for image/gallery blocks. --skip-media must not
             // leave empty image_path (that wiped VK covers after title-only sync).
@@ -322,6 +340,18 @@ final class ImportChronicleCorpusCommand extends Command
                         $block->addImage($image);
                     }
                 }
+
+                if (ChronicleBlockType::Audio === $type) {
+                    $sourcePath = isset($blockRow['sourcePath']) && \is_string($blockRow['sourcePath'])
+                        ? $blockRow['sourcePath']
+                        : null;
+                    if (null !== $sourcePath) {
+                        $audioName = $this->copyAudio($mediaDir, $sourcePath);
+                        if (null !== $audioName) {
+                            $block->setVideoUrl('chronicle/audio/'.$audioName);
+                        }
+                    }
+                }
             }
 
             $entry->addBlock($block);
@@ -380,6 +410,52 @@ final class ImportChronicleCorpusCommand extends Command
         }
 
         $dir = $this->projectDir.'/public/uploads/'.$subdir;
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return null;
+        }
+
+        $filename = Uuid::v7()->toRfc4122().'.'.$ext;
+        $target = $dir.'/'.$filename;
+        if (!copy($source, $target)) {
+            return null;
+        }
+
+        return $filename;
+    }
+
+    private function copyAudio(string $mediaDir, string $relativePath): ?string
+    {
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $base = basename($relativePath);
+        $candidates = [
+            $this->projectDir.'/'.$mediaDir.'/'.$relativePath,
+            $this->projectDir.'/'.$relativePath,
+            $this->projectDir.'/'.$mediaDir.'/'.$base,
+            $this->projectDir.'/'.$mediaDir.'/media/'.$base,
+            $this->projectDir.'/content/vk/'.$relativePath,
+            $this->projectDir.'/content/vk/'.ltrim(preg_replace('#^\d{4}/#', '', $relativePath) ?? $relativePath, '/'),
+        ];
+        if (preg_match('#^\d{4}/(.+)$#', $relativePath, $m)) {
+            $candidates[] = $this->projectDir.'/'.$mediaDir.'/'.$m[1];
+            $candidates[] = $this->projectDir.'/content/vk/'.$relativePath;
+        }
+        $source = null;
+        foreach (array_unique($candidates) as $candidate) {
+            if (is_file($candidate)) {
+                $source = $candidate;
+                break;
+            }
+        }
+        if (null === $source) {
+            return null;
+        }
+
+        $ext = strtolower(pathinfo($source, PATHINFO_EXTENSION) ?: 'mp3');
+        if (!\in_array($ext, ['mp3', 'm4a', 'ogg', 'wav', 'opus', 'aac'], true)) {
+            return null;
+        }
+
+        $dir = $this->projectDir.'/public/uploads/chronicle/audio';
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             return null;
         }

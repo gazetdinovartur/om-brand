@@ -5,14 +5,24 @@
       "title": "Щорса",
       "order": 10,
       "period_label": "11.2012–11.2015",
-      "ranges": [["2012-11-01", "2015-11-30"]]
+      "ranges": [
+        [
+          "2012-11-01",
+          "2015-11-30"
+        ]
+      ]
     },
     {
       "slug": "dobrolyubova",
       "title": "Добролюбова",
       "order": 20,
       "period_label": "03.2016–09.2016",
-      "ranges": [["2016-03-01", "2016-09-30"]]
+      "ranges": [
+        [
+          "2016-03-01",
+          "2016-09-30"
+        ]
+      ]
     },
     {
       "slug": "ryabinovoe-gosudarstvo",
@@ -20,7 +30,12 @@
       "order": 30,
       "period_label": "09.2016–01.2017",
       "color": "#8b4513",
-      "ranges": [["2016-09-01", "2017-01-31"]]
+      "ranges": [
+        [
+          "2016-09-01",
+          "2017-01-31"
+        ]
+      ]
     },
     {
       "slug": "leninapyat",
@@ -28,8 +43,14 @@
       "order": 40,
       "period_label": "10.2016–06.2018 · 08.2025–н.в.",
       "ranges": [
-        ["2016-10-01", "2018-06-30"],
-        ["2025-08-01", "2099-12-31"]
+        [
+          "2016-10-01",
+          "2018-06-30"
+        ],
+        [
+          "2025-08-01",
+          "2099-12-31"
+        ]
       ]
     },
     {
@@ -37,42 +58,72 @@
       "title": "Краснолесье",
       "order": 50,
       "period_label": "07.2018–06.2019",
-      "ranges": [["2018-07-01", "2019-06-30"]]
+      "ranges": [
+        [
+          "2018-07-01",
+          "2019-06-30"
+        ]
+      ]
     },
     {
       "slug": "zhbi",
       "title": "ЖБИ",
       "order": 60,
       "period_label": "07.2019–02.2020",
-      "ranges": [["2019-07-01", "2020-02-29"]]
+      "ranges": [
+        [
+          "2019-07-01",
+          "2020-02-29"
+        ]
+      ]
     },
     {
       "slug": "narodnaya-volya",
       "title": "Народная воля",
       "order": 70,
       "period_label": "03.2020–09.2020",
-      "ranges": [["2020-03-01", "2020-09-30"]]
+      "ranges": [
+        [
+          "2020-03-01",
+          "2020-09-30"
+        ]
+      ]
     },
     {
       "slug": "stranstviya",
       "title": "Странствия",
       "order": 75,
       "period_label": "07.2020–10.2020",
-      "ranges": [["2020-07-01", "2020-10-31"]]
+      "ranges": [
+        [
+          "2020-07-01",
+          "2020-10-31"
+        ]
+      ]
     },
     {
       "slug": "tatarstan",
       "title": "Татарстан",
       "order": 80,
       "period_label": "10.2020–08.2021",
-      "ranges": [["2020-10-01", "2021-08-31"]]
+      "ranges": [
+        [
+          "2020-10-01",
+          "2021-08-31"
+        ]
+      ]
     },
     {
       "slug": "botanika",
       "title": "Ботаника",
       "order": 85,
       "period_label": "09.2021–10.2021",
-      "ranges": [["2021-09-01", "2021-10-31"]]
+      "ranges": [
+        [
+          "2021-09-01",
+          "2021-10-31"
+        ]
+      ]
     },
     {
       "slug": "rassvetnaya",
@@ -80,7 +131,12 @@
       "order": 90,
       "period_label": "10.2021–07.2025",
       "color": "#e8a849",
-      "ranges": [["2021-10-01", "2025-07-31"]]
+      "ranges": [
+        [
+          "2021-10-01",
+          "2025-07-31"
+        ]
+      ]
     },
     {
       "slug": "zelenograd",
@@ -88,8 +144,14 @@
       "order": 95,
       "period_label": "04.2024 · 06.2024–08.2024",
       "ranges": [
-        ["2024-04-01", "2024-04-30"],
-        ["2024-06-01", "2024-08-31"]
+        [
+          "2024-04-01",
+          "2024-04-30"
+        ],
+        [
+          "2024-06-01",
+          "2024-08-31"
+        ]
       ]
     },
     {
@@ -98,7 +160,12 @@
       "order": 100,
       "period_label": "26.12.2025–13.05.2026 · внутри Ленина пять",
       "color": "#c87828",
-      "ranges": [["2025-12-26", "2026-05-13"]],
+      "ranges": [
+        [
+          "2025-12-26",
+          "2026-05-13"
+        ]
+      ],
       "nested_in": "leninapyat"
     },
     {
@@ -126,21 +193,68 @@
     "delaiogu"
   ],
   "theme_tags": [
-    {"slug": "telo", "name": "тело"},
-    {"slug": "gorod", "name": "город"},
-    {"slug": "praktika", "name": "практика"},
-    {"slug": "yazyk", "name": "язык"},
-    {"slug": "gore", "name": "горе"},
-    {"slug": "put", "name": "путь"},
-    {"slug": "kod", "name": "код"},
-    {"slug": "snovidenie-taro", "name": "сновидение/таро"},
-    {"slug": "zerkalo", "name": "зеркало"}
+    {
+      "slug": "telo",
+      "name": "тело"
+    },
+    {
+      "slug": "gorod",
+      "name": "город"
+    },
+    {
+      "slug": "praktika",
+      "name": "практика"
+    },
+    {
+      "slug": "yazyk",
+      "name": "язык"
+    },
+    {
+      "slug": "gore",
+      "name": "горе"
+    },
+    {
+      "slug": "put",
+      "name": "путь"
+    },
+    {
+      "slug": "kod",
+      "name": "код"
+    },
+    {
+      "slug": "snovidenie-taro",
+      "name": "сновидение/таро"
+    },
+    {
+      "slug": "zerkalo",
+      "name": "зеркало"
+    },
+    {
+      "slug": "chaynyy",
+      "name": "чайный"
+    }
   ],
   "channel_tags": [
-    {"slug": "somaticheskaya-psikhologiya", "name": "Соматическая психология"},
-    {"slug": "magicheskiy", "name": "Магический"},
-    {"slug": "issledovatelskiy", "name": "Исследовательский"},
-    {"slug": "kultura", "name": "Культура"}
+    {
+      "slug": "somaticheskaya-psikhologiya",
+      "name": "Соматическая психология"
+    },
+    {
+      "slug": "magicheskiy",
+      "name": "Магический"
+    },
+    {
+      "slug": "issledovatelskiy",
+      "name": "Исследовательский"
+    },
+    {
+      "slug": "kultura",
+      "name": "Культура"
+    },
+    {
+      "slug": "zerkalo",
+      "name": "Зеркало"
+    }
   ],
   "series": [
     {
@@ -174,10 +288,22 @@
       "description": "Стена VK"
     },
     {
+      "slug": "svet-iz-korobochki",
+      "title": "Свет из коробочки",
+      "order": 55,
+      "description": "Зеркальный канал · обратная связь"
+    },
+    {
       "slug": "instagram",
       "title": "Instagram",
       "order": 60,
       "description": "Посты и длинные подписи"
+    },
+    {
+      "slug": "heyteaflow",
+      "title": "Hey Tea Flow",
+      "order": 65,
+      "description": "Instagram · чайный канал"
     }
   ],
   "channels": [
@@ -240,6 +366,22 @@
       "channel_tag": null,
       "status": "published",
       "min_chars": 1
+    },
+    {
+      "id": "mirror",
+      "platform": "telegram",
+      "path": "content/ChatExport_2026-07-20_mirror/result.json",
+      "media_dir": "content/ChatExport_2026-07-20_mirror",
+      "series": "svet-iz-korobochki",
+      "channel_tag": "zerkalo",
+      "status": "published",
+      "unlisted": true,
+      "admin_only": true,
+      "per_message": true,
+      "wave_gap_minutes": 45,
+      "min_chars": 1,
+      "comments_path": null,
+      "notes": "Зеркальный канал обратной связи. admin_only: только ROLE_ADMIN на сайте; unlisted: не в ленте."
     }
   ],
   "theme_patterns": {
@@ -262,5 +404,33 @@
       "/Users/arturlun/Downloads/takeout-20260720T153146Z-1-001.zip",
       "/Users/arturlun/Downloads/takeout-20260720T153146Z-1-002.zip"
     ]
-  }
+  },
+  "instagram_sources": [
+    {
+      "id": "instagram",
+      "zip_paths": [
+        "/Users/arturlun/Downloads/instagram-arturlun-2026-07-20-ENfx5HHQ.zip",
+        "/Users/arturlun/Downloads/instagram-arturlun-2026-07-20-GcuZXYxx.zip"
+      ],
+      "series": "instagram",
+      "media_subdir": "instagram",
+      "status": "published",
+      "min_chars": 80,
+      "tags": []
+    },
+    {
+      "id": "instagram-heyteaflow",
+      "zip_paths": [
+        "/Users/arturlun/Downloads/instagram-heyteaflow-2026-07-21-eFegYpWr.zip"
+      ],
+      "series": "heyteaflow",
+      "media_subdir": "instagram-heyteaflow",
+      "status": "published",
+      "min_chars": 0,
+      "tags": [
+        "chaynyy"
+      ],
+      "channel_tag": "chaynyy"
+    }
+  ]
 }

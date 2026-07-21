@@ -21,6 +21,20 @@ class ChronicleEntryRepository extends ServiceEntityRepository
         parent::__construct($registry, ChronicleEntry::class);
     }
 
+    public function findForEditor(int $id): ?ChronicleEntry
+    {
+        return $this->createQueryBuilder('e')
+            ->leftJoin('e.blocks', 'b')->addSelect('b')
+            ->leftJoin('b.images', 'bi')->addSelect('bi')
+            ->leftJoin('e.tags', 't')->addSelect('t')
+            ->leftJoin('e.era', 'era')->addSelect('era')
+            ->leftJoin('e.series', 's')->addSelect('s')
+            ->andWhere('e.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     /**
      * @param array{
      *     era?: ?ChronicleEra,
@@ -71,6 +85,7 @@ class ChronicleEntryRepository extends ServiceEntityRepository
                AND published_at IS NOT NULL
                AND published_at <= ?
                AND is_unlisted = 0
+               AND is_admin_only = 0
              ORDER BY y DESC',
             [ChronicleStatus::Published->value, (new \DateTimeImmutable())->format('Y-m-d H:i:s')]
         );
@@ -132,23 +147,166 @@ class ChronicleEntryRepository extends ServiceEntityRepository
     /** @return list<ChronicleEntry> */
     public function findRelated(ChronicleEntry $entry, int $limit = 3): array
     {
-        $qb = $this->createQueryBuilder('e')
+        $now = new \DateTimeImmutable();
+        $candidates = $this->relatedCandidates($entry, $now);
+
+        if ([] === $candidates) {
+            return $this->recentPublishedExcept($entry, $now, $limit);
+        }
+
+        usort(
+            $candidates,
+            fn (ChronicleEntry $a, ChronicleEntry $b): int => $this->compareRelated($entry, $a, $b),
+        );
+
+        $picked = \array_slice($candidates, 0, $limit);
+        if (\count($picked) >= $limit) {
+            return $picked;
+        }
+
+        $pickedIds = array_flip(array_map(static fn (ChronicleEntry $e): int => (int) $e->getId(), $picked));
+        foreach ($this->recentPublishedExcept($entry, $now, $limit * 3) as $fallback) {
+            $id = (int) $fallback->getId();
+            if (isset($pickedIds[$id])) {
+                continue;
+            }
+            $picked[] = $fallback;
+            $pickedIds[$id] = true;
+            if (\count($picked) >= $limit) {
+                break;
+            }
+        }
+
+        return $picked;
+    }
+
+    /** @return list<ChronicleEntry> */
+    private function relatedCandidates(ChronicleEntry $entry, \DateTimeImmutable $now): array
+    {
+        $qb = $this->publishedPublicQuery($now)
+            ->leftJoin('e.tags', 't')
             ->andWhere('e.id != :id')
+            ->setParameter('id', $entry->getId());
+
+        $or = $qb->expr()->orX();
+        $hasSignal = false;
+
+        if (null !== $entry->getEra()) {
+            $or->add('e.era = :era');
+            $qb->setParameter('era', $entry->getEra());
+            $hasSignal = true;
+        }
+
+        if (null !== $entry->getSeries()) {
+            $or->add('e.series = :series');
+            $qb->setParameter('series', $entry->getSeries());
+            $hasSignal = true;
+        }
+
+        $tagIds = array_values(array_filter(array_map(
+            static fn (\App\Entity\ChronicleTag $tag): ?int => $tag->getId(),
+            $entry->getTags()->toArray(),
+        )));
+
+        if ([] !== $tagIds) {
+            $or->add('t.id IN (:tagIds)');
+            $qb->setParameter('tagIds', $tagIds);
+            $hasSignal = true;
+        }
+
+        if (!$hasSignal) {
+            return [];
+        }
+
+        /** @var list<ChronicleEntry> $rows */
+        $rows = $qb->andWhere($or)->distinct()->getQuery()->getResult();
+
+        return $rows;
+    }
+
+    /** @return list<ChronicleEntry> */
+    private function recentPublishedExcept(ChronicleEntry $entry, \DateTimeImmutable $now, int $limit): array
+    {
+        /** @var list<ChronicleEntry> $rows */
+        $rows = $this->publishedPublicQuery($now)
+            ->andWhere('e.id != :id')
+            ->setParameter('id', $entry->getId())
+            ->orderBy('e.publishedAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return $rows;
+    }
+
+    private function publishedPublicQuery(\DateTimeImmutable $now): QueryBuilder
+    {
+        return $this->createQueryBuilder('e')
             ->andWhere('e.status = :status')
             ->andWhere('e.publishedAt IS NOT NULL')
             ->andWhere('e.publishedAt <= :now')
             ->andWhere('e.isUnlisted = false')
-            ->setParameter('id', $entry->getId())
+            ->andWhere('e.isAdminOnly = false')
             ->setParameter('status', ChronicleStatus::Published)
-            ->setParameter('now', new \DateTimeImmutable())
-            ->orderBy('e.publishedAt', 'DESC')
-            ->setMaxResults($limit);
+            ->setParameter('now', $now);
+    }
 
-        if (null !== $entry->getEra()) {
-            $qb->andWhere('e.era = :era')->setParameter('era', $entry->getEra());
+    private function compareRelated(ChronicleEntry $entry, ChronicleEntry $a, ChronicleEntry $b): int
+    {
+        $scoreA = $this->scoreRelated($entry, $a);
+        $scoreB = $this->scoreRelated($entry, $b);
+        if ($scoreA !== $scoreB) {
+            return $scoreB <=> $scoreA;
         }
 
-        return $qb->getQuery()->getResult();
+        $dateA = $a->getPublishedAt()?->getTimestamp() ?? 0;
+        $dateB = $b->getPublishedAt()?->getTimestamp() ?? 0;
+        if ($dateA !== $dateB) {
+            return $dateB <=> $dateA;
+        }
+
+        return ((int) $b->getId()) <=> ((int) $a->getId());
+    }
+
+    private function scoreRelated(ChronicleEntry $entry, ChronicleEntry $candidate): int
+    {
+        $score = 0;
+
+        $entrySeriesId = $entry->getSeries()?->getId();
+        $candidateSeriesId = $candidate->getSeries()?->getId();
+        if (null !== $entrySeriesId && $entrySeriesId === $candidateSeriesId) {
+            $score += 40;
+        }
+
+        $entryTagIds = [];
+        foreach ($entry->getTags() as $tag) {
+            $id = $tag->getId();
+            if (null !== $id) {
+                $entryTagIds[$id] = true;
+            }
+        }
+        foreach ($candidate->getTags() as $tag) {
+            $id = $tag->getId();
+            if (null !== $id && isset($entryTagIds[$id])) {
+                $score += 25;
+            }
+        }
+
+        $entryEraId = $entry->getEra()?->getId();
+        $candidateEraId = $candidate->getEra()?->getId();
+        if (null !== $entryEraId && $entryEraId === $candidateEraId) {
+            $score += 8;
+        }
+
+        if (null !== $candidate->getCoverImagePath() && '' !== trim($candidate->getCoverImagePath())) {
+            $score += 3;
+        }
+
+        if ($candidate->isFeatured()) {
+            $score += 2;
+        }
+
+        return $score;
     }
 
     /** @return list<ChronicleEntry> */
@@ -159,6 +317,7 @@ class ChronicleEntryRepository extends ServiceEntityRepository
             ->andWhere('e.publishedAt IS NOT NULL')
             ->andWhere('e.publishedAt <= :now')
             ->andWhere('e.isUnlisted = false')
+            ->andWhere('e.isAdminOnly = false')
             ->setParameter('status', ChronicleStatus::Published)
             ->setParameter('now', new \DateTimeImmutable())
             ->orderBy('e.publishedAt', 'DESC')
@@ -209,6 +368,7 @@ class ChronicleEntryRepository extends ServiceEntityRepository
             ->andWhere('e.publishedAt IS NOT NULL')
             ->andWhere('e.publishedAt <= :now')
             ->andWhere('e.isUnlisted = false')
+            ->andWhere('e.isAdminOnly = false')
             ->setParameter('status', ChronicleStatus::Published)
             ->setParameter('now', new \DateTimeImmutable());
 

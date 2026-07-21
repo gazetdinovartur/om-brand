@@ -14,6 +14,7 @@ security:
             security: false
         admin:
             pattern: ^/admin
+            context: app
             lazy: true
             provider: app_admin_provider
             login_throttling:
@@ -28,7 +29,10 @@ security:
                 path: admin_logout
                 target: admin_login
         main:
+            pattern: ^/
+            context: app
             lazy: true
+            provider: app_admin_provider
 
     access_control:
         - { path: ^/admin/login, roles: PUBLIC_ACCESS }

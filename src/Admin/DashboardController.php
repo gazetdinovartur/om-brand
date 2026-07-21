@@ -64,7 +64,7 @@ final class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Хроника');
         yield MenuItem::linkTo(ChronicleEntryCrudController::class, 'Записи', 'fa fa-book');
         yield MenuItem::linkTo(ChronicleEraCrudController::class, 'Эпохи', 'fa fa-layer-group');
-        yield MenuItem::linkTo(ChronicleTagCrudController::class, 'Теги', 'fa fa-tags');
+        yield MenuItem::linkTo(ChronicleTagCrudController::class, 'Ключевые слова', 'fa fa-tags');
         yield MenuItem::linkTo(ChronicleSeriesCrudController::class, 'Серии', 'fa fa-list-ol');
         yield MenuItem::section('Заявки');
         yield MenuItem::linkTo(InquiryCrudController::class, 'Заявки', 'fa fa-inbox');

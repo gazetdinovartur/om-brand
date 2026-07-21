@@ -52,10 +52,8 @@ final class ChronicleEditorController extends AbstractController
 
         return $this->render('admin/chronicle/editor.html.twig', [
             'entry' => $entry,
-            'entryJson' => json_encode($this->entryService->serialize($entry), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
             'eras' => $this->eras->findAllOrdered(),
             'seriesList' => $this->series->findAllOrdered(),
-            'tags' => $this->tags->findAllOrdered(),
             'previewUrl' => $this->urlGenerator->generate('web_chronicle_preview', [
                 'id' => $entry->getId(),
                 'token' => $entry->getPreviewToken(),
@@ -67,10 +65,55 @@ final class ChronicleEditorController extends AbstractController
         ]);
     }
 
+    #[Route('/admin/chronicle/api/{id}/data', name: 'admin_chronicle_editor_data', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function editorData(int $id): JsonResponse
+    {
+        $entry = $this->entries->findForEditor($id);
+        if (!$entry instanceof ChronicleEntry) {
+            return new JsonResponse(['error' => 'Not found'], 404);
+        }
+
+        return new JsonResponse([
+            'ok' => true,
+            'data' => $this->entryService->serialize($entry),
+        ]);
+    }
+
+    #[Route('/admin/chronicle/api/tags', name: 'admin_chronicle_tags_list', methods: ['GET'])]
+    public function listTags(Request $request): JsonResponse
+    {
+        $entryId = $request->query->getInt('entryId');
+        $selectedIds = [];
+        if ($entryId > 0) {
+            $entry = $this->entries->find($entryId);
+            if ($entry instanceof ChronicleEntry) {
+                $selectedIds = array_map(
+                    static fn (\App\Entity\ChronicleTag $tag): int => (int) $tag->getId(),
+                    $entry->getTags()->toArray(),
+                );
+            }
+        }
+
+        $tags = [];
+        foreach ($this->tags->findAllOrdered() as $tag) {
+            $tags[] = [
+                'id' => $tag->getId(),
+                'name' => $tag->getName(),
+                'slug' => $tag->getSlug(),
+            ];
+        }
+
+        return new JsonResponse([
+            'ok' => true,
+            'tags' => $tags,
+            'selectedTagIds' => $selectedIds,
+        ]);
+    }
+
     #[Route('/admin/chronicle/api/{id}/autosave', name: 'admin_chronicle_autosave', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function autosave(int $id, Request $request): JsonResponse
     {
-        $entry = $this->entries->find($id);
+        $entry = $this->entries->findForEditor($id);
         if (!$entry instanceof ChronicleEntry) {
             return new JsonResponse(['error' => 'Not found'], 404);
         }
@@ -92,7 +135,7 @@ final class ChronicleEditorController extends AbstractController
     #[Route('/admin/chronicle/api/{id}/publish', name: 'admin_chronicle_publish', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function publish(int $id, Request $request): JsonResponse
     {
-        $entry = $this->entries->find($id);
+        $entry = $this->entries->findForEditor($id);
         if (!$entry instanceof ChronicleEntry) {
             return new JsonResponse(['error' => 'Not found'], 404);
         }
@@ -117,6 +160,32 @@ final class ChronicleEditorController extends AbstractController
             'shortUrl' => $this->urlGenerator->generate('web_chronicle_short', ['hash' => $entry->getShortHash()]),
             'data' => $this->entryService->serialize($entry),
         ]);
+    }
+
+    #[Route('/admin/chronicle/api/tags', name: 'admin_chronicle_tag_create', methods: ['POST'])]
+    public function createTag(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
+        if ('' === $name) {
+            return new JsonResponse(['error' => 'Укажите название'], 400);
+        }
+
+        try {
+            $tag = $this->entryService->createTag($name);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 400);
+        }
+
+        return new JsonResponse([
+            'ok' => true,
+            'tag' => [
+                'id' => $tag->getId(),
+                'name' => $tag->getName(),
+                'slug' => $tag->getSlug(),
+            ],
+        ], 201);
     }
 
     #[Route('/admin/chronicle/api/upload', name: 'admin_chronicle_upload', methods: ['POST'])]
