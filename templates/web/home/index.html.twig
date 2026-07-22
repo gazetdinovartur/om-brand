@@ -30,8 +30,13 @@
                         href="{{ room.href }}"
                         {% if room.external %}target="_blank" rel="noopener"{% endif %}
                     >
-                        <span class="house-rooms__label">{{ room.label }}</span>
-                        <span class="house-rooms__invite">{{ room.invite }}</span>
+                        <span class="house-rooms__index" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
+                        {% include 'web/_partials/house_room_icon.html.twig' with { roomId: room.id } %}
+                        <span class="house-rooms__copy">
+                            <span class="house-rooms__label">{{ room.label }}</span>
+                            <span class="house-rooms__invite">{{ room.invite }}</span>
+                        </span>
+                        <span class="house-rooms__enter" aria-hidden="true">войти</span>
                     </a>
                 </li>
             {% endfor %}
