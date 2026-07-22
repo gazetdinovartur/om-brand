@@ -726,22 +726,72 @@ class CaseStudy
     public function resolveSeoDescription(): string
     {
         if ($this->isFilled($this->seoDescription)) {
-            return (string) $this->seoDescription;
+            return $this->clipSeoText((string) $this->seoDescription);
         }
 
         if ($this->isFilled($this->outcomeLine)) {
-            return (string) $this->outcomeLine;
+            return $this->clipSeoText((string) $this->outcomeLine);
         }
 
         if ($this->isFilled($this->summary)) {
-            return (string) $this->summary;
+            return $this->clipSeoText((string) $this->summary);
         }
 
         if ($this->isFilled($this->storyHook)) {
-            return (string) $this->storyHook;
+            return $this->clipSeoText((string) $this->storyHook);
         }
 
-        return $this->title;
+        return $this->clipSeoText($this->title);
+    }
+
+    /**
+     * Keywords for meta / JSON-LD from domain · role · year.
+     *
+     * @return list<string>
+     */
+    public function resolveSeoKeywords(): array
+    {
+        $keywords = ['кейсы', 'разработка'];
+
+        if ($this->isFilled($this->domain)) {
+            foreach (preg_split('/[·,|]+/u', (string) $this->domain) ?: [] as $part) {
+                $label = trim($part);
+                if ('' !== $label) {
+                    $keywords[] = mb_strtolower($label);
+                }
+            }
+        }
+
+        if ($this->isFilled($this->role)) {
+            foreach (preg_split('/[,;]+/u', (string) $this->role) ?: [] as $part) {
+                $label = trim($part);
+                if ('' !== $label) {
+                    $keywords[] = mb_strtolower($label);
+                }
+            }
+        }
+
+        if (null !== $this->year) {
+            $keywords[] = (string) $this->year;
+        }
+
+        return array_values(array_unique($keywords));
+    }
+
+    private function clipSeoText(string $text, int $max = 160): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+        if (mb_strlen($text) <= $max) {
+            return $text;
+        }
+
+        $cut = mb_substr($text, 0, $max - 1);
+        $space = mb_strrpos($cut, ' ');
+        if (false !== $space && $space > (int) ($max * 0.6)) {
+            $cut = mb_substr($cut, 0, $space);
+        }
+
+        return rtrim($cut, " \t.,;:—–-").'…';
     }
 
     private function isFilled(?string $value): bool

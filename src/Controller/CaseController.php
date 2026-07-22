@@ -28,7 +28,12 @@ final class CaseController extends AbstractController
 
         return $this->render('web/cases/index.html.twig', [
             'cases' => $cases,
-            'seo' => $seoMetadataFactory->forCasesIndex($request, $settings, $siteContext->getBlocksBySlugFiltered(['hero'])),
+            'seo' => $seoMetadataFactory->forCasesIndex(
+                $request,
+                $settings,
+                $siteContext->getBlocksBySlugFiltered(['hero']),
+                $cases,
+            ),
         ]);
     }
 

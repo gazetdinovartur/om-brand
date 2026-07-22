@@ -17,7 +17,7 @@
         {% if coverUrl %}style="--case-cover: url('{{ asset(coverUrl) }}')"{% endif %}
     >
         <div class="case-detail__hero-backdrop" aria-hidden="true"></div>
-        <div class="case-detail__hero-inner">
+        <div class="container case-detail__hero-inner">
             <div class="case-detail__hero-panel">
                 {{ caseMedia.meta(case) }}
                 <h1 class="case-detail__title">{{ case.title }}</h1>

@@ -2459,7 +2459,7 @@ select.form-control:focus {
 }
 
 .cases-hub__list--landing {
-    gap: 0;
+    gap: 0 !important;
 }
 
 .case-meta {
@@ -2612,6 +2612,7 @@ select.form-control:focus {
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-areas: "visual body";
     gap: 1.5rem;
     align-items: stretch;
     padding: 1.15rem;
@@ -2624,13 +2625,11 @@ select.form-control:focus {
 
 .case-entry--flip {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-}
-
-.case-entry--flip .case-entry__visual {
-    order: 2;
+    grid-template-areas: "body visual";
 }
 
 .case-entry__visual {
+    grid-area: visual;
     position: relative;
     overflow: hidden;
     border-radius: calc(var(--radius) - 0.05rem);
@@ -2648,6 +2647,16 @@ select.form-control:focus {
     border: 0;
     background: transparent;
     cursor: zoom-in;
+}
+
+.case-entry__zoom--link {
+    cursor: pointer;
+}
+
+.case-entry__zoom--placeholder {
+    cursor: pointer;
+    background:
+        linear-gradient(145deg, rgba(232, 168, 73, 0.12), rgba(200, 120, 40, 0.06));
 }
 
 .case-entry__zoom:focus-visible {
@@ -2681,10 +2690,16 @@ select.form-control:focus {
 }
 
 .case-entry__body {
+    grid-area: body;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 0.35rem 0.25rem 0.35rem 0;
+    padding: 0.35rem 2.85rem 0.35rem 0.25rem;
+}
+
+.case-entry--flip .case-entry__body {
+    padding-right: 0.25rem;
+    padding-left: 2.85rem;
 }
 
 .case-entry__index {
@@ -2707,14 +2722,8 @@ select.form-control:focus {
 
 .case-entry__title {
     margin: 0 0 0.7rem;
-    padding-right: 2.75rem;
     font-size: clamp(1.3rem, 2.1vw, 1.65rem);
     line-height: 1.22;
-}
-
-.case-entry--flip .case-entry__title {
-    padding-right: 0;
-    padding-left: 0;
 }
 
 .case-entry__title a {
@@ -2780,12 +2789,21 @@ select.form-control:focus {
     .case-entry,
     .case-entry--flip {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            "visual"
+            "body";
         padding: 0.9rem;
         gap: 1rem;
     }
 
-    .case-entry--flip .case-entry__visual {
-        order: 0;
+    .case-entry--flip .case-entry__body {
+        padding-right: 2.85rem;
+        padding-left: 0.25rem;
+    }
+
+    .case-entry--flip .case-entry__index {
+        right: 1rem;
+        left: auto;
     }
 
     .case-entry__zoom-hint {
@@ -2796,6 +2814,7 @@ select.form-control:focus {
 /* Compact cases on /dev--null — after base .case-entry so overrides win */
 .cases-landing .case-entry--compact {
     grid-template-columns: 5.5rem minmax(0, 1fr);
+    grid-template-areas: "visual body";
     gap: 0.85rem 1rem;
     align-items: center;
     padding: 0.7rem 0;
@@ -2919,14 +2938,9 @@ select.form-control:focus {
 }
 
 .case-detail__hero-inner {
-    --case-hero-inline: clamp(1.1rem, 3.2vw, 2.5rem);
     position: relative;
     z-index: 1;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 2.25rem var(--case-hero-inline) 1.65rem;
-    box-sizing: border-box;
+    padding-block: 2.25rem 1.65rem;
 }
 
 .case-detail__hero-panel {
@@ -3012,10 +3026,6 @@ select.form-control:focus {
     line-height: 1.45;
     color: var(--text);
     font-weight: 500;
-}
-
-.case-entry__zoom--link {
-    cursor: pointer;
 }
 
 .case-story-block {
@@ -3289,15 +3299,20 @@ select.form-control:focus {
 }
 
 .case-related__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.9rem;
+    justify-content: center;
 }
 
 .case-related__card {
     display: flex;
+    flex: 1 1 14rem;
     flex-direction: column;
     gap: 0.7rem;
+    box-sizing: border-box;
+    max-width: 18rem;
+    width: 100%;
     text-decoration: none;
     color: inherit;
     padding: 0.55rem;
@@ -3308,6 +3323,10 @@ select.form-control:focus {
         border-color 0.25s ease,
         box-shadow 0.25s ease,
         transform 0.25s ease;
+}
+
+.case-related__card:only-child {
+    flex: 0 1 18rem;
 }
 
 .case-related__media {
@@ -3378,9 +3397,7 @@ select.form-control:focus {
     }
 
     .case-detail__hero-inner {
-        --case-hero-inline: 1rem;
-        padding-top: 1.75rem;
-        padding-bottom: 1.25rem;
+        padding-block: 1.75rem 1.25rem;
     }
 
     .case-lightbox__inner {
@@ -4855,9 +4872,8 @@ select.form-control:focus {
 
 /* Page-end navigation */
 .page-nav {
-    padding: 1.35rem 0 1.75rem;
+    padding: 1.35rem 0 1.35rem;
     border-top: 1px solid var(--border);
-    margin-top: 0.5rem;
 }
 
 .page-nav__inner {

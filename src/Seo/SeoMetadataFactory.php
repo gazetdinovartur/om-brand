@@ -156,13 +156,18 @@ final class SeoMetadataFactory
 
     /**
      * @param array<string, mixed> $blocksBySlug
+     * @param list<CaseStudy>      $cases
      */
-    public function forCasesIndex(Request $request, SiteSettings $settings, array $blocksBySlug): SeoMetadata
-    {
+    public function forCasesIndex(
+        Request $request,
+        SiteSettings $settings,
+        array $blocksBySlug,
+        array $cases = [],
+    ): SeoMetadata {
         $baseUrl = $this->resolveBaseUrl($request);
         $personName = $this->personName($blocksBySlug, $settings);
         $title = sprintf('Кейсы · %s', $personName);
-        $description = 'Истории проектов: подход, опыт и результаты.';
+        $description = 'Что заинтересовало, как собрал, какую задачу решило — модульные истории разработки, интеграций и продуктов.';
 
         return new SeoMetadata(
             title: $title,
@@ -171,7 +176,16 @@ final class SeoMetadataFactory
             robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
             ogType: 'website',
             ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
-            keywords: implode(', ', array_merge(['кейсы', 'портфолио'], LandingContent::metaKeywords())),
+            jsonLd: $this->casesIndexJsonLd($cases, $personName, $baseUrl),
+            keywords: implode(', ', [
+                'кейсы',
+                'портфолио',
+                'разработка веб-систем',
+                'symfony',
+                'интеграции',
+                'личный бренд',
+                $personName,
+            ]),
         );
     }
 
@@ -187,6 +201,8 @@ final class SeoMetadataFactory
         $baseUrl = $this->resolveBaseUrl($request);
         $personName = $this->personName($blocksBySlug, $settings);
         $ogImageUrl = $this->resolveCaseOgImageUrl($case, $settings, $baseUrl);
+        $keywords = $case->resolveSeoKeywords();
+        $keywords[] = $personName;
 
         return new SeoMetadata(
             title: $case->resolveSeoTitle($personName),
@@ -196,12 +212,13 @@ final class SeoMetadataFactory
             ogType: 'article',
             ogImageUrl: $ogImageUrl,
             jsonLd: $this->caseJsonLd($case, $personName, $baseUrl, $ogImageUrl),
+            keywords: implode(', ', array_values(array_unique($keywords))),
         );
     }
 
     private function resolveCaseOgImageUrl(CaseStudy $case, SiteSettings $settings, string $baseUrl): ?string
     {
-        foreach ([$case->getCoverImagePath(), $case->getOgImagePath()] as $path) {
+        foreach ([$case->getOgImagePath(), $case->getCoverImagePath()] as $path) {
             $resolved = $this->uploadPathExtension->resolve($path, 'cases');
             if (null !== $resolved) {
                 return $baseUrl.$this->packages->getUrl($resolved);
@@ -209,6 +226,77 @@ final class SeoMetadataFactory
         }
 
         return $this->resolveOgImageUrl($settings, $baseUrl);
+    }
+
+    /**
+     * @param list<CaseStudy> $cases
+     *
+     * @return array<string, mixed>
+     */
+    private function casesIndexJsonLd(array $cases, string $personName, string $baseUrl): array
+    {
+        $casesUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_cases');
+        $homeUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home');
+
+        $itemList = [];
+        $position = 1;
+        foreach ($cases as $case) {
+            if (!$case->isDetailPublic()) {
+                continue;
+            }
+            $itemList[] = [
+                '@type' => 'ListItem',
+                'position' => $position,
+                'name' => $case->getTitle(),
+                'url' => rtrim($baseUrl, '/').$this->urlGenerator->generate('web_case_show', ['slug' => $case->getSlug()]),
+            ];
+            ++$position;
+        }
+
+        $graph = [
+            [
+                '@type' => 'CollectionPage',
+                '@id' => $casesUrl.'#page',
+                'name' => sprintf('Кейсы · %s', $personName),
+                'description' => 'Что заинтересовало, как собрал, какую задачу решило.',
+                'url' => $casesUrl,
+                'inLanguage' => 'ru-RU',
+                'isPartOf' => ['@id' => $homeUrl.'#website'],
+            ],
+            [
+                '@type' => 'BreadcrumbList',
+                '@id' => $casesUrl.'#breadcrumb',
+                'itemListElement' => [
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 1,
+                        'name' => 'Главная',
+                        'item' => $homeUrl,
+                    ],
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 2,
+                        'name' => 'Кейсы',
+                        'item' => $casesUrl,
+                    ],
+                ],
+            ],
+        ];
+
+        if ([] !== $itemList) {
+            $graph[] = [
+                '@type' => 'ItemList',
+                '@id' => $casesUrl.'#list',
+                'name' => 'Кейсы',
+                'numberOfItems' => \count($itemList),
+                'itemListElement' => $itemList,
+            ];
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => $graph,
+        ];
     }
 
     /**
@@ -222,24 +310,56 @@ final class SeoMetadataFactory
     ): array {
         $url = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_case_show', ['slug' => $case->getSlug()]);
         $homeUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_home');
+        $casesUrl = rtrim($baseUrl, '/').$this->urlGenerator->generate('web_cases');
 
         $article = [
-            '@type' => 'Article',
+            '@type' => ['Article', 'CreativeWork'],
             '@id' => $url.'#article',
             'headline' => $case->getTitle(),
+            'name' => $case->getTitle(),
             'description' => $case->resolveSeoDescription(),
             'datePublished' => $case->getCreatedAt()->format('c'),
+            'dateModified' => $case->getCreatedAt()->format('c'),
             'author' => [
                 '@type' => 'Person',
                 'name' => $personName,
                 'url' => $homeUrl,
             ],
-            'mainEntityOfPage' => $url,
+            'publisher' => [
+                '@type' => 'Person',
+                'name' => $personName,
+                'url' => $homeUrl,
+            ],
+            'mainEntityOfPage' => [
+                '@type' => 'WebPage',
+                '@id' => $url,
+            ],
+            'isPartOf' => [
+                '@type' => 'CollectionPage',
+                '@id' => $casesUrl.'#page',
+                'name' => 'Кейсы',
+                'url' => $casesUrl,
+            ],
             'inLanguage' => 'ru-RU',
+            'keywords' => implode(', ', $case->resolveSeoKeywords()),
         ];
 
         if (null !== $ogImageUrl) {
-            $article['image'] = $ogImageUrl;
+            $article['image'] = [$ogImageUrl];
+        }
+
+        $domain = $case->getDomain();
+        if (null !== $domain && '' !== trim($domain)) {
+            $about = [];
+            foreach (preg_split('/[·,|]+/u', $domain) ?: [] as $part) {
+                $label = trim($part);
+                if ('' !== $label) {
+                    $about[] = $label;
+                }
+            }
+            if ([] !== $about) {
+                $article['about'] = $about;
+            }
         }
 
         return [
@@ -260,7 +380,7 @@ final class SeoMetadataFactory
                             '@type' => 'ListItem',
                             'position' => 2,
                             'name' => 'Кейсы',
-                            'item' => rtrim($baseUrl, '/').$this->urlGenerator->generate('web_cases'),
+                            'item' => $casesUrl,
                         ],
                         [
                             '@type' => 'ListItem',

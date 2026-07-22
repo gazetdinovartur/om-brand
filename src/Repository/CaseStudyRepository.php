@@ -27,7 +27,7 @@ class CaseStudyRepository extends ServiceEntityRepository
     }
 
     /** @return list<CaseStudy> */
-    public function findLandingOrdered(): array
+    public function findLandingOrdered(int $limit = 3): array
     {
         return $this->createQueryBuilder('c')
             ->andWhere('c.isPublished = :published')
@@ -37,6 +37,7 @@ class CaseStudyRepository extends ServiceEntityRepository
             ->orderBy('c.isFeatured', 'DESC')
             ->addOrderBy('c.sortOrder', 'ASC')
             ->addOrderBy('c.createdAt', 'DESC')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }

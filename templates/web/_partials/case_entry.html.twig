@@ -11,9 +11,9 @@
     : path('web_cases') ~ '#' ~ case.slug %}
 {% set cover = upload_path(case.coverImagePath, 'cases') %}
 
-<article class="case-entry{% if compact %} case-entry--compact{% endif %}{% if flip %} case-entry--flip{% endif %}"{% if withId|default(false) %} id="{{ case.slug }}"{% endif %}>
-    {% if cover %}
-        <div class="case-entry__visual">
+<article class="case-entry{% if compact %} case-entry--compact{% endif %}{% if flip %} case-entry--flip{% endif %}{% if not cover %} case-entry--no-cover{% endif %}"{% if withId|default(false) %} id="{{ case.slug }}"{% endif %}>
+    <div class="case-entry__visual">
+        {% if cover %}
             {% if zoomable|default(false) %}
                 <button
                     type="button"
@@ -32,8 +32,10 @@
                     {{ caseMedia.cover(case.coverImagePath, case.title, 'case-entry__cover', compact ? '(max-width: 768px) 30vw, 7.5rem' : '(max-width: 900px) 100vw, 52vw') }}
                 </a>
             {% endif %}
-        </div>
-    {% endif %}
+        {% else %}
+            <a class="case-entry__zoom case-entry__zoom--link case-entry__zoom--placeholder" href="{{ href }}" aria-hidden="true" tabindex="-1"></a>
+        {% endif %}
+    </div>
     <div class="case-entry__body">
         {% if not compact and loop is defined %}
             <span class="case-entry__index" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
