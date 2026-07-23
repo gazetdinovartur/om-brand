@@ -7,7 +7,7 @@
 ## Быстрый старт
 
 ```bash
-cp .env.example .env.local   # задать ADMIN_PASSWORD
+cp .env.example .env   # задать ADMIN_PASSWORD (только .env, без .env.local)
 docker compose up -d --build
 docker compose exec php php bin/console doctrine:migrations:migrate --no-interaction
 docker compose exec php php bin/console app:seed
@@ -26,7 +26,8 @@ docker compose exec php php bin/console app:chronicle:seed-likes
 
 ## Документация
 
-**Полная инструкция:** [docs/guide.md](docs/guide.md)
+**Полная инструкция:** [docs/guide.md](docs/guide.md)  
+**Прод (arturlun.ru):** [docs/prod-launch.md](docs/prod-launch.md) — `.env`, git, sync хроники/кейсов, чеклист.
 
 Локальная разработка · карта сайта · контент · хроника · админка · деплой · прод-импорт · бэкапы.
 
@@ -50,4 +51,5 @@ docker compose exec php php bin/console app:chronicle:seed-likes
 - Подробности и перенос на прод → [docs/guide.md § Хроника](docs/guide.md#4-хроника-блог)
 
 Локальные тяжёлые данные (`content/`, `corpus/`, `analysis/`, `scripts/`) в репозиторий не входят.  
-Деплой: [docs/guide.md §8](docs/guide.md#8-деплой-на-хостинг-netangels-vps-shared).
+Деплой: [docs/guide.md §8](docs/guide.md#8-деплой-на-хостинг-netangels-vps-shared).  
+Прод-запуск и sync: [docs/prod-launch.md](docs/prod-launch.md). `./sync-prod-content.sh` — corpus/media/cases с Mac.

@@ -3,8 +3,8 @@
 {% set hubQuery = hubQuery|default({}) %}
 
 <article class="chronicle-entry{% if featured|default(false) %} chronicle-entry--featured{% endif %}">
-    {% if cover %}
-        <a class="chronicle-entry__media" href="{{ href }}">
+    <a class="chronicle-entry__media{% if not cover %} chronicle-entry__media--default{% endif %}" href="{{ href }}"{% if not cover %} aria-hidden="true" tabindex="-1"{% endif %}>
+        {% if cover %}
             <img
                 class="chronicle-entry__cover"
                 src="{{ asset(cover) }}"
@@ -12,8 +12,15 @@
                 loading="lazy"
                 decoding="async"
             >
-        </a>
-    {% endif %}
+        {% else %}
+            <span
+                class="chronicle-entry__cover chronicle-entry__cover--default"
+                {% if entry.era and entry.era.color %}style="--era-color: {{ entry.era.color }}"{% endif %}
+            >
+                {% include 'web/chronicle/_default_cover_mark.html.twig' %}
+            </span>
+        {% endif %}
+    </a>
     <div class="chronicle-entry__body">
         <div class="chronicle-entry__meta">
             {% if featured|default(false) %}

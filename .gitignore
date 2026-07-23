@@ -17,6 +17,8 @@ _symfony_tmp/
 /Пост-закреп по делу.txt
 /.idea
 /.env
+/.env.local
+/.env.*.local
 /node_modules
 .DS_Store
 .vk_token
