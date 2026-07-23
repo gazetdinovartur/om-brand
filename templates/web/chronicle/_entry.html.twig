@@ -2,7 +2,7 @@
 {% set href = path('web_chronicle_show', {slug: entry.slug}) %}
 {% set hubQuery = hubQuery|default({}) %}
 
-<article class="chronicle-entry{% if featured|default(false) %} chronicle-entry--featured{% endif %}">
+<article class="chronicle-entry{% if featured|default(false) %} chronicle-entry--featured{% endif %}" id="chronicle-{{ entry.slug }}">
     <a class="chronicle-entry__media{% if not cover %} chronicle-entry__media--default{% endif %}" href="{{ href }}"{% if not cover %} aria-hidden="true" tabindex="-1"{% endif %}>
         {% if cover %}
             <img

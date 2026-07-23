@@ -68,6 +68,17 @@ window.addEventListener('load', () => {
     });
 });
 
+// bfcache already restored DOM + scroll; drop resume intent so hub links don't re-jump.
+window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) {
+        return;
+    }
+    const state = readChronicleListState();
+    if (state?.focusSlug) {
+        writeChronicleListState({ focusSlug: null, scrollY: window.scrollY });
+    }
+});
+
 function initMobileNav() {
     const toggle = document.querySelector('[data-nav-toggle]');
     const root = document.querySelector('[data-mobile-nav]');
@@ -1231,8 +1242,6 @@ function initContentEngage() {
 
 function initChronicleFeed() {
     const feed = document.querySelector('[data-chronicle-feed]');
-    const moreBtn = document.querySelector('[data-chronicle-more]');
-    const moreWrap = document.querySelector('.chronicle-hub__more');
     const filters = document.querySelector('[data-chronicle-filters]');
     const heartBtn = document.querySelector('[data-chronicle-heart]');
     const likedInput = document.querySelector('[data-liked-input]');
@@ -1252,15 +1261,24 @@ function initChronicleFeed() {
     }
 
     document.querySelector('[data-chronicle-filters-reset]')?.addEventListener('click', () => {
-        try {
-            sessionStorage.removeItem('chronicle.filters');
-        } catch {
-            // ignore
-        }
+        clearChronicleFilters();
+        clearChronicleListState();
     });
+
+    const clearListStateOnFilterChange = () => {
+        clearChronicleListState();
+    };
+
+    if (filters instanceof HTMLFormElement) {
+        filters.addEventListener('submit', clearListStateOnFilterChange);
+        filters.querySelectorAll('a[href]').forEach((link) => {
+            link.addEventListener('click', clearListStateOnFilterChange);
+        });
+    }
 
     if (heartBtn instanceof HTMLButtonElement && filters instanceof HTMLFormElement) {
         heartBtn.addEventListener('click', () => {
+            clearChronicleListState();
             const next = heartBtn.getAttribute('aria-pressed') !== 'true';
             heartBtn.classList.toggle('is-active', next);
             heartBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
@@ -1278,6 +1296,7 @@ function initChronicleFeed() {
     if (filters instanceof HTMLFormElement) {
         filters.querySelectorAll('[data-chronicle-auto]').forEach((el) => {
             el.addEventListener('change', () => {
+                clearChronicleListState();
                 const year = filters.querySelector('select[name="year"]');
                 if (year instanceof HTMLSelectElement && !year.value) {
                     year.disabled = true;
@@ -1287,84 +1306,17 @@ function initChronicleFeed() {
         });
     }
 
-    if (!(feed instanceof HTMLElement) || !(moreBtn instanceof HTMLButtonElement)) {
+    if (!(feed instanceof HTMLElement)) {
         return;
     }
 
-    let nextOffset = Number(feed.dataset.nextOffset || '0');
-    let hasMore = feed.dataset.hasMore === '1';
-    let loading = false;
-
-    const setHasMore = (value) => {
-        hasMore = value;
-        feed.dataset.hasMore = value ? '1' : '0';
-        if (!value) {
-            moreWrap?.remove();
-            return;
-        }
-        if (moreWrap instanceof HTMLElement) {
-            moreWrap.hidden = false;
-        }
-    };
-
-    if (!hasMore) {
-        moreWrap?.remove();
-        return;
-    }
-
-    moreBtn.addEventListener('click', async () => {
-        if (loading || !hasMore) {
-            return;
-        }
-        loading = true;
-        moreBtn.disabled = true;
-        moreBtn.textContent = 'Загрузка…';
-
-        try {
-            let query = {};
-            try {
-                query = JSON.parse(feed.dataset.query || '{}') || {};
-            } catch {
-                query = {};
-            }
-            const params = new URLSearchParams();
-            Object.entries(query).forEach(([key, value]) => {
-                if (value !== null && value !== undefined && value !== '') {
-                    params.set(key, String(value));
-                }
-            });
-            params.set('offset', String(nextOffset));
-
-            const url = `${feed.dataset.moreUrl}?${params.toString()}`;
-            const response = await fetch(url, {
-                headers: { Accept: 'application/json' },
-            });
-            if (!response.ok) {
-                throw new Error('more failed');
-            }
-            const data = await response.json();
-            if (typeof data.html === 'string' && data.html.trim() !== '') {
-                feed.insertAdjacentHTML('beforeend', data.html);
-            }
-            nextOffset = Number(data.nextOffset || nextOffset);
-            feed.dataset.nextOffset = String(nextOffset);
-            setHasMore(Boolean(data.hasMore));
-        } catch {
-            moreBtn.textContent = 'Не удалось загрузить';
-            setTimeout(() => {
-                moreBtn.textContent = 'Смотреть ещё';
-            }, 1800);
-        } finally {
-            loading = false;
-            moreBtn.disabled = false;
-            if (hasMore) {
-                moreBtn.textContent = 'Смотреть ещё';
-            }
-        }
-    });
+    initChronicleListPosition(feed);
 }
 
 const CHRONICLE_FILTERS_KEY = 'chronicle.filters';
+const CHRONICLE_LIST_STATE_KEY = 'chronicle.listState';
+const CHRONICLE_LIST_STATE_TTL_MS = 45 * 60 * 1000;
+const CHRONICLE_RESTORE_MAX_PAGES = 20;
 
 function readChronicleFilters() {
     try {
@@ -1387,6 +1339,124 @@ function writeChronicleFilters(query) {
     }
 }
 
+function clearChronicleFilters() {
+    try {
+        sessionStorage.removeItem(CHRONICLE_FILTERS_KEY);
+    } catch {
+        // ignore
+    }
+}
+
+function normalizeChronicleFilters(query) {
+    const out = {};
+    if (!query || typeof query !== 'object') {
+        return out;
+    }
+    Object.keys(query)
+        .sort()
+        .forEach((key) => {
+            const value = query[key];
+            if (value !== null && value !== undefined && value !== '') {
+                out[key] = String(value);
+            }
+        });
+    return out;
+}
+
+function chronicleFiltersEqual(a, b) {
+    const left = normalizeChronicleFilters(a);
+    const right = normalizeChronicleFilters(b);
+    const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+    for (const key of keys) {
+        if ((left[key] || '') !== (right[key] || '')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function readChronicleListState() {
+    try {
+        const raw = sessionStorage.getItem(CHRONICLE_LIST_STATE_KEY);
+        if (!raw) {
+            return null;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') {
+            return null;
+        }
+        if (typeof parsed.ts !== 'number' || Date.now() - parsed.ts > CHRONICLE_LIST_STATE_TTL_MS) {
+            clearChronicleListState();
+            return null;
+        }
+        return {
+            filters: normalizeChronicleFilters(parsed.filters),
+            focusSlug: typeof parsed.focusSlug === 'string' && parsed.focusSlug ? parsed.focusSlug : null,
+            nextOffset: Number(parsed.nextOffset) || 0,
+            scrollY: Number(parsed.scrollY) || 0,
+            ts: parsed.ts,
+        };
+    } catch {
+        return null;
+    }
+}
+
+function writeChronicleListState(partial) {
+    try {
+        const current = readChronicleListState() || {
+            filters: {},
+            focusSlug: null,
+            nextOffset: 0,
+            scrollY: 0,
+            ts: Date.now(),
+        };
+        const next = {
+            filters: normalizeChronicleFilters(
+                partial.filters !== undefined ? partial.filters : current.filters,
+            ),
+            focusSlug:
+                partial.focusSlug !== undefined ? partial.focusSlug || null : current.focusSlug,
+            nextOffset:
+                partial.nextOffset !== undefined
+                    ? Number(partial.nextOffset) || 0
+                    : current.nextOffset,
+            scrollY: partial.scrollY !== undefined ? Number(partial.scrollY) || 0 : current.scrollY,
+            ts: Date.now(),
+        };
+        sessionStorage.setItem(CHRONICLE_LIST_STATE_KEY, JSON.stringify(next));
+    } catch {
+        // ignore quota / private mode
+    }
+}
+
+function clearChronicleListState() {
+    try {
+        sessionStorage.removeItem(CHRONICLE_LIST_STATE_KEY);
+    } catch {
+        // ignore
+    }
+}
+
+function chronicleEntryElementId(slug) {
+    return `chronicle-${slug}`;
+}
+
+function findChronicleEntry(slug) {
+    if (!slug) {
+        return null;
+    }
+    const el = document.getElementById(chronicleEntryElementId(slug));
+    return el instanceof HTMLElement ? el : null;
+}
+
+function parseChronicleFeedQuery(feed) {
+    try {
+        return normalizeChronicleFilters(JSON.parse(feed.dataset.query || '{}') || {});
+    } catch {
+        return {};
+    }
+}
+
 function chronicleHubUrl(basePath) {
     const query = readChronicleFilters();
     const params = new URLSearchParams();
@@ -1396,7 +1466,295 @@ function chronicleHubUrl(basePath) {
         }
     });
     const suffix = params.toString();
+    // No #anchor here: explicit «Хроника» / crumb should open the hub at the top.
     return suffix ? `${basePath}?${suffix}` : basePath;
+}
+
+function isBackForwardNavigation() {
+    try {
+        const entries = performance.getEntriesByType('navigation');
+        const nav = entries && entries.length > 0 ? entries[0] : null;
+        if (nav && typeof nav.type === 'string') {
+            return nav.type === 'back_forward';
+        }
+    } catch {
+        // ignore
+    }
+    try {
+        // Legacy PerformanceNavigation API
+        return performance.navigation && performance.navigation.type === 2;
+    } catch {
+        return false;
+    }
+}
+
+function isChronicleHubPath(pathname) {
+    if (pathname === '/chronicle') {
+        return true;
+    }
+    return /^\/chronicle\/(era|tag|series)\//.test(pathname);
+}
+
+function canHistoryBackToChronicleHub() {
+    try {
+        const ref = document.referrer;
+        if (!ref) {
+            return false;
+        }
+        const url = new URL(ref);
+        if (url.origin !== window.location.origin) {
+            return false;
+        }
+        return isChronicleHubPath(url.pathname);
+    } catch {
+        return false;
+    }
+}
+
+function initChronicleListPosition(feed) {
+    const moreBtn = document.querySelector('[data-chronicle-more]');
+    const moreWrap = document.querySelector('.chronicle-hub__more');
+
+    let nextOffset = Number(feed.dataset.nextOffset || '0');
+    let hasMore = feed.dataset.hasMore === '1';
+    let loading = false;
+    let restoring = false;
+
+    const setHasMore = (value) => {
+        hasMore = value;
+        feed.dataset.hasMore = value ? '1' : '0';
+        if (!value) {
+            moreWrap?.remove();
+            return;
+        }
+        if (moreWrap instanceof HTMLElement) {
+            moreWrap.hidden = false;
+        }
+    };
+
+    if (!hasMore) {
+        moreWrap?.remove();
+    }
+
+    const persistPosition = (extra = {}) => {
+        if (restoring) {
+            return;
+        }
+        writeChronicleListState({
+            filters: parseChronicleFeedQuery(feed),
+            nextOffset,
+            scrollY: window.scrollY,
+            ...extra,
+        });
+    };
+
+    const loadMoreOnce = async ({ silent = false } = {}) => {
+        if (loading || !hasMore) {
+            return false;
+        }
+        loading = true;
+        if (!silent && moreBtn instanceof HTMLButtonElement) {
+            moreBtn.disabled = true;
+            moreBtn.textContent = 'Загрузка…';
+        }
+
+        try {
+            const query = parseChronicleFeedQuery(feed);
+            const params = new URLSearchParams();
+            Object.entries(query).forEach(([key, value]) => {
+                params.set(key, String(value));
+            });
+            params.set('offset', String(nextOffset));
+
+            const moreUrl = feed.dataset.moreUrl || '/chronicle/more';
+            const response = await fetch(`${moreUrl}?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error('more failed');
+            }
+            const data = await response.json();
+            if (typeof data.html === 'string' && data.html.trim() !== '') {
+                feed.insertAdjacentHTML('beforeend', data.html);
+            }
+            nextOffset = Number(data.nextOffset || nextOffset);
+            feed.dataset.nextOffset = String(nextOffset);
+            setHasMore(Boolean(data.hasMore));
+            return true;
+        } catch {
+            if (!silent && moreBtn instanceof HTMLButtonElement) {
+                moreBtn.textContent = 'Не удалось загрузить';
+                window.setTimeout(() => {
+                    if (hasMore && moreBtn instanceof HTMLButtonElement) {
+                        moreBtn.textContent = 'Смотреть ещё';
+                    }
+                }, 1800);
+            }
+            return false;
+        } finally {
+            loading = false;
+            if (!silent && moreBtn instanceof HTMLButtonElement) {
+                moreBtn.disabled = false;
+                if (hasMore) {
+                    moreBtn.textContent = 'Смотреть ещё';
+                }
+            }
+        }
+    };
+
+    feed.addEventListener(
+        'click',
+        (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            const link = target.closest('a');
+            if (!(link instanceof HTMLAnchorElement) || !feed.contains(link)) {
+                return;
+            }
+
+            const article = link.closest('.chronicle-entry');
+            if (!(article instanceof HTMLElement)) {
+                return;
+            }
+
+            const isPostLink =
+                link.classList.contains('chronicle-entry__media') ||
+                Boolean(link.closest('.chronicle-entry__title'));
+
+            if (isPostLink) {
+                const id = article.id || '';
+                const slug = id.startsWith('chronicle-') ? id.slice('chronicle-'.length) : null;
+                if (slug) {
+                    persistPosition({ focusSlug: slug });
+                }
+                return;
+            }
+
+            // Filter chips on cards open a new hub slice — drop resume state.
+            if (
+                link.classList.contains('chronicle-series-chip') ||
+                link.classList.contains('chronicle-era-chip') ||
+                link.classList.contains('chronicle-tag')
+            ) {
+                clearChronicleListState();
+            }
+        },
+        true,
+    );
+
+    let scrollTimer = 0;
+    window.addEventListener(
+        'scroll',
+        () => {
+            if (restoring) {
+                return;
+            }
+            window.clearTimeout(scrollTimer);
+            scrollTimer = window.setTimeout(() => {
+                persistPosition();
+            }, 150);
+        },
+        { passive: true },
+    );
+
+    if (moreBtn instanceof HTMLButtonElement) {
+        moreBtn.addEventListener('click', async () => {
+            const ok = await loadMoreOnce();
+            if (ok) {
+                persistPosition();
+            }
+        });
+    }
+
+    void restoreChronicleListPosition(feed, {
+        getNextOffset: () => nextOffset,
+        getHasMore: () => hasMore,
+        loadMoreOnce,
+        setRestoring: (value) => {
+            restoring = value;
+        },
+        persistPosition,
+    });
+}
+
+async function restoreChronicleListPosition(feed, ctx) {
+    // Only resume after browser / «Назад» history.back — not after clicking «Хроника».
+    if (!isBackForwardNavigation()) {
+        return;
+    }
+
+    const state = readChronicleListState();
+    if (!state) {
+        return;
+    }
+
+    const currentFilters = parseChronicleFeedQuery(feed);
+    if (!chronicleFiltersEqual(state.filters, currentFilters)) {
+        return;
+    }
+
+    if (!state.focusSlug && !(state.nextOffset > Number(feed.dataset.nextOffset || '0')) && !state.scrollY) {
+        return;
+    }
+
+    ctx.setRestoring(true);
+    document.documentElement.classList.add('js-hash-landing');
+
+    try {
+        let pages = 0;
+        while (pages < CHRONICLE_RESTORE_MAX_PAGES) {
+            const found = state.focusSlug ? findChronicleEntry(state.focusSlug) : null;
+            if (found) {
+                break;
+            }
+            if (ctx.getNextOffset() >= state.nextOffset && !state.focusSlug) {
+                break;
+            }
+            if (!ctx.getHasMore()) {
+                break;
+            }
+            // Keep loading while focus slug is missing, or until saved offset is reached.
+            if (state.focusSlug || ctx.getNextOffset() < state.nextOffset) {
+                const ok = await ctx.loadMoreOnce({ silent: true });
+                pages += 1;
+                if (!ok) {
+                    break;
+                }
+                continue;
+            }
+            break;
+        }
+
+        const entry = state.focusSlug ? findChronicleEntry(state.focusSlug) : null;
+        if (entry) {
+            entry.scrollIntoView({ block: 'start', behavior: 'auto' });
+            entry.classList.add('is-resume');
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.setTimeout(
+                () => {
+                    entry.classList.remove('is-resume');
+                },
+                reduceMotion ? 0 : 1700,
+            );
+        } else if (state.scrollY > 0) {
+            window.scrollTo({ top: state.scrollY, behavior: 'auto' });
+        }
+
+        writeChronicleListState({
+            filters: currentFilters,
+            focusSlug: null,
+            nextOffset: ctx.getNextOffset(),
+            scrollY: window.scrollY,
+        });
+    } finally {
+        ctx.setRestoring(false);
+        requestAnimationFrame(() => {
+            document.documentElement.classList.remove('js-hash-landing');
+        });
+    }
 }
 
 function initChronicleFiltersPersist() {
@@ -1419,6 +1777,18 @@ function initChronicleFiltersPersist() {
         if (link.hasAttribute('data-back-fallback')) {
             link.dataset.backFallback = url;
         }
+
+        // Explicit hub navigation (nav / crumb / fallback «Назад»): open at top, drop resume.
+        link.addEventListener('click', () => {
+            const willHistoryBack =
+                link.hasAttribute('data-page-back') &&
+                canHistoryBackToChronicleHub() &&
+                window.history.length > 1;
+            if (willHistoryBack) {
+                return;
+            }
+            clearChronicleListState();
+        });
     });
 }
 
@@ -1429,6 +1799,16 @@ function initPageBack() {
         }
 
         link.addEventListener('click', (event) => {
+            const isChronicleBack = link.hasAttribute('data-chronicle-hub-link');
+            if (isChronicleBack) {
+                if (canHistoryBackToChronicleHub() && window.history.length > 1) {
+                    event.preventDefault();
+                    window.history.back();
+                }
+                // else follow href (filters only, top of hub — no resume scroll)
+                return;
+            }
+
             if (window.history.length > 1) {
                 event.preventDefault();
                 window.history.back();

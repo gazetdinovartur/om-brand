@@ -3958,6 +3958,10 @@ select.form-control:focus {
         backdrop-filter: blur(10px);
     }
 
+    .chronicle-feed .chronicle-entry {
+        scroll-margin-top: calc(8.75rem + env(safe-area-inset-top, 0px));
+    }
+
     .chronicle-hub__toolbar {
         width: 100%;
         max-width: 100%;
@@ -4132,10 +4136,31 @@ select.form-control:focus {
     border-radius: var(--radius);
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid rgba(26, 22, 18, 0.08);
+    scroll-margin-top: calc(5rem + env(safe-area-inset-top, 0px));
     transition:
         border-color 0.25s ease,
         box-shadow 0.25s ease,
         background 0.25s ease;
+}
+
+.chronicle-entry.is-resume {
+    border-color: rgba(232, 168, 73, 0.55);
+    box-shadow: 0 0 0 2px rgba(232, 168, 73, 0.28);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .chronicle-entry.is-resume {
+        animation: chronicle-resume-flash 1.6s ease-out;
+    }
+}
+
+@keyframes chronicle-resume-flash {
+    0% {
+        box-shadow: 0 0 0 3px rgba(232, 168, 73, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(232, 168, 73, 0);
+    }
 }
 
 .chronicle-entry--featured {
