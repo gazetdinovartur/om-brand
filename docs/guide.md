@@ -36,10 +36,10 @@
 
 ```bash
 git clone <repo-url> om-brand && cd om-brand
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-В `.env.local` задайте надёжный пароль (seed его проверит):
+В `.env` задайте надёжный пароль (seed его проверит):
 
 ```env
 ADMIN_EMAIL=you@example.com
@@ -66,7 +66,7 @@ docker compose exec php php bin/console app:chronicle:seed-likes
 | Админка | http://localhost:8085/admin |
 | MySQL | `127.0.0.1:33085` (user/pass/db: `site`) |
 
-Логин в админку: `ADMIN_EMAIL` / `ADMIN_PASSWORD` из `.env.local`.
+Логин в админку: `ADMIN_EMAIL` / `ADMIN_PASSWORD` из `.env`.
 
 ### Полезные команды
 
@@ -82,7 +82,7 @@ docker compose logs -f php
 
 ## 2. Переменные окружения
 
-Файл `.env.local` (не коммитить). Шаблон: `.env.example`.
+Файл `.env` (не коммитить). Шаблон: `.env.example`. Без `.env.local` — один файл на окружение.
 
 | Переменная | Обязательно | Назначение |
 |------------|-------------|------------|
@@ -90,9 +90,10 @@ docker compose logs -f php
 | `DATABASE_URL` | да | MySQL DSN |
 | `ADMIN_EMAIL` | да | Email админа (seed) |
 | `ADMIN_PASSWORD` | да | Пароль админа (не `admin`) |
-| `APP_SITE_URL` | prod | `https://ваш-домен.ru` — canonical, OG, ссылки |
+| `APP_SITE_URL` | prod | `https://arturlun.ru` — canonical, OG, ссылки |
 | `APP_ENV` | prod | `prod` на сервере |
 | `APP_DEBUG` | prod | `0` на сервере |
+| `ASSETS_VERSION` | prod | Query `?v=` для css/js — bump при фронт-релизе |
 | `TELEGRAM_BOT_TOKEN` | нет | Уведомления о заявках |
 | `TELEGRAM_CHAT_ID` | нет | Chat ID |
 | `MAILER_DSN` | нет | Email fallback (`null://null` = выкл) |
@@ -232,6 +233,8 @@ docker compose exec php php bin/console app:chronicle:seed-likes
 - Серия — чип с обводкой; эпоха — мягкая заливка; теги — оранжевые пилюли  
 - Лайк без регистрации; «Поделиться» — системный share / копирование `/p/…`  
 - Фильтры на мобилке запоминаются в `sessionStorage`
+
+Краткий чеклист запуска на https://arturlun.ru/: [prod-launch.md](prod-launch.md). Скрипт rsync: `./sync-prod-content.sh`.
 
 ### Перенос хроники на прод (с media)
 
@@ -425,7 +428,7 @@ Symfony form token — защита от подделки запросов с ч
 
 ### Быстрый путь (скрипт)
 
-Из корня проекта по SSH, после настройки `.env.local`:
+Из корня проекта по SSH, после настройки `.env`:
 
 ```bash
 # Первый раз
@@ -497,13 +500,13 @@ composer install --no-dev --optimize-autoloader
 
 **Через FTP:** загрузить файлы, затем `composer install` по SSH.
 
-#### 6. `.env.local` на сервере
+#### 6. `.env` на сервере
 
 ```env
 APP_ENV=prod
 APP_DEBUG=0
 APP_SECRET=<случайная_строка>
-APP_SITE_URL=https://ваш-домен.ru
+APP_SITE_URL=https://arturlun.ru
 
 DATABASE_URL="mysql://USER:PASS@localhost:3306/DBNAME?serverVersion=8.0&charset=utf8mb4"
 
@@ -605,7 +608,7 @@ tar -czf uploads.tar.gz public/uploads/ var/private/uploads/
 | Симптом | Решение |
 |---------|---------|
 | 500 после деплоя | `var/log/prod.log`, права на `var/`, `cache:clear` |
-| Seed не проходит | Надёжный `ADMIN_PASSWORD` в `.env.local` |
+| Seed не проходит | Надёжный `ADMIN_PASSWORD` в `.env` |
 | Telegram молчит | Токен, chat_id, бот добавлен в чат; fallback email |
 | Старый контент лендинга | `app:content:sync` + `cache:clear` |
 | Белая страница | `APP_DEBUG=0` + смотреть `var/log/` |
@@ -654,7 +657,7 @@ analysis/         зеркала эпох
 - Honeypot + rate limit + CSRF
 - Вложения заявок — только через админку
 - CSP и security headers на публичных страницах
-- Секреты только в `.env.local`
+- Секреты только в `.env` (файл не в git)
 
 ---
 

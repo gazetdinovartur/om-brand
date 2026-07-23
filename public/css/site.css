@@ -2419,6 +2419,19 @@ select.form-control:focus {
     .form-card__loader-spinner {
         animation: none !important;
     }
+
+    .chronicle-entry,
+    .chronicle-entry__cover,
+    .chronicle-entry__cover--default,
+    .chronicle-cover-mark,
+    .chronicle-entry__title a {
+        transition: none;
+    }
+
+    .chronicle-entry:hover .chronicle-entry__cover,
+    .chronicle-entry:hover .chronicle-cover-mark {
+        transform: none;
+    }
 }
 
 .text-center {
@@ -3432,6 +3445,12 @@ select.form-control:focus {
     opacity: 0.55;
 }
 
+.chronicle-hero__ambient--default {
+    background: linear-gradient(135deg, rgba(247, 243, 235, 0.98) 0%, rgba(240, 233, 220, 0.92) 100%);
+    opacity: 1;
+    transform: none;
+}
+
 .chronicle-hero__layout {
     position: relative;
     z-index: 1;
@@ -3443,15 +3462,6 @@ select.form-control:focus {
 .chronicle-hero--has-cover .chronicle-hero__layout {
     grid-template-columns: minmax(12rem, 20rem) minmax(0, 1fr);
     align-items: center;
-}
-
-.chronicle-hero:not(.chronicle-hero--has-cover) .chronicle-hero__layout {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-.chronicle-hero:not(.chronicle-hero--has-cover) .chronicle-hero__title,
-.chronicle-hero:not(.chronicle-hero--has-cover) .chronicle-hero__lede {
-    max-width: 40rem;
 }
 
 .chronicle-hero__cover-wrap {
@@ -3471,6 +3481,19 @@ select.form-control:focus {
     object-fit: cover;
     object-position: center;
     display: block;
+}
+
+.chronicle-hero__cover--default {
+    display: grid;
+    place-items: center;
+    color: color-mix(in srgb, var(--era-color, var(--muted)) 55%, transparent);
+    background: color-mix(in srgb, var(--era-color, var(--primary)) 6%, #f3eee4);
+}
+
+.chronicle-hero__cover--default .chronicle-cover-mark {
+    width: 58%;
+    height: 58%;
+    opacity: 0.42;
 }
 
 .chronicle-hero__info {
@@ -4013,16 +4036,15 @@ select.form-control:focus {
     border-radius: var(--radius);
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid rgba(26, 22, 18, 0.08);
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        background 0.25s ease;
 }
 
 .chronicle-entry--featured {
     grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
     background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(232, 168, 73, 0.08));
-}
-
-.chronicle-entry:not(:has(.chronicle-entry__media)),
-.chronicle-entry--featured:not(:has(.chronicle-entry__media)) {
-    grid-template-columns: minmax(0, 1fr);
 }
 
 .chronicle-entry__media {
@@ -4045,6 +4067,27 @@ select.form-control:focus {
     object-fit: cover;
     object-position: center;
     display: block;
+    transition: transform 0.45s ease;
+}
+
+.chronicle-entry__cover--default {
+    display: grid;
+    place-items: center;
+    color: color-mix(in srgb, var(--era-color, var(--muted)) 55%, transparent);
+    background: color-mix(in srgb, var(--era-color, var(--primary)) 6%, #f3eee4);
+    transition: color 0.3s ease, background 0.3s ease;
+}
+
+.chronicle-cover-mark {
+    display: block;
+    width: 62%;
+    height: 62%;
+    opacity: 0.38;
+    transition: opacity 0.3s ease, transform 0.45s ease;
+}
+
+.chronicle-cover-mark__accent {
+    fill: color-mix(in srgb, var(--era-color, var(--accent)) 70%, transparent);
 }
 
 .chronicle-entry__meta {
@@ -4065,6 +4108,7 @@ select.form-control:focus {
 .chronicle-entry__title a {
     color: inherit;
     text-decoration: none;
+    transition: color 0.22s ease;
 }
 
 .chronicle-entry__lede {
@@ -4075,6 +4119,44 @@ select.form-control:focus {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chronicle-entry:hover {
+        border-color: rgba(200, 120, 40, 0.28);
+        box-shadow: 0 16px 40px rgba(31, 26, 20, 0.08);
+        background: rgba(255, 253, 249, 0.92);
+    }
+
+    .chronicle-entry--featured:hover {
+        border-color: rgba(200, 120, 40, 0.32);
+        box-shadow: 0 18px 44px rgba(31, 26, 20, 0.09);
+    }
+
+    .chronicle-entry:hover .chronicle-entry__cover {
+        transform: scale(1.04);
+    }
+
+    .chronicle-entry:hover .chronicle-entry__cover--default {
+        color: color-mix(in srgb, var(--era-color, var(--muted)) 72%, transparent);
+        background: color-mix(in srgb, var(--era-color, var(--primary)) 10%, #f3eee4);
+    }
+
+    .chronicle-entry:hover .chronicle-cover-mark {
+        opacity: 0.55;
+        transform: scale(1.04);
+    }
+
+    .chronicle-entry:hover .chronicle-entry__title a,
+    .chronicle-entry__title a:hover {
+        color: var(--primary-dark);
+    }
+
+    .chronicle-related__grid .chronicle-entry:hover {
+        border-color: transparent;
+        box-shadow: none;
+        background: transparent;
+    }
 }
 
 .chronicle-detail__content {
@@ -4461,11 +4543,6 @@ select.form-control:focus {
     box-shadow: none;
 }
 
-.chronicle-related__grid .chronicle-entry:not(:has(.chronicle-entry__media)),
-.chronicle-related__grid .chronicle-entry--featured:not(:has(.chronicle-entry__media)) {
-    grid-template-columns: minmax(0, 1fr);
-}
-
 .chronicle-related__grid .chronicle-entry__media,
 .chronicle-related__grid .chronicle-entry__cover {
     border-radius: 0.55rem;
@@ -4542,11 +4619,6 @@ select.form-control:focus {
         grid-template-columns: minmax(0, 6.5rem) minmax(0, 1fr);
         gap: 0.85rem;
         padding: 0.85rem;
-    }
-
-    .chronicle-entry:not(:has(.chronicle-entry__media)),
-    .chronicle-entry--featured:not(:has(.chronicle-entry__media)) {
-        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -4681,6 +4753,27 @@ select.form-control:focus {
     outline: none;
 }
 
+.house-rooms__door--soon {
+    cursor: default;
+    opacity: 0.58;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.house-rooms__door--soon:hover,
+.house-rooms__door--soon:focus-visible {
+    border-bottom-color: rgba(31, 26, 20, 0.1);
+    transform: none;
+}
+
+.house-rooms__door--soon .house-rooms__label {
+    color: var(--text);
+}
+
+.house-rooms__door--soon .house-rooms__enter {
+    color: var(--muted);
+}
+
 .house-rooms__index,
 .house-rooms__enter {
     display: none;
@@ -4782,6 +4875,13 @@ select.form-control:focus {
         background: rgba(255, 253, 249, 0.92);
         border-color: rgba(200, 120, 40, 0.35);
         transform: translateX(0.15rem);
+    }
+
+    .house-rooms__door--soon:hover,
+    .house-rooms__door--soon:focus-visible {
+        background: rgba(255, 253, 249, 0.72);
+        border-color: var(--border);
+        transform: none;
     }
 
     .house-rooms__index {

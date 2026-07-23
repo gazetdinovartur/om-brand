@@ -5,8 +5,17 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # Query-string bust for public/css + public/js (hosting may cache static files).
+    # Bump ASSETS_VERSION on each production frontend release.
+    assets:
+        version: '%env(default:assets_version_fallback:ASSETS_VERSION)%'
+        version_format: '%%s?v=%%s'
+
     #esi: true
     #fragments: true
+
+parameters:
+    assets_version_fallback: '20260723a'
 
 when@test:
     framework:

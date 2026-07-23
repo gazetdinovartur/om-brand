@@ -96,7 +96,7 @@ final class HouseContent
             [
                 'id' => 'cases',
                 'label' => 'Кейсы',
-                'invite' => 'Примеры работ в сферах web dev, ux, ia',
+                'invite' => 'Примеры моих работ в сферах web dev, ux, ia',
                 'route' => 'web_cases',
             ],
             [

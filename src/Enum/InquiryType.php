@@ -55,7 +55,6 @@ enum InquiryType: string
             self::Question,
             self::Invitation,
             self::Other,
-            self::Unsure,
         ];
     }
 

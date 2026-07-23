@@ -25,19 +25,34 @@
         <ul class="house-rooms__list">
             {% for room in mapRooms %}
                 <li class="house-rooms__item">
-                    <a
-                        class="house-rooms__door"
-                        href="{{ room.href }}"
-                        {% if room.external %}target="_blank" rel="noopener"{% endif %}
-                    >
-                        <span class="house-rooms__index" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
-                        {% include 'web/_partials/house_room_icon.html.twig' with { roomId: room.id } %}
-                        <span class="house-rooms__copy">
-                            <span class="house-rooms__label">{{ room.label }}</span>
-                            <span class="house-rooms__invite">{{ room.invite }}</span>
-                        </span>
-                        <span class="house-rooms__enter" aria-hidden="true">войти</span>
-                    </a>
+                    {% if room.active %}
+                        <a
+                            class="house-rooms__door"
+                            href="{{ room.href }}"
+                            {% if room.external %}target="_blank" rel="noopener"{% endif %}
+                        >
+                            <span class="house-rooms__index" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
+                            {% include 'web/_partials/house_room_icon.html.twig' with { roomId: room.id } %}
+                            <span class="house-rooms__copy">
+                                <span class="house-rooms__label">{{ room.label }}</span>
+                                <span class="house-rooms__invite">{{ room.invite }}</span>
+                            </span>
+                            <span class="house-rooms__enter" aria-hidden="true">войти</span>
+                        </a>
+                    {% else %}
+                        <div
+                            class="house-rooms__door house-rooms__door--soon"
+                            aria-disabled="true"
+                        >
+                            <span class="house-rooms__index" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
+                            {% include 'web/_partials/house_room_icon.html.twig' with { roomId: room.id } %}
+                            <span class="house-rooms__copy">
+                                <span class="house-rooms__label">{{ room.label }}</span>
+                                <span class="house-rooms__invite">{{ room.invite }}</span>
+                            </span>
+                            <span class="house-rooms__enter" aria-hidden="true">скоро</span>
+                        </div>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>

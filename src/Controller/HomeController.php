@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Content\HouseContent;
+use App\Repository\CaseStudyRepository;
 use App\Service\PublicSiteContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,8 +16,10 @@ final class HomeController extends AbstractController
     public function index(
         PublicSiteContext $siteContext,
         UrlGeneratorInterface $urlGenerator,
+        CaseStudyRepository $caseStudyRepository,
     ): Response {
         $settings = $siteContext->getSettings();
+        $hasCases = $caseStudyRepository->countPublished() > 0;
         $rooms = [];
         foreach (HouseContent::mapRooms() as $room) {
             if (isset($room['external'])) {
@@ -29,10 +32,21 @@ final class HomeController extends AbstractController
                 );
                 $external = false;
             }
+
+            $active = true;
+            $invite = $room['invite'];
+            if ('cases' === $room['id'] && !$hasCases) {
+                $active = false;
+                $invite = 'Скоро здесь будут кейсы';
+                $href = null;
+            }
+
             $rooms[] = [
                 ...$room,
                 'href' => $href,
                 'external' => $external,
+                'active' => $active,
+                'invite' => $invite,
             ];
         }
 

@@ -37,13 +37,13 @@ final class SeedCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         if ('' === trim($this->adminPassword) || 'admin' === $this->adminPassword || 'change_me_strong_password' === $this->adminPassword) {
-            $io->error('Задайте надёжный ADMIN_PASSWORD в .env.local (см. .env.example).');
+            $io->error('Задайте надёжный ADMIN_PASSWORD в .env (см. .env.example).');
 
             return Command::FAILURE;
         }
 
         if ('' === trim($this->adminEmail)) {
-            $io->error('Задайте ADMIN_EMAIL в .env.local.');
+            $io->error('Задайте ADMIN_EMAIL в .env.');
 
             return Command::FAILURE;
         }

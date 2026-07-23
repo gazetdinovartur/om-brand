@@ -1,20 +1,34 @@
 {% set coverUrl = chronicle_cover(entry.coverImagePath) %}
 
-<section class="chronicle-hero{% if coverUrl %} chronicle-hero--has-cover{% endif %}">
+<section class="chronicle-hero chronicle-hero--has-cover{% if not coverUrl %} chronicle-hero--default-cover{% endif %}">
     {% if coverUrl %}
         <div class="chronicle-hero__ambient" style="--chronicle-cover: url('{{ asset(coverUrl) }}')" aria-hidden="true"></div>
+    {% else %}
+        <div
+            class="chronicle-hero__ambient chronicle-hero__ambient--default"
+            {% if entry.era and entry.era.color %}style="--era-color: {{ entry.era.color }}"{% endif %}
+            aria-hidden="true"
+        ></div>
     {% endif %}
     <div class="container chronicle-hero__layout">
-        {% if coverUrl %}
-            <div class="chronicle-hero__cover-wrap">
+        <div class="chronicle-hero__cover-wrap{% if not coverUrl %} chronicle-hero__cover-wrap--default{% endif %}">
+            {% if coverUrl %}
                 <img
                     class="chronicle-hero__cover"
                     src="{{ asset(coverUrl) }}"
                     alt="{{ entry.title }}"
                     decoding="async"
                 >
-            </div>
-        {% endif %}
+            {% else %}
+                <span
+                    class="chronicle-hero__cover chronicle-hero__cover--default"
+                    {% if entry.era and entry.era.color %}style="--era-color: {{ entry.era.color }}"{% endif %}
+                    aria-hidden="true"
+                >
+                    {% include 'web/chronicle/_default_cover_mark.html.twig' %}
+                </span>
+            {% endif %}
+        </div>
         <div class="chronicle-hero__info">
             {% if entry.series or entry.era %}
                 <div class="chronicle-hero__context">

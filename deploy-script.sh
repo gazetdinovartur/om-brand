@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Деплой Symfony-проекта на VPS / shared-хостинг (NetAngels и аналоги).
-# Запускать из корня репозитория по SSH, после настройки .env.local.
+# Запускать из корня репозитория по SSH, после настройки .env.
 #
 # Первый деплой:   ./deploy-script.sh --first
 # Обновление:     ./deploy-script.sh
@@ -35,7 +35,7 @@ usage() {
 Перед первым запуском вручную:
   1. PHP ≥ 8.4, document root → public/
   2. MySQL: БД и пользователь созданы
-  3. cp .env.example .env.local — заполнить prod-переменные
+  3. cp .env.example .env — заполнить prod-переменные (только .env, без .env.local)
   4. git clone / загрузка кода на сервер
 
 Маршруты после деплоя: / (дом), /dev--null, /contact, /cases, /chronicle, /admin
@@ -64,8 +64,8 @@ fail() { echo "✗ $*" >&2; exit 1; }
 
 [[ -f bin/console ]] || fail "Запустите скрипт из корня проекта (где bin/console)."
 
-if [[ ! -f .env.local ]]; then
-    fail "Нет .env.local. Скопируйте: cp .env.example .env.local и задайте prod-переменные."
+if [[ ! -f .env ]]; then
+    fail "Нет .env. Скопируйте: cp .env.example .env и задайте prod-переменные."
 fi
 
 if ! command -v "$PHP" &>/dev/null; then
