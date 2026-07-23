@@ -1,7 +1,7 @@
 {% for entry in entries %}
     {% include 'web/chronicle/_entry.html.twig' with {
         entry: entry,
-        featured: entry.isFeatured,
+        featured: markLiked|default(false),
         hubQuery: hubQuery|default({})
     } %}
 {% endfor %}

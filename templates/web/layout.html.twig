@@ -12,6 +12,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap&subset=cyrillic,cyrillic-ext,latin" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}" rel="stylesheet">
+    {# Instant jump to #anchor on cross-page open; keep smooth for in-page clicks. #}
+    <script>
+        if (location.hash) {
+            document.documentElement.classList.add('js-hash-landing');
+        }
+    </script>
     {% block head %}{% endblock %}
 </head>
 <body class="site-body site-body--{{ siteShell|default('house') }}{% if app.request.attributes.get('_route') == 'web_home' %} site-body--home-screen{% endif %}">

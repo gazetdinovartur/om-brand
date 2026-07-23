@@ -1,7 +1,7 @@
 {% extends 'web/layout.html.twig' %}
 
 {% block body %}
-{% set filterCount = (activeSeries ? 1 : 0) + (activeEra ? 1 : 0) + (activeTag ? 1 : 0) + (activeYear ? 1 : 0) + (activeFeatured ? 1 : 0) %}
+{% set filterCount = (activeSeries ? 1 : 0) + (activeEra ? 1 : 0) + (activeTag ? 1 : 0) + (activeYear ? 1 : 0) + (activeLiked ? 1 : 0) %}
 <section class="section chronicle-hub">
     <div class="container">
         <header class="chronicle-hub__head">
@@ -13,7 +13,7 @@
                     {% if activeEra %}{% if activeSeries %} · {% endif %}Эпоха: <strong>{{ activeEra.title }}</strong>{% endif %}
                     {% if activeTag %}{% if activeSeries or activeEra %} · {% endif %}Тег: <strong>#{{ activeTag.name }}</strong>{% endif %}
                     {% if activeYear %}{% if activeSeries or activeEra or activeTag %} · {% endif %}Год: <strong>{{ activeYear }}</strong>{% endif %}
-                    {% if activeFeatured %}{% if activeSeries or activeEra or activeTag or activeYear %} · {% endif %}<strong>Избранное</strong>{% endif %}
+                    {% if activeLiked %}{% if activeSeries or activeEra or activeTag or activeYear %} · {% endif %}<strong>Избранное</strong>{% endif %}
                     <span class="chronicle-hub__count"> · {{ total }}</span>
                 </p>
             {% else %}
@@ -25,7 +25,7 @@
             {% if filterQuery.series is defined %}<input type="hidden" name="series" value="{{ filterQuery.series }}">{% endif %}
             {% if filterQuery.era is defined %}<input type="hidden" name="era" value="{{ filterQuery.era }}">{% endif %}
             {% if filterQuery.tag is defined %}<input type="hidden" name="tag" value="{{ filterQuery.tag }}">{% endif %}
-            <input type="hidden" name="featured" value="1" data-featured-input{% if not activeFeatured %} disabled{% endif %}>
+            <input type="hidden" name="liked" value="1" data-liked-input{% if not activeLiked %} disabled{% endif %}>
 
             <div class="chronicle-hub__toolbar">
                 <label class="chronicle-hub__year">
@@ -39,10 +39,10 @@
                 </label>
                 <button
                     type="button"
-                    class="chronicle-hub__heart-btn{% if activeFeatured %} is-active{% endif %}"
+                    class="chronicle-hub__heart-btn{% if activeLiked %} is-active{% endif %}"
                     data-chronicle-heart
-                    aria-pressed="{{ activeFeatured ? 'true' : 'false' }}"
-                    title="{{ activeFeatured ? 'Показать все' : 'Только избранное' }}"
+                    aria-pressed="{{ activeLiked ? 'true' : 'false' }}"
+                    title="{{ activeLiked ? 'Показать все' : 'Моё избранное' }}"
                 >
                     <svg class="chronicle-hub__heart-icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
                         <circle class="chronicle-hub__heart-chrome" cx="18" cy="18" r="16.5"/>
@@ -132,7 +132,17 @@
             data-has-more="{{ hasMore ? '1' : '0' }}"
             data-query="{{ filterQuery|json_encode|e('html_attr') }}"
         >
-            {% include 'web/chronicle/_entries.html.twig' with {entries: entries, hubQuery: filterQuery} %}
+            {% if entries is empty %}
+                <p class="chronicle-hub__empty">
+                    {% if activeLiked %}
+                        Пока нет избранного — поставьте ♥ на посты или отметьте записи в админке.
+                    {% else %}
+                        Ничего не найдено по выбранным фильтрам.
+                    {% endif %}
+                </p>
+            {% else %}
+                {% include 'web/chronicle/_entries.html.twig' with {entries: entries, hubQuery: filterQuery, markLiked: markLiked|default(false)} %}
+            {% endif %}
         </div>
 
         {% if hasMore %}

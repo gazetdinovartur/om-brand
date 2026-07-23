@@ -61,6 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     onScroll();
 });
 
+// Restore smooth scroll after the browser finishes the initial #hash jump.
+window.addEventListener('load', () => {
+    requestAnimationFrame(() => {
+        document.documentElement.classList.remove('js-hash-landing');
+    });
+});
+
 function initMobileNav() {
     const toggle = document.querySelector('[data-nav-toggle]');
     const root = document.querySelector('[data-mobile-nav]');
@@ -1228,7 +1235,7 @@ function initChronicleFeed() {
     const moreWrap = document.querySelector('.chronicle-hub__more');
     const filters = document.querySelector('[data-chronicle-filters]');
     const heartBtn = document.querySelector('[data-chronicle-heart]');
-    const featuredInput = document.querySelector('[data-featured-input]');
+    const likedInput = document.querySelector('[data-liked-input]');
     const filtersToggle = document.querySelector('[data-chronicle-filters-toggle]');
     const filtersPanel = document.querySelector('[data-chronicle-filters-panel]');
 
@@ -1257,8 +1264,8 @@ function initChronicleFeed() {
             const next = heartBtn.getAttribute('aria-pressed') !== 'true';
             heartBtn.classList.toggle('is-active', next);
             heartBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
-            if (featuredInput instanceof HTMLInputElement) {
-                featuredInput.disabled = !next;
+            if (likedInput instanceof HTMLInputElement) {
+                likedInput.disabled = !next;
             }
             const year = filters.querySelector('select[name="year"]');
             if (year instanceof HTMLSelectElement && !year.value) {
@@ -1274,9 +1281,6 @@ function initChronicleFeed() {
                 const year = filters.querySelector('select[name="year"]');
                 if (year instanceof HTMLSelectElement && !year.value) {
                     year.disabled = true;
-                }
-                if (featuredInput instanceof HTMLInputElement && featuredInput.disabled) {
-                    // keep disabled
                 }
                 filters.submit();
             });

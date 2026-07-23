@@ -6,8 +6,11 @@ use App\Entity\ChronicleEntry;
 use App\Entity\ChronicleEra;
 use App\Entity\ChronicleSeries;
 use App\Entity\ChronicleTag;
+use App\Entity\ContentLike;
 use App\Enum\ChronicleStatus;
+use App\Enum\ContentLikeTarget;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -41,16 +44,24 @@ class ChronicleEntryRepository extends ServiceEntityRepository
      *     tag?: ?ChronicleTag,
      *     series?: ?ChronicleSeries,
      *     year?: ?int,
-     *     featured?: bool|null
+     *     liked?: bool|null,
+     *     visitorToken?: string|null
      * } $filters
      *
      * @return list<ChronicleEntry>
      */
     public function findFiltered(array $filters = [], int $limit = 24, int $offset = 0): array
     {
-        return $this->filteredQuery($filters)
-            ->orderBy('e.isFeatured', 'DESC')
-            ->addOrderBy('e.publishedAt', 'DESC')
+        $qb = $this->filteredQuery($filters);
+
+        if (!empty($filters['liked']) && !empty($filters['visitorToken'])) {
+            $qb->orderBy('cl.createdAt', 'DESC')
+                ->addOrderBy('e.publishedAt', 'DESC');
+        } else {
+            $qb->orderBy('e.publishedAt', 'DESC');
+        }
+
+        return $qb
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->getQuery()
@@ -63,7 +74,8 @@ class ChronicleEntryRepository extends ServiceEntityRepository
      *     tag?: ?ChronicleTag,
      *     series?: ?ChronicleSeries,
      *     year?: ?int,
-     *     featured?: bool|null
+     *     liked?: bool|null,
+     *     visitorToken?: string|null
      * } $filters
      */
     public function countFiltered(array $filters = []): int
@@ -358,7 +370,8 @@ class ChronicleEntryRepository extends ServiceEntityRepository
      *     tag?: ?ChronicleTag,
      *     series?: ?ChronicleSeries,
      *     year?: ?int,
-     *     featured?: bool|null
+     *     liked?: bool|null,
+     *     visitorToken?: string|null
      * } $filters
      */
     private function filteredQuery(array $filters): QueryBuilder
@@ -394,7 +407,21 @@ class ChronicleEntryRepository extends ServiceEntityRepository
                 ->setParameter('yearEnd', new \DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year + 1)));
         }
 
-        if (\array_key_exists('featured', $filters) && null !== $filters['featured']) {
+        if (!empty($filters['liked'])) {
+            $token = $filters['visitorToken'] ?? null;
+            if (\is_string($token) && '' !== $token) {
+                $qb->innerJoin(
+                    ContentLike::class,
+                    'cl',
+                    Join::WITH,
+                    'cl.targetId = e.id AND cl.targetType = :likeType AND cl.visitorToken = :visitorToken'
+                )
+                    ->setParameter('likeType', ContentLikeTarget::Chronicle)
+                    ->setParameter('visitorToken', $token);
+            } else {
+                $qb->andWhere('1 = 0');
+            }
+        } elseif (\array_key_exists('featured', $filters) && null !== $filters['featured']) {
             $qb->andWhere('e.isFeatured = :featured')
                 ->setParameter('featured', (bool) $filters['featured']);
         }

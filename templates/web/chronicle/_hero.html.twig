@@ -16,11 +16,8 @@
             </div>
         {% endif %}
         <div class="chronicle-hero__info">
-            {% if entry.isFeatured or entry.series or entry.era %}
+            {% if entry.series or entry.era %}
                 <div class="chronicle-hero__context">
-                    {% if entry.isFeatured %}
-                        <span class="chronicle-entry__heart" title="Избранное">♥</span>
-                    {% endif %}
                     {% if entry.series %}
                         <a class="chronicle-series-chip" href="{{ path('web_chronicle', {series: entry.series.slug}) }}">{{ entry.series.title }}</a>
                     {% endif %}

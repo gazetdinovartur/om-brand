@@ -14,7 +14,7 @@ final class HouseContent
 
     public static function heroLead(): string
     {
-        return 'Сейчас ты здесь - на месте входа в мою цифровую экосистему. Так я организую среду в интернете и приглашаю тебя. К соавторству, партнёрству, сотрудничеству. Или просто побыть - сделать выдох и вдох';
+        return 'Сейчас ты на входе в мою цифровую экосистему. Так я организую среду в интернете и приглашаю тебя. К соавторству, сотрудничеству или просто побыть - сделать выдох и вдох';
     }
 
     public static function metaTitle(?string $personName = null): string
@@ -54,27 +54,7 @@ final class HouseContent
 
     public static function contactPageLead(): string
     {
-        return 'Можно написать сюда — о соавторстве, партнёрстве, сотрудничестве, вопросе или просто чтобы выйти на связь. Если нужна разработка системы — удобнее форма на странице разработки, но и здесь можно начать.';
-    }
-
-    public static function contactFormTitle(): string
-    {
-        return 'Напишите мне';
-    }
-
-    public static function contactFormSubtitle(): string
-    {
-        return 'Соавторство, партнёрство, сотрудничество, вопрос — или просто поздороваться';
-    }
-
-    public static function contactHowTitle(): string
-    {
-        return 'Как связаться';
-    }
-
-    public static function contactHowBody(): string
-    {
-        return 'Форма ниже — общий порог. Telegram — если удобнее коротко и быстро. Для заказа разработки можно сразу зайти в мастерскую /dev--null.';
+        return 'Напишите о сотрудничестве, вопросе, приглашении — или просто поздороваться. Заказ разработки удобнее через форму на странице разработки.';
     }
 
     /**
@@ -110,37 +90,37 @@ final class HouseContent
             [
                 'id' => 'dev',
                 'label' => 'Разработка',
-                'invite' => 'Мастерская, где собираю системы',
+                'invite' => 'Информация обо мне как разработчике web систем',
                 'route' => 'web_dev_landing',
             ],
             [
                 'id' => 'cases',
                 'label' => 'Кейсы',
-                'invite' => 'Что заинтересовало, как собрал, какую задачу решило',
+                'invite' => 'Примеры работ в сферах web dev, ux, ia',
                 'route' => 'web_cases',
             ],
             [
                 'id' => 'chronicle',
                 'label' => 'Хроника',
-                'invite' => 'Тексты и фото по эпохам',
+                'invite' => 'Мои тексты и фото из разных эпох',
                 'route' => 'web_chronicle',
             ],
             [
                 'id' => 'lab',
                 'label' => 'Лаборатория',
-                'invite' => 'Приоткрываю, когда готово',
+                'invite' => 'Созерцательная практика со звуком и геометрией',
                 'external' => 'https://lab.arturlun.ru',
             ],
             [
                 'id' => 'music',
                 'label' => 'Музыка',
-                'invite' => 'Другой дом — music.arturlun',
+                'invite' => 'Свободная музыкальная площадка и встраиваемый плеер',
                 'external' => 'https://music.arturlun.ru',
             ],
             [
                 'id' => 'contact',
                 'label' => 'Связь',
-                'invite' => 'Порог, за которым разговор',
+                'invite' => 'Здесь можно написать мне',
                 'route' => 'web_contact',
             ],
         ];

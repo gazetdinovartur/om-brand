@@ -34,8 +34,9 @@ final class ChronicleController extends AbstractController
         ChronicleSeriesRepository $series,
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seo,
+        ContentLikeService $likes,
     ): Response {
-        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo);
+        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, $likes);
     }
 
     #[Route('/chronicle/more', name: 'web_chronicle_more', methods: ['GET'], priority: 20)]
@@ -45,14 +46,18 @@ final class ChronicleController extends AbstractController
         ChronicleEraRepository $eras,
         ChronicleTagRepository $tags,
         ChronicleSeriesRepository $series,
+        ContentLikeService $likes,
     ): Response {
-        [$filters, $offset] = $this->resolveFilters($request, $eras, $tags, $series);
+        [$filters, $offset] = $this->resolveFilters($request, $eras, $tags, $series, $likes);
+        $filters = $this->resolveFavoritesSource($filters, $entries);
         $page = $entries->findFiltered($filters, self::PAGE_SIZE, $offset);
         $total = $entries->countFiltered($filters);
         $nextOffset = $offset + \count($page);
 
         $html = $this->renderView('web/chronicle/_entries.html.twig', [
             'entries' => $page,
+            'markLiked' => !empty($filters['liked']) || !empty($filters['featured']),
+            'hubQuery' => $this->filterQueryArray($filters),
         ]);
 
         return $this->json([
@@ -73,6 +78,7 @@ final class ChronicleController extends AbstractController
         ChronicleSeriesRepository $series,
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seo,
+        ContentLikeService $likes,
     ): Response {
         $era = $eras->findBySlug($slug);
         if (null === $era) {
@@ -81,7 +87,7 @@ final class ChronicleController extends AbstractController
 
         $request->query->set('era', $era->getSlug());
 
-        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, $era);
+        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, $likes, $era);
     }
 
     #[Route('/chronicle/tag/{slug}', name: 'web_chronicle_tag', methods: ['GET'], requirements: ['slug' => '[a-z0-9\-]+'])]
@@ -94,6 +100,7 @@ final class ChronicleController extends AbstractController
         ChronicleSeriesRepository $series,
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seo,
+        ContentLikeService $likes,
     ): Response {
         $tag = $tags->findBySlug($slug);
         if (null === $tag) {
@@ -102,7 +109,7 @@ final class ChronicleController extends AbstractController
 
         $request->query->set('tag', $tag->getSlug());
 
-        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, null, $tag);
+        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, $likes, null, $tag);
     }
 
     #[Route('/chronicle/series/{slug}', name: 'web_chronicle_series', methods: ['GET'], requirements: ['slug' => '[a-z0-9\-]+'])]
@@ -115,6 +122,7 @@ final class ChronicleController extends AbstractController
         ChronicleSeriesRepository $series,
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seo,
+        ContentLikeService $likes,
     ): Response {
         $item = $series->findOneBy(['slug' => $slug]);
         if (!$item instanceof ChronicleSeries) {
@@ -123,7 +131,7 @@ final class ChronicleController extends AbstractController
 
         $request->query->set('series', $item->getSlug());
 
-        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, null, null, $item);
+        return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, $likes, null, null, $item);
     }
 
     #[Route('/chronicle/{slug}', name: 'web_chronicle_show', methods: ['GET'], requirements: ['slug' => '[a-z0-9\-]+'])]
@@ -197,11 +205,13 @@ final class ChronicleController extends AbstractController
         ChronicleSeriesRepository $series,
         PublicSiteContext $siteContext,
         SeoMetadataFactory $seo,
+        ContentLikeService $likes,
         ?ChronicleEra $activeEra = null,
         ?ChronicleTag $activeTag = null,
         ?ChronicleSeries $activeSeries = null,
     ): Response {
-        [$filters, $offset] = $this->resolveFilters($request, $eras, $tags, $series, $activeEra, $activeTag, $activeSeries);
+        [$filters, $offset] = $this->resolveFilters($request, $eras, $tags, $series, $likes, $activeEra, $activeTag, $activeSeries);
+        $filters = $this->resolveFavoritesSource($filters, $entries);
         $page = $entries->findFiltered($filters, self::PAGE_SIZE, $offset);
         $total = $entries->countFiltered($filters);
         $nextOffset = $offset + \count($page);
@@ -211,6 +221,8 @@ final class ChronicleController extends AbstractController
             $filters['tag'] instanceof ChronicleTag => $seo->forChronicleTag($request, $siteContext->getSettings(), $siteContext->getBlocksBySlugFiltered(['hero']), $filters['tag']),
             default => $seo->forChronicleIndex($request, $siteContext->getSettings(), $siteContext->getBlocksBySlugFiltered(['hero'])),
         };
+
+        $favoritesActive = !empty($filters['liked']) || !empty($filters['featured']);
 
         return $this->render('web/chronicle/index.html.twig', [
             'entries' => $page,
@@ -222,18 +234,20 @@ final class ChronicleController extends AbstractController
             'activeTag' => $filters['tag'] ?? null,
             'activeSeries' => $filters['series'] ?? null,
             'activeYear' => $filters['year'] ?? null,
-            'activeFeatured' => $filters['featured'] ?? null,
+            'activeLiked' => $favoritesActive,
+            'favoritesSource' => $filters['favoritesSource'] ?? null,
             'filterQuery' => $this->filterQueryArray($filters),
             'total' => $total,
             'nextOffset' => $nextOffset,
             'hasMore' => $nextOffset < $total,
             'pageSize' => self::PAGE_SIZE,
             'seo' => $seoMeta,
+            'markLiked' => $favoritesActive,
         ]);
     }
 
     /**
-     * @param array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, featured?: ?bool} $filters
+     * @param array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool} $filters
      *
      * @return array<string, string|int>
      */
@@ -252,21 +266,50 @@ final class ChronicleController extends AbstractController
         if (!empty($filters['year'])) {
             $q['year'] = (int) $filters['year'];
         }
-        if (!empty($filters['featured'])) {
-            $q['featured'] = 1;
+        if (!empty($filters['liked']) || !empty($filters['featured'])) {
+            $q['liked'] = 1;
         }
 
         return $q;
     }
 
     /**
-     * @return array{0: array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, featured?: ?bool}, 1: int}
+     * Heart filter: personal likes if the visitor has any; otherwise admin featured.
+     *
+     * @param array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string, featured?: ?bool, favoritesSource?: ?string} $filters
+     *
+     * @return array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string, featured?: ?bool, favoritesSource?: ?string}
+     */
+    private function resolveFavoritesSource(array $filters, ChronicleEntryRepository $entries): array
+    {
+        if (empty($filters['liked'])) {
+            return $filters;
+        }
+
+        $likedFilters = $filters;
+        $personalCount = $entries->countFiltered($likedFilters);
+        if ($personalCount > 0) {
+            $filters['favoritesSource'] = 'liked';
+
+            return $filters;
+        }
+
+        unset($filters['liked'], $filters['visitorToken']);
+        $filters['featured'] = true;
+        $filters['favoritesSource'] = 'featured';
+
+        return $filters;
+    }
+
+    /**
+     * @return array{0: array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string}, 1: int}
      */
     private function resolveFilters(
         Request $request,
         ChronicleEraRepository $eras,
         ChronicleTagRepository $tags,
         ChronicleSeriesRepository $series,
+        ContentLikeService $likes,
         ?ChronicleEra $forcedEra = null,
         ?ChronicleTag $forcedTag = null,
         ?ChronicleSeries $forcedSeries = null,
@@ -296,9 +339,11 @@ final class ChronicleController extends AbstractController
             $year = null;
         }
 
-        $featured = null;
-        if ('1' === (string) $request->query->get('featured', '')) {
-            $featured = true;
+        $liked = null;
+        // liked=1 is the heart filter; keep featured=1 as alias for old bookmarks
+        if ('1' === (string) $request->query->get('liked', '')
+            || '1' === (string) $request->query->get('featured', '')) {
+            $liked = true;
         }
 
         $offset = max(0, (int) $request->query->get('offset', 0));
@@ -308,7 +353,8 @@ final class ChronicleController extends AbstractController
             'tag' => $tag,
             'series' => $seriesItem,
             'year' => $year,
-            'featured' => $featured,
+            'liked' => $liked,
+            'visitorToken' => $likes->readVisitorToken($request),
         ], $offset];
     }
 

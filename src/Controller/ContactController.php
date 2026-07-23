@@ -46,10 +46,6 @@ final class ContactController extends AbstractController
             'form' => $form,
             'pageTitle' => HouseContent::contactPageTitle(),
             'pageLead' => HouseContent::contactPageLead(),
-            'formTitle' => HouseContent::contactFormTitle(),
-            'formSubtitle' => HouseContent::contactFormSubtitle(),
-            'howTitle' => HouseContent::contactHowTitle(),
-            'howBody' => HouseContent::contactHowBody(),
         ]);
     }
 }

@@ -4,14 +4,8 @@
 <section class="section contact-page" id="contact">
     <div class="container narrow">
         <header class="contact-page__head">
-            <p class="contact-page__eyebrow">Связь</p>
             <h1 class="section__title">{{ pageTitle }}</h1>
             <p class="section__subtitle">{{ pageLead }}</p>
-        </header>
-
-        <div class="contact-page__how">
-            <h2 class="contact-page__how-title">{{ howTitle }}</h2>
-            <p class="contact-page__how-body">{{ howBody }}</p>
             <ul class="contact-page__channels">
                 {% if settings.telegramUrl %}
                     <li>
@@ -32,12 +26,7 @@
                     <a href="{{ path('web_dev_landing') }}#contact">Форма заказа разработки</a>
                 </li>
             </ul>
-        </div>
-
-        <div class="section__head text-center contact-page__form-head">
-            <h2 class="section__title">{{ formTitle }}</h2>
-            <p class="section__subtitle">{{ formSubtitle }}</p>
-        </div>
+        </header>
 
         <div class="form-card" data-inquiry-card>
             <div class="form-card__loader" data-inquiry-loader hidden aria-live="polite">
