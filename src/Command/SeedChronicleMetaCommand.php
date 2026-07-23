@@ -91,11 +91,13 @@ final class SeedChronicleMetaCommand extends Command
         }
 
         $tagCount = 0;
+        $seenTagSlugs = [];
         foreach ([...$this->catalog->themeTags(), ...$this->catalog->channelTags()] as $row) {
             $slug = (string) ($row['slug'] ?? '');
-            if ('' === $slug) {
+            if ('' === $slug || isset($seenTagSlugs[$slug])) {
                 continue;
             }
+            $seenTagSlugs[$slug] = true;
             $tag = $this->tags->findOneBy(['slug' => $slug]) ?? new ChronicleTag();
             $tag->setSlug($slug);
             $tag->setName((string) ($row['name'] ?? $slug));

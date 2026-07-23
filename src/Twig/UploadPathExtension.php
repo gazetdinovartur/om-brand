@@ -35,19 +35,20 @@ final class UploadPathExtension extends AbstractExtension
 
         $path = ltrim(str_replace('\\', '/', $storedPath), '/');
         if (str_starts_with($path, 'uploads/')) {
-            return $path;
+            return $this->existingPublicRel($path);
         }
 
         if (str_contains($path, '/')) {
-            return 'uploads/'.$path;
+            return $this->existingPublicRel('uploads/'.$path) ?? 'uploads/'.$path;
         }
 
         $prefix = trim(str_replace('\\', '/', $directoryPrefix), '/');
         if ('' === $prefix) {
-            return 'uploads/'.$path;
+            return $this->existingPublicRel('uploads/'.$path) ?? 'uploads/'.$path;
         }
 
-        return 'uploads/'.$prefix.'/'.$path;
+        return $this->existingPublicRel('uploads/'.$prefix.'/'.$path)
+            ?? 'uploads/'.$prefix.'/'.$path;
     }
 
     /**
@@ -61,18 +62,16 @@ final class UploadPathExtension extends AbstractExtension
 
         $path = ltrim(str_replace('\\', '/', $storedPath), '/');
         if (str_starts_with($path, 'uploads/')) {
-            return is_file($this->projectDir.'/public/'.$path) ? $path : null;
+            return $this->existingPublicRel($path);
         }
 
         if (str_contains($path, '/')) {
-            $rel = 'uploads/'.$path;
-
-            return is_file($this->projectDir.'/public/'.$rel) ? $rel : null;
+            return $this->existingPublicRel('uploads/'.$path);
         }
 
         foreach (['chronicle/covers', 'chronicle/inline', 'chronicle/gallery'] as $dir) {
-            $rel = 'uploads/'.$dir.'/'.$path;
-            if (is_file($this->projectDir.'/public/'.$rel)) {
+            $rel = $this->existingPublicRel('uploads/'.$dir.'/'.$path);
+            if (null !== $rel) {
                 return $rel;
             }
         }
@@ -93,20 +92,39 @@ final class UploadPathExtension extends AbstractExtension
 
         $path = ltrim(str_replace('\\', '/', $storedPath), '/');
         if (str_starts_with($path, 'uploads/')) {
-            return is_file($this->projectDir.'/public/'.$path) ? $path : null;
+            return $this->existingPublicRel($path);
         }
 
         if (str_contains($path, '/')) {
-            $rel = 'uploads/'.$path;
-
-            return is_file($this->projectDir.'/public/'.$rel) ? $rel : null;
+            return $this->existingPublicRel('uploads/'.$path);
         }
 
         $dirs = \is_array($preferredDirs) ? $preferredDirs : [$preferredDirs];
         foreach ($dirs as $dir) {
-            $rel = 'uploads/'.trim(str_replace('\\', '/', (string) $dir), '/').'/'.$path;
-            if (is_file($this->projectDir.'/public/'.$rel)) {
+            $rel = $this->existingPublicRel('uploads/'.trim(str_replace('\\', '/', (string) $dir), '/').'/'.$path);
+            if (null !== $rel) {
                 return $rel;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Prefer the exact path; if optimizer left only .webp, fall back to it.
+     */
+    private function existingPublicRel(string $rel): ?string
+    {
+        $rel = ltrim(str_replace('\\', '/', $rel), '/');
+        $absolute = $this->projectDir.'/public/'.$rel;
+        if (is_file($absolute)) {
+            return $rel;
+        }
+
+        if (preg_match('/\.(jpe?g|png|gif)$/i', $rel) === 1) {
+            $webp = (string) preg_replace('/\.(jpe?g|png|gif)$/i', '.webp', $rel);
+            if (is_file($this->projectDir.'/public/'.$webp)) {
+                return $webp;
             }
         }
 

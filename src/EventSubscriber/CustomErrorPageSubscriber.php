@@ -9,6 +9,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Twig\Environment;
 
 final class CustomErrorPageSubscriber implements EventSubscriberInterface
@@ -35,6 +37,12 @@ final class CustomErrorPageSubscriber implements EventSubscriberInterface
         }
 
         $throwable = $event->getThrowable();
+
+        // Let the security firewall convert these into login redirect / 403.
+        if ($throwable instanceof AccessDeniedException || $throwable instanceof AuthenticationException) {
+            return;
+        }
+
         $statusCode = $this->resolveStatusCode($throwable);
 
         if (404 === $statusCode) {

@@ -116,7 +116,7 @@ else
 fi
 
 echo ""
-echo "✓ Sync файлов завершён${DRY_RUN:+ (dry-run)}."
+echo "✓ Sync файлов завершён$([ "$DRY_RUN" -eq 1 ] && echo ' (dry-run)')."
 echo ""
 echo "Дальше по SSH на проде (см. docs/prod-launch.md):"
 echo "  ssh -p $PORT -i $IDENTITY $DEPLOY_SSH"

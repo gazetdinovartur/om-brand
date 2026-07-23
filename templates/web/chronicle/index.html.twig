@@ -56,22 +56,33 @@
                     </svg>
                     <span class="visually-hidden">Избранное</span>
                 </button>
-                <button
-                    type="button"
-                    class="chronicle-hub__filters-toggle{% if filterCount > 0 %} is-active{% endif %}"
-                    data-chronicle-filters-toggle
-                    aria-expanded="false"
-                    aria-controls="chronicle-filters-panel"
-                >
-                    Фильтры{% if filterCount > 0 %}<span class="chronicle-hub__filters-count">{{ filterCount }}</span>{% endif %}
-                </button>
-                {% if filterCount > 0 %}
-                    <a class="chronicle-hub__reset" href="{{ path('web_chronicle') }}" data-chronicle-filters-reset>Сбросить</a>
-                {% endif %}
+                <div class="chronicle-hub__filters-actions">
+                    <button
+                        type="button"
+                        class="chronicle-hub__filters-toggle{% if filterCount > 0 %} is-active{% endif %}"
+                        data-chronicle-filters-toggle
+                        aria-expanded="false"
+                        aria-controls="chronicle-filters-panel"
+                    >
+                        Фильтры{% if filterCount > 0 %}<span class="chronicle-hub__filters-count">{{ filterCount }}</span>{% endif %}
+                    </button>
+                    {% if filterCount > 0 %}
+                        <a
+                            class="chronicle-hub__reset"
+                            href="{{ path('web_chronicle') }}"
+                            data-chronicle-filters-reset
+                            aria-label="Сбросить фильтры"
+                            title="Сбросить"
+                        >
+                            <span class="chronicle-hub__reset-label">Сбросить</span>
+                            <span class="chronicle-hub__reset-icon" aria-hidden="true">×</span>
+                        </a>
+                    {% endif %}
+                </div>
             </div>
 
             <div
-                class="chronicle-hub__panels{% if filterCount > 0 %} is-open{% endif %}"
+                class="chronicle-hub__panels"
                 id="chronicle-filters-panel"
                 data-chronicle-filters-panel
             >
@@ -79,7 +90,7 @@
                     <div class="chronicle-hub__row" role="navigation" aria-label="Каналы">
                         <p class="chronicle-hub__row-label">Каналы</p>
                         <div class="chronicle-hub__scroller">
-                            <a class="chronicle-chip{% if not activeSeries %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'series')) }}">Все</a>
+                            <a class="chronicle-chip{% if not activeSeries %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'series')) }}">Все серии</a>
                             {% for s in seriesList %}
                                 <a
                                     class="chronicle-chip{% if activeSeries and activeSeries.id == s.id %} is-active{% endif %}"
@@ -93,7 +104,7 @@
                 <div class="chronicle-hub__row" role="navigation" aria-label="Эпохи">
                     <p class="chronicle-hub__row-label">Эпохи</p>
                     <div class="chronicle-hub__scroller">
-                        <a class="chronicle-chip{% if not activeEra %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'era')) }}">Все</a>
+                        <a class="chronicle-chip{% if not activeEra %} is-active{% endif %}" href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'era')) }}">Все эпохи</a>
                         {% for era in eras %}
                             <a
                                 class="chronicle-chip{% if activeEra and activeEra.id == era.id %} is-active{% endif %}"
@@ -111,7 +122,7 @@
                             <a
                                 class="chronicle-tag{% if not activeTag %} is-active{% endif %}"
                                 href="{{ path('web_chronicle', filterQuery|filter((v, k) => k != 'tag')) }}"
-                            >Все</a>
+                                >Все теги</a>
                             {% for tag in tags %}
                                 <a
                                     class="chronicle-tag{% if activeTag and activeTag.id == tag.id %} is-active{% endif %}"

@@ -47,7 +47,6 @@ final class SeedChronicleCommand extends Command
         ['title' => 'Татарстан', 'slug' => 'tatarstan', 'order' => 80, 'period' => '10.2020–08.2021'],
         ['title' => 'Ботаника', 'slug' => 'botanika', 'order' => 85, 'period' => '09.2021–10.2021'],
         ['title' => 'Рассветная', 'slug' => 'rassvetnaya', 'order' => 90, 'color' => '#e8a849', 'period' => '10.2021–07.2025'],
-        ['title' => 'Зеленоград', 'slug' => 'zelenograd', 'order' => 95, 'period' => '04.2024 · 06.2024–08.2024'],
         ['title' => 'Коммуна', 'slug' => 'kommuna', 'order' => 100, 'color' => '#c87828', 'period' => '26.12.2025–13.05.2026 · внутри Ленина пять'],
         ['title' => 'Делайогу', 'slug' => 'delaiogu', 'order' => 110],
     ];

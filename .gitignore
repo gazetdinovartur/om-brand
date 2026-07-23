@@ -23,11 +23,11 @@ _symfony_tmp/
 .DS_Store
 .vk_token
 
-# Local-only: archives, corpus, analysis, tooling (not for git)
+# Local-only: archives, corpus, analysis (not for git)
 /content/
 /corpus/
 !/corpus/.gitkeep
 /analysis/
-/scripts/
+/scripts/__pycache__/
 /sgl-узоры/
 /public/uploads/chronicle/

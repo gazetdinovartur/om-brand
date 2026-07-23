@@ -33,15 +33,28 @@ final class ChronicleUploadStorage
 
     public function optimizeEntryImages(ChronicleEntry $entry): void
     {
-        $this->optimizePath($entry->getCoverImagePath(), 'chronicle/covers', 1600, 640);
-        $this->optimizePath($entry->getOgImagePath(), 'chronicle/covers', 1200, null);
+        $cover = $this->optimizePath($entry->getCoverImagePath(), 'chronicle/covers', 1600, 640);
+        if (null !== $cover) {
+            $entry->setCoverImagePath($cover);
+        }
+
+        $og = $this->optimizePath($entry->getOgImagePath(), 'chronicle/covers', 1200, null);
+        if (null !== $og) {
+            $entry->setOgImagePath($og);
+        }
 
         foreach ($entry->getBlocks() as $block) {
             if (null !== $block->getImagePath()) {
-                $this->optimizePath($block->getImagePath(), 'chronicle/inline', 1400, 640);
+                $inline = $this->optimizePath($block->getImagePath(), 'chronicle/inline', 1400, 640);
+                if (null !== $inline) {
+                    $block->setImagePath($inline);
+                }
             }
             foreach ($block->getImages() as $image) {
-                $this->optimizePath($image->getImagePath(), 'chronicle/gallery', 1400, 640);
+                $gallery = $this->optimizePath($image->getImagePath(), 'chronicle/gallery', 1400, 640);
+                if (null !== $gallery) {
+                    $image->setImagePath($gallery);
+                }
             }
         }
     }
@@ -64,17 +77,29 @@ final class ChronicleUploadStorage
         return basename($result['path']);
     }
 
-    private function optimizePath(?string $path, string $subdir, int $maxWidth, ?int $thumbWidth): void
+    private function optimizePath(?string $path, string $subdir, int $maxWidth, ?int $thumbWidth): ?string
     {
-        if (null === $path || '' === $path || str_ends_with(strtolower($path), '.webp')) {
-            return;
+        if (null === $path || '' === $path) {
+            return null;
         }
 
-        $relative = $subdir.'/'.basename($path);
+        $filename = basename(str_replace('\\', '/', $path));
+        if (str_ends_with(strtolower($filename), '.webp')) {
+            return $filename;
+        }
+
+        $relative = $subdir.'/'.$filename;
         if (!is_file($this->projectDir.'/public/uploads/'.$relative)) {
-            return;
+            $webp = preg_replace('/\.(jpe?g|png|gif)$/i', '.webp', $filename);
+            if (\is_string($webp) && is_file($this->projectDir.'/public/uploads/'.$subdir.'/'.$webp)) {
+                return $webp;
+            }
+
+            return $filename;
         }
 
-        $this->imageOptimizer->optimizeToWebp($relative, maxWidth: $maxWidth, thumbWidth: $thumbWidth);
+        $result = $this->imageOptimizer->optimizeToWebp($relative, maxWidth: $maxWidth, thumbWidth: $thumbWidth);
+
+        return basename($result['path']);
     }
 }
