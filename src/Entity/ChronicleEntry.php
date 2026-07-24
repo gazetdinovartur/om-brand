@@ -65,6 +65,10 @@ class ChronicleEntry
     #[ORM\Column]
     private int $readingTimeMin = 1;
 
+    /** Manual editorial order for admin DnD and public feed (ASC). */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $sortOrder = 0;
+
     #[ORM\Column]
     private bool $isFeatured = false;
 
@@ -294,6 +298,18 @@ class ChronicleEntry
     public function setReadingTimeMin(int $readingTimeMin): static
     {
         $this->readingTimeMin = max(1, $readingTimeMin);
+
+        return $this;
+    }
+
+    public function getSortOrder(): int
+    {
+        return $this->sortOrder;
+    }
+
+    public function setSortOrder(int $sortOrder): static
+    {
+        $this->sortOrder = $sortOrder;
 
         return $this;
     }

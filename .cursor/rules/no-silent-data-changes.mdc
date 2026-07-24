@@ -1,0 +1,11 @@
+---
+description: Never change credentials or live data without explicit user approval
+alwaysApply: true
+---
+
+# No silent data or credential changes
+
+- Never change passwords, API keys, env secrets, admin users, or other credentials unless the user explicitly asks.
+- Never mutate production/local live data (DB rows, uploads, seeded content) for “testing convenience” without prior agreement.
+- Prefer read-only verification, fixtures, or disposable test DB. If a write is required to verify, ask first and state exactly what will change.
+- If a previous mistake locked or altered credentials, restore only with user confirmation — except when the user explicitly asks to fix a lockout/block they just reported.

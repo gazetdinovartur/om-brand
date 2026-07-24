@@ -43,6 +43,7 @@ final class ChronicleEntryServiceTest extends TestCase
             new ChronicleHashGenerator($hashRepo),
             new ChronicleMarkdownRenderer(),
             new AsciiSlugger(),
+            $hashRepo,
         );
 
         $data = $service->serialize($entry);

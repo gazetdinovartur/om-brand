@@ -14,6 +14,7 @@
 #   ./sync-prod-content.sh --dry-run
 #   ./sync-prod-content.sh --corpus-only
 #   ./sync-prod-content.sh --cases-only
+#   ./sync-prod-content.sh --drafts     # + ChatExport приватных каналов (om/research/culture/mirror)
 #
 set -euo pipefail
 
@@ -24,6 +25,15 @@ DRY_RUN=0
 CORPUS_ONLY=0
 CASES_ONLY=0
 SKIP_MEDIA=0
+DRAFTS=0
+
+# Приватные TG-каналы (черновики + зеркало) — медиа для импорта картинок
+DRAFT_EXPORTS=(
+    content/ChatExport_2026-07-20_om
+    content/ChatExport_2026-07-20_research
+    content/ChatExport_2026-07-20_culture
+    content/ChatExport_2026-07-20_mirror
+)
 
 usage() {
     cat <<'EOF'
@@ -33,6 +43,7 @@ usage() {
   --corpus-only   Только corpus/ (без content/instagram|vk и cases)
   --cases-only    Только public/uploads/cases/
   --skip-media    Corpus + cases, без content/instagram|vk
+  --drafts        Также rsync ChatExport om/research/culture/mirror
   -h, --help      Справка
 
 После rsync на сервере выполните команды из docs/prod-launch.md (§ Синк).
@@ -45,6 +56,7 @@ while [[ $# -gt 0 ]]; do
         --corpus-only) CORPUS_ONLY=1 ;;
         --cases-only) CASES_ONLY=1 ;;
         --skip-media) SKIP_MEDIA=1 ;;
+        --drafts) DRAFTS=1 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Неизвестная опция: $1" >&2; usage; exit 1 ;;
     esac
@@ -115,6 +127,18 @@ else
     fi
 fi
 
+if [[ $DRAFTS -eq 1 && $CASES_ONLY -eq 0 ]]; then
+    log "Синк ChatExport приватных каналов (черновики + зеркало)…"
+    $RSYNC_RSH "$DEPLOY_SSH" "mkdir -p '$DEPLOY_REMOTE_ROOT/content'"
+    for export_dir in "${DRAFT_EXPORTS[@]}"; do
+        if [[ -d "$export_dir" ]]; then
+            rsync_to "${export_dir}/" "$REMOTE/${export_dir}/"
+        else
+            log "Пропуск (нет локально): $export_dir"
+        fi
+    done
+fi
+
 echo ""
 echo "✓ Sync файлов завершён$([ "$DRY_RUN" -eq 1 ] && echo ' (dry-run)')."
 echo ""
@@ -125,6 +149,9 @@ echo "  php bin/console app:chronicle:seed-meta --env=prod"
 echo "  php bin/console app:chronicle:import --channel=da-i-da --env=prod"
 echo "  php bin/console app:chronicle:import --channel=instagram --env=prod"
 echo "  php bin/console app:chronicle:import --channel=vk --env=prod"
+echo "  # черновики приватных каналов (в админке, не на сайте):"
+echo "  php bin/console app:chronicle:import --channel=om --channel=research --channel=culture --env=prod"
+echo "  php bin/console app:chronicle:import --channel=mirror --env=prod"
 echo "  php bin/console app:chronicle:seed-likes --env=prod"
 echo "  php bin/console app:cases:seed --env=prod"
 echo "  php bin/console cache:clear --env=prod"

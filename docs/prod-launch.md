@@ -114,6 +114,12 @@ php bin/console app:chronicle:seed-meta --env=prod
 php bin/console app:chronicle:import --channel=da-i-da --env=prod
 php bin/console app:chronicle:import --channel=instagram --env=prod
 php bin/console app:chronicle:import --channel=vk --env=prod
+
+# черновики приватных TG (om / research / culture) + зеркало — только в админке
+# медиа: ./sync-prod-content.sh --drafts  (или --corpus-only + --drafts)
+php bin/console app:chronicle:import --channel=om --channel=research --channel=culture --env=prod
+php bin/console app:chronicle:import --channel=mirror --env=prod
+
 php bin/console app:chronicle:seed-likes --env=prod
 
 # кейсы как черновики (публикуешь сам в админке)
@@ -128,8 +134,10 @@ php bin/console cache:warmup --env=prod
 После проверки картинок на `/chronicle` исходники можно убрать (uploads остаются):
 
 ```bash
-rm -rf content/instagram content/vk
-# corpus/ лучше оставить
+rm -rf content/instagram content/instagram-heyteaflow content/vk \
+  content/ChatExport_2026-07-20_om content/ChatExport_2026-07-20_research \
+  content/ChatExport_2026-07-20_culture content/ChatExport_2026-07-20_mirror
+# corpus/ лучше оставить — повторный text/title sync без media
 ```
 
 ---

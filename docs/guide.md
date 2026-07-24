@@ -216,10 +216,13 @@ docker compose exec php php bin/console app:chronicle:seed-meta
 docker compose exec php php bin/console app:chronicle:import --channel=da-i-da
 docker compose exec php php bin/console app:chronicle:import --channel=instagram
 docker compose exec php php bin/console app:chronicle:import --channel=vk
+docker compose exec php php bin/console app:chronicle:import --channel=om --channel=research --channel=culture
+docker compose exec php php bin/console app:chronicle:import --channel=mirror
 docker compose exec php php bin/console app:chronicle:seed-likes
-# черновики TG (не на сайте, пока draft):
-# docker compose exec php php bin/console app:chronicle:import --channel=om --channel=research --channel=culture
 ```
+
+Черновики приватных каналов (`om`, `research`, `culture`) — в админке, на сайт не попадают, пока `status=draft`.  
+В корпусе волны склеиваются: части волны → `calloutStyle=continuation`, комментарии из discussion → `calloutStyle=comments` («продолжения»).
 
 Импорт идемпотентен по `source_key`. Обновляет title, lede, блоки, медиа.  
 **Не трогает** `isFeatured` (♥ в админке).
@@ -305,7 +308,9 @@ php bin/console cache:clear --env=prod
 
 ```bash
 # осторожно: только если import уже прошёл
-rm -rf content/instagram content/vk
+rm -rf content/instagram content/instagram-heyteaflow content/vk \
+  content/ChatExport_2026-07-20_om content/ChatExport_2026-07-20_research \
+  content/ChatExport_2026-07-20_culture content/ChatExport_2026-07-20_mirror
 # corpus/ лучше оставить — пригодится для повторного title/text sync
 ```
 

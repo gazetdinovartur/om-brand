@@ -1,0 +1,185 @@
+/* Chronicle admin index: filters + drag + featured heart */
+
+.chronicle-admin-heart {
+    color: rgba(26, 22, 18, 0.25);
+    padding: 0.15rem;
+    line-height: 1;
+    text-decoration: none !important;
+}
+
+.chronicle-admin-heart.is-active,
+.chronicle-admin-heart:hover {
+    color: #c45c4a;
+}
+
+.chronicle-admin-heart svg {
+    display: block;
+}
+
+.chronicle-admin-drag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    color: rgba(26, 22, 18, 0.35);
+    cursor: grab;
+    user-select: none;
+    font-size: 0.95rem;
+    letter-spacing: -0.05em;
+    line-height: 1;
+}
+
+.chronicle-admin-drag:active {
+    cursor: grabbing;
+}
+
+.chronicle-admin-row-ghost {
+    opacity: 0.45;
+}
+
+.chronicle-admin-row-chosen {
+    background: rgba(200, 120, 40, 0.08) !important;
+}
+
+/* Editor / delete: icons only, one row */
+.ea-index .datagrid td.actions {
+    white-space: nowrap;
+    width: 1%;
+    vertical-align: middle;
+}
+
+.ea-index .datagrid td.actions .action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    flex-wrap: nowrap;
+}
+
+.ea-index .datagrid td.actions .chronicle-admin-row-action,
+.ea-index .datagrid td.actions a.action-editor,
+.ea-index .datagrid td.actions a.action-delete,
+.ea-index .datagrid td.actions button.action-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.35rem;
+    line-height: 1;
+}
+
+.ea-index .datagrid td.actions .action-label {
+    display: none;
+}
+
+/* Premium filter toolbar */
+.chronicle-admin-filters {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0 0 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(26, 22, 18, 0.08);
+    background: linear-gradient(180deg, #fffdf9 0%, #faf7f2 100%);
+}
+
+.chronicle-admin-filters__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.chronicle-admin-filters__sep {
+    width: 1px;
+    height: 1.35rem;
+    margin: 0 0.25rem;
+    background: rgba(26, 22, 18, 0.12);
+}
+
+.chronicle-admin-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(26, 22, 18, 0.1);
+    background: #fff;
+    color: #1f1a14;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1.2;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chronicle-admin-chip:hover {
+    border-color: rgba(200, 120, 40, 0.4);
+    background: #fff4e8;
+    color: #1f1a14;
+}
+
+.chronicle-admin-chip.is-active {
+    border-color: rgba(200, 120, 40, 0.55);
+    background: rgba(200, 120, 40, 0.14);
+    color: #1f1a14;
+}
+
+.chronicle-admin-chip--toggle.is-active {
+    border-color: rgba(196, 92, 74, 0.45);
+    background: rgba(196, 92, 74, 0.12);
+}
+
+.chronicle-admin-filters__reset {
+    margin-left: auto;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #8a7b6a;
+    text-decoration: none;
+}
+
+.chronicle-admin-filters__reset:hover {
+    color: #c45c4a;
+}
+
+.chronicle-admin-filters__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chronicle-admin-filters__select select {
+    min-width: 10.5rem;
+    max-width: 16rem;
+    padding: 0.4rem 0.65rem;
+    border-radius: 0.55rem;
+    border: 1px solid rgba(26, 22, 18, 0.12);
+    background: #fff;
+    color: #1f1a14;
+    font-size: 0.84rem;
+}
+
+.chronicle-admin-filters__select select:focus {
+    outline: 2px solid rgba(200, 120, 40, 0.35);
+    outline-offset: 1px;
+}
+
+@media (max-width: 720px) {
+    .chronicle-admin-filters__sep {
+        display: none;
+    }
+
+    .chronicle-admin-filters__reset {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .chronicle-admin-filters__select select {
+        min-width: 100%;
+        max-width: none;
+    }
+
+    .chronicle-admin-filters__meta {
+        flex-direction: column;
+    }
+}

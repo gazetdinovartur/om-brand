@@ -9,6 +9,7 @@ use App\Entity\ChronicleTag;
 use App\Enum\ChronicleBlockType;
 use App\Enum\ChronicleStatus;
 use App\Repository\ChronicleEraRepository;
+use App\Repository\ChronicleEntryRepository;
 use App\Repository\ChronicleSeriesRepository;
 use App\Repository\ChronicleTagRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,6 +25,7 @@ final class ChronicleEntryService
         private readonly ChronicleHashGenerator $hashGenerator,
         private readonly ChronicleMarkdownRenderer $markdown,
         private readonly SluggerInterface $slugger,
+        private readonly ChronicleEntryRepository $entries,
     ) {
     }
 
@@ -33,6 +35,7 @@ final class ChronicleEntryService
         $entry->setShortHash($this->hashGenerator->generateUnique());
         $entry->setSlug('draft-'.$entry->getShortHash());
         $entry->setTitle('Новая запись');
+        $entry->setSortOrder($this->entries->nextTopSortOrder());
         $this->em->persist($entry);
         $this->em->flush();
 

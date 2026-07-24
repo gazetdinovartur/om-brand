@@ -150,17 +150,267 @@ def merge_message_reactions(messages: list[dict[str, Any]]) -> dict[str, int]:
     return dict(counts)
 
 
+def parse_message_dt(msg: dict[str, Any]) -> datetime | None:
+    date_raw = msg.get("date") or ""
+    try:
+        return datetime.fromisoformat(str(date_raw).replace("Z", "+00:00"))
+    except ValueError:
+        unixtime = msg.get("date_unixtime")
+        if unixtime is None:
+            return None
+        return datetime.fromtimestamp(int(unixtime), tz=UTC)
+
+
+def collect_message_photos(msg: dict[str, Any]) -> list[str]:
+    photos: list[str] = []
+    if msg.get("photo"):
+        photos.append(str(msg["photo"]))
+    file_path = msg.get("file")
+    if file_path and str(file_path).lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+        photos.append(str(file_path))
+    return photos
+
+
+def build_comment_index(
+    comments_path: Path | None,
+    channel_msgs: list[dict[str, Any]],
+    forward_name: str | None,
+) -> dict[int, list[dict[str, Any]]]:
+    """Map channel message id → comment messages from the discussion export."""
+    index: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    if comments_path is None or not comments_path.is_file():
+        return index
+
+    data = json.loads(comments_path.read_text(encoding="utf-8"))
+    comments = [m for m in (data.get("messages") or []) if isinstance(m, dict) and m.get("type") == "message"]
+
+    by_prefix: dict[str, int] = {}
+    for m in channel_msgs:
+        text = flatten_telegram_text(m.get("text")).strip()
+        if len(text) >= 20:
+            by_prefix[text[:60]] = int(m["id"])
+
+    fwd_to_channel: dict[int, int] = {}
+    children: dict[int, list[dict[str, Any]]] = defaultdict(list)
+
+    for m in comments:
+        reply_to = m.get("reply_to_message_id")
+        if reply_to:
+            children[int(reply_to)].append(m)
+
+        if forward_name and m.get("forwarded_from") == forward_name:
+            text = flatten_telegram_text(m.get("text")).strip()
+            channel_id = by_prefix.get(text[:60])
+            if channel_id is not None:
+                fwd_to_channel[int(m["id"])] = channel_id
+
+    def collect_thread(root_id: int) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        stack = list(children.get(root_id, []))
+        seen: set[int] = set()
+        while stack:
+            node = stack.pop()
+            nid = int(node["id"])
+            if nid in seen:
+                continue
+            seen.add(nid)
+            out.append(node)
+            stack.extend(children.get(nid, []))
+        return out
+
+    for fwd_id, channel_id in fwd_to_channel.items():
+        for node in collect_thread(fwd_id):
+            index[channel_id].append(node)
+
+    for key, values in list(index.items()):
+        seen_ids: set[int] = set()
+        uniq: list[dict[str, Any]] = []
+        for m in values:
+            mid = int(m["id"])
+            if mid in seen_ids:
+                continue
+            seen_ids.add(mid)
+            if forward_name and m.get("forwarded_from") == forward_name and not m.get("reply_to_message_id"):
+                if flatten_telegram_text(m.get("text")).strip() and mid in fwd_to_channel:
+                    continue
+            uniq.append(m)
+        index[key] = uniq
+
+    return index
+
+
+def entry_tags(text: str, channel: dict[str, Any], patterns: dict[str, re.Pattern[str]]) -> list[str]:
+    tags: list[str] = []
+    channel_tag = channel.get("channel_tag")
+    if isinstance(channel_tag, str) and channel_tag:
+        tags.append(channel_tag)
+    tags.extend(detect_tags(text, patterns))
+    return list(dict.fromkeys(tags))
+
+
+def finalize_entry(entry: dict[str, Any], channel: dict[str, Any]) -> dict[str, Any]:
+    if channel.get("admin_only"):
+        entry["admin_only"] = True
+    if channel.get("unlisted"):
+        entry["unlisted"] = True
+    return entry
+
+
+def build_wave_entry(
+    wave: list[dict[str, Any]],
+    channel: dict[str, Any],
+    catalog: dict[str, Any],
+    patterns: dict[str, re.Pattern[str]],
+    comment_index: dict[int, list[dict[str, Any]]],
+    *,
+    per_message: bool = False,
+) -> dict[str, Any] | None:
+    channel_id = str(channel["id"])
+    min_chars = int(channel.get("min_chars") or 40)
+    forward_name = channel.get("comments_forward_name")
+
+    parts = [m["text"] for m in wave if m.get("text")]
+    body = "\n\n".join(parts).strip()
+    photos: list[str] = []
+    for msg in wave:
+        photos.extend(msg.get("photos") or [])
+
+    comments_unique: list[dict[str, Any]] = []
+    seen_c: set[int] = set()
+    for msg in wave:
+        for c in comment_index.get(int(msg["id"]), []):
+            cid = int(c["id"])
+            if cid in seen_c:
+                continue
+            if forward_name and c.get("forwarded_from") == forward_name:
+                continue
+            ct = flatten_telegram_text(c.get("text")).strip()
+            if not ct:
+                continue
+            seen_c.add(cid)
+            comments_unique.append({"id": cid, "text": ct})
+
+    if len(body) < min_chars and not photos and not comments_unique:
+        return None
+
+    first = wave[0]
+    last = wave[-1]
+    dt = first["dt"]
+    mid = int(first["id"])
+
+    blocks: list[dict[str, Any]] = []
+    if len(parts) <= 1:
+        if body:
+            blocks.append({"type": "paragraph", "body": body})
+    else:
+        blocks.append({"type": "paragraph", "body": parts[0]})
+        for part in parts[1:]:
+            blocks.append({"type": "divider"})
+            blocks.append({"type": "callout", "calloutStyle": "continuation", "body": part})
+
+    title = build_title(body or (parts[0] if parts else ""), dt)
+    for photo in photos:
+        blocks.append({"type": "image", "sourcePath": photo, "alt": title[:120]})
+
+    if comments_unique:
+        blocks.append({"type": "divider"})
+        comment_body = "\n\n".join(f"— {c['text']}" for c in comments_unique)
+        blocks.append(
+            {
+                "type": "callout",
+                "calloutStyle": "comments",
+                "body": "**продолжения**\n\n" + comment_body,
+            }
+        )
+
+    reaction_meta = format_reactions_meta(merge_message_reactions(wave))
+    if reaction_meta:
+        blocks.append({"type": "callout", "calloutStyle": "meta", "body": reaction_meta})
+
+    if per_message:
+        source_key = f"tg:{channel_id}:msg:{mid}"
+        slug_hint = slugify(f"{channel_id}-{dt.strftime('%Y%m%d')}-{mid}")
+    else:
+        source_key = f"tg:{channel_id}:wave:{first['id']}-{last['id']}"
+        slug_hint = slugify(title)
+
+    entry = {
+        "source_key": source_key,
+        "channel": channel_id,
+        "platform": "telegram",
+        "title": title,
+        "slug_hint": slug_hint,
+        "lede": (parts[0][:240] if parts else None),
+        "status": channel.get("status", "draft"),
+        "date": dt.isoformat(timespec="seconds") if hasattr(dt, "isoformat") else first.get("date"),
+        "era": assign_era(dt, catalog),
+        "series": channel.get("series"),
+        "tags": entry_tags(body, channel, patterns),
+        "message_ids": [m["id"] for m in wave],
+        "media_dir": channel.get("media_dir"),
+        "blocks": blocks,
+        "stats": {
+            "chars": len(body),
+            "parts": len(parts),
+            "comments": len(comments_unique),
+            "images": len(photos),
+        },
+    }
+    return finalize_entry(entry, channel)
+
+
 def parse_telegram_export(path: Path, channel: dict[str, Any], catalog: dict[str, Any]) -> list[dict[str, Any]]:
+    """Parse a Telegram Desktop export.
+
+    Waves (messages within wave_gap_minutes) become one chronicle entry.
+    Extra parts of a wave → calloutStyle=continuation.
+    Discussion comments (comments_path) → calloutStyle=comments («продолжения»).
+    per_message channels (mirror) keep one entry per message.
+    """
     if not path.is_file():
         return []
     data = json.loads(path.read_text(encoding="utf-8"))
-    messages = data.get("messages") or []
+    raw_messages = [m for m in (data.get("messages") or []) if isinstance(m, dict) and m.get("type") == "message"]
     patterns = compile_theme_patterns(catalog)
     wave_gap = int(channel.get("wave_gap_minutes") or 45) * 60
-    min_chars = int(channel.get("min_chars") or 40)
-    channel_id = str(channel["id"])
+    per_message = bool(channel.get("per_message"))
 
-    entries: list[dict[str, Any]] = []
+    comments_rel = channel.get("comments_path")
+    comments_path = ROOT / comments_rel if isinstance(comments_rel, str) and comments_rel else None
+    comment_index = build_comment_index(comments_path, raw_messages, channel.get("comments_forward_name"))
+
+    items: list[dict[str, Any]] = []
+    for msg in raw_messages:
+        dt = parse_message_dt(msg)
+        if dt is None or msg.get("id") is None:
+            continue
+        items.append(
+            {
+                "id": msg["id"],
+                "text": flatten_telegram_text(msg.get("text")).strip(),
+                "dt": dt,
+                "date": msg.get("date"),
+                "photos": collect_message_photos(msg),
+                "reactions": msg.get("reactions") or [],
+            }
+        )
+
+    if per_message:
+        entries: list[dict[str, Any]] = []
+        for item in items:
+            entry = build_wave_entry(
+                [item],
+                channel,
+                catalog,
+                patterns,
+                comment_index,
+                per_message=True,
+            )
+            if entry:
+                entries.append(entry)
+        return entries
+
+    entries = []
     current_wave: list[dict[str, Any]] = []
     last_dt: datetime | None = None
 
@@ -168,74 +418,13 @@ def parse_telegram_export(path: Path, channel: dict[str, Any], catalog: dict[str
         nonlocal current_wave
         if not current_wave:
             return
-        texts = [m["text"] for m in current_wave if m.get("text")]
-        body = "\n\n".join(texts).strip()
-        if len(body) < min_chars:
-            current_wave = []
-            return
-
-        first = current_wave[0]
-        last = current_wave[-1]
-        dt = first["dt"]
-        blocks: list[dict[str, Any]] = [{"type": "paragraph", "body": body}]
-        for msg in current_wave:
-            for photo in msg.get("photos") or []:
-                blocks.append({"type": "image", "sourcePath": photo, "alt": ""})
-
-        reaction_meta = format_reactions_meta(merge_message_reactions(current_wave))
-        if reaction_meta:
-            blocks.append({"type": "callout", "calloutStyle": "meta", "body": reaction_meta})
-
-        title = build_title(body, dt)
-        first_id = first["id"]
-        last_id = last["id"]
-        entry = {
-            "source_key": f"tg:{channel_id}:wave:{first_id}-{last_id}",
-            "channel": channel_id,
-            "platform": "telegram",
-            "title": title,
-            "slug_hint": slugify(title),
-            "lede": body.split("\n", 1)[0][:240] if body else None,
-            "status": channel.get("status", "draft"),
-            "date": dt.isoformat(timespec="seconds"),
-            "era": assign_era(dt, catalog),
-            "series": channel.get("series"),
-            "tags": detect_tags(body, patterns),
-            "media_dir": channel.get("media_dir"),
-            "blocks": blocks,
-        }
-        if channel.get("admin_only"):
-            entry["admin_only"] = True
-        if channel.get("unlisted"):
-            entry["unlisted"] = True
-        entries.append(entry)
+        entry = build_wave_entry(current_wave, channel, catalog, patterns, comment_index)
+        if entry:
+            entries.append(entry)
         current_wave = []
 
-    for msg in messages:
-        if msg.get("type") != "message":
-            continue
-        text = flatten_telegram_text(msg.get("text")).strip()
-        date_raw = msg.get("date") or ""
-        try:
-            dt = datetime.fromisoformat(str(date_raw).replace("Z", "+00:00"))
-        except ValueError:
-            unixtime = msg.get("date_unixtime")
-            if unixtime is None:
-                continue
-            dt = datetime.fromtimestamp(int(unixtime), tz=UTC)
-
-        photos: list[str] = []
-        if msg.get("photo"):
-            photos.append(str(msg["photo"]))
-        # Telegram desktop also nests photos in files sometimes; keep simple path from export.
-        item = {
-            "id": msg.get("id"),
-            "text": text,
-            "dt": dt,
-            "photos": photos,
-            "reactions": msg.get("reactions") or [],
-        }
-
+    for item in items:
+        dt = item["dt"]
         if last_dt is not None and (dt - last_dt).total_seconds() > wave_gap:
             flush_wave()
         current_wave.append(item)

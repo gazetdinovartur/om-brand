@@ -1,0 +1,100 @@
+{% set cf = chronicleCf|default({status: null, series: null, era: null, tag: null, featured: null, unlisted: null}) %}
+{% set cfCount = chronicleCfCount|default(0) %}
+{% set statuses = chronicleStatuses|default([]) %}
+{% set seriesList = chronicleSeriesList|default([]) %}
+{% set eraList = chronicleEraList|default([]) %}
+{% set tagList = chronicleTagList|default([]) %}
+
+{% set cfBase = {} %}
+{% if cf.status %}{% set cfBase = cfBase|merge({status: cf.status.value}) %}{% endif %}
+{% if cf.series %}{% set cfBase = cfBase|merge({series: cf.series}) %}{% endif %}
+{% if cf.era %}{% set cfBase = cfBase|merge({era: cf.era}) %}{% endif %}
+{% if cf.tag %}{% set cfBase = cfBase|merge({tag: cf.tag}) %}{% endif %}
+{% if cf.featured is same as(true) %}{% set cfBase = cfBase|merge({featured: '1'}) %}{% endif %}
+{% if cf.unlisted is same as(true) %}{% set cfBase = cfBase|merge({unlisted: '1'}) %}{% endif %}
+
+{% set cfWithoutStatus = cfBase|filter((v, k) => k != 'status') %}
+{% set cfWithoutFeatured = cfBase|filter((v, k) => k != 'featured') %}
+{% set cfWithoutUnlisted = cfBase|filter((v, k) => k != 'unlisted') %}
+
+<nav class="chronicle-admin-filters" aria-label="Фильтры хроники" data-chronicle-admin-filters>
+    <div class="chronicle-admin-filters__row chronicle-admin-filters__row--statuses">
+        <a
+            class="chronicle-admin-chip{% if cf.status is null %} is-active{% endif %}"
+            href="{% if cfWithoutStatus is empty %}{{ ea_url().unset('cf').set('page', 1) }}{% else %}{{ ea_url().set('cf', cfWithoutStatus).set('page', 1) }}{% endif %}"
+        >Все</a>
+        {% for status in statuses %}
+            {% set statusCf = cfBase|merge({status: status.value}) %}
+            <a
+                class="chronicle-admin-chip{% if cf.status and cf.status.value == status.value %} is-active{% endif %}"
+                href="{{ ea_url().set('cf', statusCf).set('page', 1) }}"
+            >{{ status.label() }}</a>
+        {% endfor %}
+
+        <span class="chronicle-admin-filters__sep" aria-hidden="true"></span>
+
+        {% if cf.featured is same as(true) %}
+            <a
+                class="chronicle-admin-chip chronicle-admin-chip--toggle is-active"
+                href="{% if cfWithoutFeatured is empty %}{{ ea_url().unset('cf').set('page', 1) }}{% else %}{{ ea_url().set('cf', cfWithoutFeatured).set('page', 1) }}{% endif %}"
+                title="Показать все"
+            >♥ Избранное</a>
+        {% else %}
+            <a
+                class="chronicle-admin-chip chronicle-admin-chip--toggle"
+                href="{{ ea_url().set('cf', cfBase|merge({featured: '1'})).set('page', 1) }}"
+                title="Только избранное"
+            >♥ Избранное</a>
+        {% endif %}
+
+        {% if cf.unlisted is same as(true) %}
+            <a
+                class="chronicle-admin-chip chronicle-admin-chip--toggle is-active"
+                href="{% if cfWithoutUnlisted is empty %}{{ ea_url().unset('cf').set('page', 1) }}{% else %}{{ ea_url().set('cf', cfWithoutUnlisted).set('page', 1) }}{% endif %}"
+                title="Показать все"
+            >Unlisted</a>
+        {% else %}
+            <a
+                class="chronicle-admin-chip chronicle-admin-chip--toggle"
+                href="{{ ea_url().set('cf', cfBase|merge({unlisted: '1'})).set('page', 1) }}"
+                title="Только unlisted"
+            >Unlisted</a>
+        {% endif %}
+
+        {% if cfCount > 0 %}
+            <a class="chronicle-admin-filters__reset" href="{{ ea_url().unset('cf').set('page', 1) }}">
+                Сбросить{% if cfCount > 1 %} · {{ cfCount }}{% endif %}
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="chronicle-admin-filters__meta">
+        <label class="chronicle-admin-filters__select">
+            <span class="visually-hidden">Канал</span>
+            <select data-chronicle-cf-select data-cf-key="series">
+                <option value="">Все каналы</option>
+                {% for s in seriesList %}
+                    <option value="{{ s.id }}"{% if cf.series == s.id %} selected{% endif %}>{{ s.title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="chronicle-admin-filters__select">
+            <span class="visually-hidden">Эпоха</span>
+            <select data-chronicle-cf-select data-cf-key="era">
+                <option value="">Все эпохи</option>
+                {% for e in eraList %}
+                    <option value="{{ e.id }}"{% if cf.era == e.id %} selected{% endif %}>{{ e.title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="chronicle-admin-filters__select">
+            <span class="visually-hidden">Тег</span>
+            <select data-chronicle-cf-select data-cf-key="tag">
+                <option value="">Все теги</option>
+                {% for t in tagList %}
+                    <option value="{{ t.id }}"{% if cf.tag == t.id %} selected{% endif %}>{{ t.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+</nav>

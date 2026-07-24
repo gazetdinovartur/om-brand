@@ -24,6 +24,38 @@ class ChronicleEntryRepository extends ServiceEntityRepository
         parent::__construct($registry, ChronicleEntry::class);
     }
 
+    /** Lowest sort_order so a new draft appears at the top of the feed. */
+    public function nextTopSortOrder(): int
+    {
+        $min = $this->createQueryBuilder('e')
+            ->select('MIN(e.sortOrder)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        if (null === $min) {
+            return 0;
+        }
+
+        return ((int) $min) - 10;
+    }
+
+    /**
+     * All entry ids ordered by editorial sort (for DnD splice).
+     *
+     * @return list<int>
+     */
+    public function findOrderedIds(): array
+    {
+        $rows = $this->createQueryBuilder('e')
+            ->select('e.id')
+            ->orderBy('e.sortOrder', 'ASC')
+            ->addOrderBy('e.id', 'DESC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_map(static fn (mixed $id): int => (int) $id, $rows);
+    }
+
     public function findForEditor(int $id): ?ChronicleEntry
     {
         return $this->createQueryBuilder('e')
@@ -56,9 +88,11 @@ class ChronicleEntryRepository extends ServiceEntityRepository
 
         if (!empty($filters['liked']) && !empty($filters['visitorToken'])) {
             $qb->orderBy('cl.createdAt', 'DESC')
+                ->addOrderBy('e.sortOrder', 'ASC')
                 ->addOrderBy('e.publishedAt', 'DESC');
         } else {
-            $qb->orderBy('e.publishedAt', 'DESC');
+            $qb->orderBy('e.sortOrder', 'ASC')
+                ->addOrderBy('e.publishedAt', 'DESC');
         }
 
         return $qb
