@@ -183,7 +183,7 @@ class CaseStudyCrudController extends AbstractCrudController
 
         yield FormField::addTab('История', 'fa fa-book-open');
         yield FormField::addFieldset('Рассказ')
-            ->setHelp('Три коротких блока — как другу, без пафоса.');
+            ->setHelp('Три коротких блока — как другу, без пафоса. Ссылка: [текст](https://…). Также **жирный** и *курсив*.');
         yield TextareaField::new('storyHook', 'Вступление')
             ->setColumns(12)
             ->setNumOfRows(3)

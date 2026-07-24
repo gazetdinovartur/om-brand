@@ -77,7 +77,8 @@ class ChronicleEntryRepository extends ServiceEntityRepository
      *     series?: ?ChronicleSeries,
      *     year?: ?int,
      *     liked?: bool|null,
-     *     visitorToken?: string|null
+     *     visitorToken?: string|null,
+     *     q?: string|null
      * } $filters
      *
      * @return list<ChronicleEntry>
@@ -109,7 +110,8 @@ class ChronicleEntryRepository extends ServiceEntityRepository
      *     series?: ?ChronicleSeries,
      *     year?: ?int,
      *     liked?: bool|null,
-     *     visitorToken?: string|null
+     *     visitorToken?: string|null,
+     *     q?: string|null
      * } $filters
      */
     public function countFiltered(array $filters = []): int
@@ -118,6 +120,44 @@ class ChronicleEntryRepository extends ServiceEntityRepository
             ->select('COUNT(DISTINCT e.id)')
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /** Trim, length-cap, and drop too-short search strings. */
+    public static function normalizeSearchQuery(string $raw): ?string
+    {
+        $q = trim(preg_replace('/\s+/u', ' ', $raw) ?? '');
+        if ('' === $q) {
+            return null;
+        }
+        if (mb_strlen($q) > 100) {
+            $q = mb_substr($q, 0, 100);
+        }
+        if (mb_strlen($q) < 2) {
+            return null;
+        }
+
+        return $q;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function searchTerms(string $query): array
+    {
+        $parts = preg_split('/\s+/u', $query, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $terms = [];
+        foreach ($parts as $part) {
+            $term = trim($part);
+            if ('' === $term || mb_strlen($term) < 2) {
+                continue;
+            }
+            $terms[$term] = $term;
+            if (\count($terms) >= 8) {
+                break;
+            }
+        }
+
+        return array_values($terms);
     }
 
     /** @return list<int> */
@@ -405,7 +445,8 @@ class ChronicleEntryRepository extends ServiceEntityRepository
      *     series?: ?ChronicleSeries,
      *     year?: ?int,
      *     liked?: bool|null,
-     *     visitorToken?: string|null
+     *     visitorToken?: string|null,
+     *     q?: string|null
      * } $filters
      */
     private function filteredQuery(array $filters): QueryBuilder
@@ -460,6 +501,45 @@ class ChronicleEntryRepository extends ServiceEntityRepository
                 ->setParameter('featured', (bool) $filters['featured']);
         }
 
+        $search = isset($filters['q']) && \is_string($filters['q']) ? self::normalizeSearchQuery($filters['q']) : null;
+        if (null !== $search) {
+            $this->applyFullTextSearch($qb, $search);
+        }
+
         return $qb;
+    }
+
+    private function applyFullTextSearch(QueryBuilder $qb, string $query): void
+    {
+        $terms = self::searchTerms($query);
+        if ([] === $terms) {
+            $terms = [$query];
+        }
+
+        foreach ($terms as $i => $term) {
+            $param = 'searchTerm'.$i;
+            $like = '%'.$this->escapeLike($term).'%';
+            $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->like('e.title', ':'.$param),
+                $qb->expr()->like('e.lede', ':'.$param),
+                $qb->expr()->like('e.excerpt', ':'.$param),
+                $qb->expr()->exists(
+                    'SELECT 1 FROM App\Entity\ChronicleBlock sb'.$i
+                    .' WHERE sb'.$i.'.entry = e AND ('
+                    .'sb'.$i.'.body LIKE :'.$param
+                    .' OR sb'.$i.'.caption LIKE :'.$param
+                    .')'
+                ),
+            ))->setParameter($param, $like);
+        }
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return str_replace(
+            ['\\', '%', '_'],
+            ['\\\\', '\\%', '\\_'],
+            $value,
+        );
     }
 }

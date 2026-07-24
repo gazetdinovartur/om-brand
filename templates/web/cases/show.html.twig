@@ -38,7 +38,7 @@
         </nav>
 
         {% if case.storyHook %}
-            <p class="case-detail__hook">{{ case.storyHook }}</p>
+            <div class="case-detail__hook">{{ case.storyHook|chronicle_markdown|raw }}</div>
         {% endif %}
 
         {% if videoEmbed or audioEmbed %}
@@ -90,7 +90,7 @@
             {% if section.label != 'Вступление' %}
                 <section class="case-story-block">
                     <h2 class="case-story-block__label">{{ section.label }}</h2>
-                    <div class="case-story-block__text">{{ section.text|nl2br }}</div>
+                    <div class="case-story-block__text">{{ section.text|chronicle_markdown|raw }}</div>
                 </section>
             {% endif %}
         {% endfor %}

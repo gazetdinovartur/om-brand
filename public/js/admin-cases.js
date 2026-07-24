@@ -388,15 +388,33 @@ function setMediaVisibility(kind, visible) {
 }
 
 function initCaseTextareaGrow() {
+    const selector = '.ea-new textarea.form-control, .ea-edit textarea.form-control';
+
     const grow = (ta) => {
         if (!(ta instanceof HTMLTextAreaElement)) {
             return;
         }
-        ta.style.height = 'auto';
-        ta.style.height = `${Math.max(ta.scrollHeight, 48)}px`;
+        // Reset so scrollHeight reflects content (hidden tabs otherwise stay short).
+        ta.style.height = '0px';
+        ta.style.height = `${Math.max(ta.scrollHeight, 44)}px`;
     };
-    document.querySelectorAll('.ea-new textarea.form-control, .ea-edit textarea.form-control').forEach((ta) => {
+
+    const growAll = () => {
+        document.querySelectorAll(selector).forEach((ta) => grow(ta));
+    };
+
+    document.querySelectorAll(selector).forEach((ta) => {
         grow(ta);
         ta.addEventListener('input', () => grow(ta));
+        ta.addEventListener('focus', () => grow(ta));
     });
+
+    // EasyAdmin tabs hide fields on load — remeasure when a tab becomes visible.
+    document.querySelectorAll('[data-bs-toggle="tab"], [data-bs-toggle="pill"]').forEach((tab) => {
+        tab.addEventListener('shown.bs.tab', () => {
+            requestAnimationFrame(growAll);
+        });
+    });
+
+    requestAnimationFrame(growAll);
 }

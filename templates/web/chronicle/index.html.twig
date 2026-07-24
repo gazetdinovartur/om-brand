@@ -1,7 +1,8 @@
 {% extends 'web/layout.html.twig' %}
 
 {% block body %}
-{% set filterCount = (activeSeries ? 1 : 0) + (activeEra ? 1 : 0) + (activeTag ? 1 : 0) + (activeYear ? 1 : 0) + (activeLiked ? 1 : 0) %}
+{% set activeQuery = activeQuery|default('') %}
+{% set filterCount = (activeSeries ? 1 : 0) + (activeEra ? 1 : 0) + (activeTag ? 1 : 0) + (activeYear ? 1 : 0) + (activeLiked ? 1 : 0) + (activeQuery ? 1 : 0) %}
 <section class="section chronicle-hub">
     <div class="container">
         <header class="chronicle-hub__head">
@@ -9,11 +10,12 @@
             <h1 class="chronicle-hub__title">Тексты и фото по эпохам</h1>
             {% if filterCount > 0 %}
                 <p class="chronicle-hub__filter-note">
-                    {% if activeSeries %}Канал: <strong>{{ activeSeries.title }}</strong>{% endif %}
-                    {% if activeEra %}{% if activeSeries %} · {% endif %}Эпоха: <strong>{{ activeEra.title }}</strong>{% endif %}
-                    {% if activeTag %}{% if activeSeries or activeEra %} · {% endif %}Тег: <strong>#{{ activeTag.name }}</strong>{% endif %}
-                    {% if activeYear %}{% if activeSeries or activeEra or activeTag %} · {% endif %}Год: <strong>{{ activeYear }}</strong>{% endif %}
-                    {% if activeLiked %}{% if activeSeries or activeEra or activeTag or activeYear %} · {% endif %}<strong>Избранное</strong>{% endif %}
+                    {% if activeQuery %}Поиск: <strong>«{{ activeQuery }}»</strong>{% endif %}
+                    {% if activeSeries %}{% if activeQuery %} · {% endif %}Канал: <strong>{{ activeSeries.title }}</strong>{% endif %}
+                    {% if activeEra %}{% if activeQuery or activeSeries %} · {% endif %}Эпоха: <strong>{{ activeEra.title }}</strong>{% endif %}
+                    {% if activeTag %}{% if activeQuery or activeSeries or activeEra %} · {% endif %}Тег: <strong>#{{ activeTag.name }}</strong>{% endif %}
+                    {% if activeYear %}{% if activeQuery or activeSeries or activeEra or activeTag %} · {% endif %}Год: <strong>{{ activeYear }}</strong>{% endif %}
+                    {% if activeLiked %}{% if activeQuery or activeSeries or activeEra or activeTag or activeYear %} · {% endif %}<strong>Избранное</strong>{% endif %}
                     <span class="chronicle-hub__count"> · {{ total }}</span>
                 </p>
             {% else %}
@@ -39,16 +41,16 @@
                 </label>
                 <button
                     type="button"
-                    class="chronicle-hub__heart-btn{% if activeLiked %} is-active{% endif %}"
+                    class="chronicle-hub__icon-btn chronicle-hub__heart-btn{% if activeLiked %} is-active{% endif %}"
                     data-chronicle-heart
                     aria-pressed="{{ activeLiked ? 'true' : 'false' }}"
                     title="{{ activeLiked ? 'Показать все' : 'Моё избранное' }}"
                 >
-                    <svg class="chronicle-hub__heart-icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
-                        <circle class="chronicle-hub__heart-chrome" cx="18" cy="18" r="16.5"/>
+                    <svg class="chronicle-hub__icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+                        <circle class="chronicle-hub__icon-chrome" cx="18" cy="18" r="16.5"/>
                         <g transform="translate(18 18.4) scale(0.76)">
                             <path
-                                class="chronicle-hub__heart-shape"
+                                class="chronicle-hub__icon-glyph chronicle-hub__heart-shape"
                                 transform="translate(-12 -10.8)"
                                 d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
                             />
@@ -56,6 +58,38 @@
                     </svg>
                     <span class="visually-hidden">Избранное</span>
                 </button>
+                <div class="chronicle-hub__search{% if activeQuery %} is-open is-active{% endif %}" data-chronicle-search>
+                    <button
+                        type="button"
+                        class="chronicle-hub__icon-btn chronicle-hub__search-btn{% if activeQuery %} is-active{% endif %}"
+                        data-chronicle-search-toggle
+                        aria-expanded="{{ activeQuery ? 'true' : 'false' }}"
+                        aria-controls="chronicle-search-field"
+                        title="Поиск"
+                    >
+                        <svg class="chronicle-hub__icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+                            <circle class="chronicle-hub__icon-chrome" cx="18" cy="18" r="16.5"/>
+                            <g transform="translate(18 18)" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+                                <circle cx="-1.6" cy="-1.6" r="5.4"/>
+                                <path d="M2.6 2.6 L7.1 7.1"/>
+                            </g>
+                        </svg>
+                        <span class="visually-hidden">Поиск</span>
+                    </button>
+                    <label class="chronicle-hub__search-field" id="chronicle-search-field">
+                        <span class="visually-hidden">Поиск по хронике</span>
+                        <input
+                            type="search"
+                            name="q"
+                            value="{{ activeQuery }}"
+                            placeholder="Поиск…"
+                            maxlength="100"
+                            autocomplete="off"
+                            enterkeyhint="search"
+                            data-chronicle-search-input
+                        >
+                    </label>
+                </div>
                 <div class="chronicle-hub__filters-actions">
                     <button
                         type="button"
@@ -68,14 +102,20 @@
                     </button>
                     {% if filterCount > 0 %}
                         <a
-                            class="chronicle-hub__reset"
+                            class="chronicle-hub__icon-btn chronicle-hub__reset"
                             href="{{ path('web_chronicle') }}"
                             data-chronicle-filters-reset
                             aria-label="Сбросить фильтры"
                             title="Сбросить"
                         >
                             <span class="chronicle-hub__reset-label">Сбросить</span>
-                            <span class="chronicle-hub__reset-icon" aria-hidden="true">×</span>
+                            <svg class="chronicle-hub__icon chronicle-hub__reset-icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+                                <circle class="chronicle-hub__icon-chrome" cx="18" cy="18" r="16.5"/>
+                                <g transform="translate(18 18)" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+                                    <path d="M-5.6 -5.6 L5.6 5.6"/>
+                                    <path d="M5.6 -5.6 L-5.6 5.6"/>
+                                </g>
+                            </svg>
                         </a>
                     {% endif %}
                 </div>
@@ -145,8 +185,10 @@
         >
             {% if entries is empty %}
                 <p class="chronicle-hub__empty">
-                    {% if activeLiked %}
+                    {% if activeLiked and not activeQuery %}
                         Пока нет избранного — поставьте ♥ на посты или отметьте записи в админке.
+                    {% elseif activeQuery %}
+                        Ничего не найдено по запросу «{{ activeQuery }}».
                     {% else %}
                         Ничего не найдено по выбранным фильтрам.
                     {% endif %}

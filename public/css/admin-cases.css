@@ -200,8 +200,12 @@
     width: 100% !important;
     max-width: 100% !important;
     min-height: 2.75rem;
+    max-height: none;
+    height: auto;
     resize: none;
     overflow: hidden;
+    line-height: 1.45;
+    box-sizing: border-box;
     field-sizing: content;
 }
 

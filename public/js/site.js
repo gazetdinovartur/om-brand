@@ -1247,6 +1247,9 @@ function initChronicleFeed() {
     const likedInput = document.querySelector('[data-liked-input]');
     const filtersToggle = document.querySelector('[data-chronicle-filters-toggle]');
     const filtersPanel = document.querySelector('[data-chronicle-filters-panel]');
+    const searchRoot = document.querySelector('[data-chronicle-search]');
+    const searchToggle = document.querySelector('[data-chronicle-search-toggle]');
+    const searchInput = document.querySelector('[data-chronicle-search-input]');
 
     if (filtersToggle instanceof HTMLButtonElement && filtersPanel instanceof HTMLElement) {
         const syncToggle = () => {
@@ -1260,6 +1263,38 @@ function initChronicleFeed() {
         });
     }
 
+    if (
+        searchRoot instanceof HTMLElement
+        && searchToggle instanceof HTMLButtonElement
+        && searchInput instanceof HTMLInputElement
+    ) {
+        const syncSearch = () => {
+            const open = searchRoot.classList.contains('is-open');
+            searchToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        syncSearch();
+        searchToggle.addEventListener('click', () => {
+            const next = !searchRoot.classList.contains('is-open');
+            searchRoot.classList.toggle('is-open', next);
+            syncSearch();
+            if (next) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (searchInput.value) {
+                    searchInput.value = '';
+                    return;
+                }
+                searchRoot.classList.remove('is-open');
+                syncSearch();
+                searchToggle.focus();
+            }
+        });
+    }
+
     document.querySelector('[data-chronicle-filters-reset]')?.addEventListener('click', () => {
         clearChronicleFilters();
         clearChronicleListState();
@@ -1270,7 +1305,16 @@ function initChronicleFeed() {
     };
 
     if (filters instanceof HTMLFormElement) {
-        filters.addEventListener('submit', clearListStateOnFilterChange);
+        filters.addEventListener('submit', () => {
+            clearListStateOnFilterChange();
+            if (searchInput instanceof HTMLInputElement && !searchInput.value.trim()) {
+                searchInput.disabled = true;
+            }
+            const year = filters.querySelector('select[name="year"]');
+            if (year instanceof HTMLSelectElement && !year.value) {
+                year.disabled = true;
+            }
+        });
         filters.querySelectorAll('a[href]').forEach((link) => {
             link.addEventListener('click', clearListStateOnFilterChange);
         });
@@ -1289,6 +1333,9 @@ function initChronicleFeed() {
             if (year instanceof HTMLSelectElement && !year.value) {
                 year.disabled = true;
             }
+            if (searchInput instanceof HTMLInputElement && !searchInput.value.trim()) {
+                searchInput.disabled = true;
+            }
             filters.submit();
         });
     }
@@ -1300,6 +1347,9 @@ function initChronicleFeed() {
                 const year = filters.querySelector('select[name="year"]');
                 if (year instanceof HTMLSelectElement && !year.value) {
                     year.disabled = true;
+                }
+                if (searchInput instanceof HTMLInputElement && !searchInput.value.trim()) {
+                    searchInput.disabled = true;
                 }
                 filters.submit();
             });

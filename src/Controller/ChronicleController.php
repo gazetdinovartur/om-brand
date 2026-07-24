@@ -235,6 +235,7 @@ final class ChronicleController extends AbstractController
             'activeSeries' => $filters['series'] ?? null,
             'activeYear' => $filters['year'] ?? null,
             'activeLiked' => $favoritesActive,
+            'activeQuery' => $filters['q'] ?? '',
             'favoritesSource' => $filters['favoritesSource'] ?? null,
             'filterQuery' => $this->filterQueryArray($filters),
             'total' => $total,
@@ -247,7 +248,7 @@ final class ChronicleController extends AbstractController
     }
 
     /**
-     * @param array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool} $filters
+     * @param array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, q?: ?string} $filters
      *
      * @return array<string, string|int>
      */
@@ -269,6 +270,9 @@ final class ChronicleController extends AbstractController
         if (!empty($filters['liked']) || !empty($filters['featured'])) {
             $q['liked'] = 1;
         }
+        if (!empty($filters['q'])) {
+            $q['q'] = (string) $filters['q'];
+        }
 
         return $q;
     }
@@ -276,9 +280,9 @@ final class ChronicleController extends AbstractController
     /**
      * Heart filter: personal likes if the visitor has any; otherwise admin featured.
      *
-     * @param array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string, featured?: ?bool, favoritesSource?: ?string} $filters
+     * @param array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string, featured?: ?bool, favoritesSource?: ?string, q?: ?string} $filters
      *
-     * @return array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string, featured?: ?bool, favoritesSource?: ?string}
+     * @return array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string, featured?: ?bool, favoritesSource?: ?string, q?: ?string}
      */
     private function resolveFavoritesSource(array $filters, ChronicleEntryRepository $entries): array
     {
@@ -302,7 +306,7 @@ final class ChronicleController extends AbstractController
     }
 
     /**
-     * @return array{0: array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string}, 1: int}
+     * @return array{0: array{era?: ?ChronicleEra, tag?: ?ChronicleTag, series?: ?ChronicleSeries, year?: ?int, liked?: ?bool, visitorToken?: ?string, q?: ?string}, 1: int}
      */
     private function resolveFilters(
         Request $request,
@@ -346,6 +350,8 @@ final class ChronicleController extends AbstractController
             $liked = true;
         }
 
+        $search = ChronicleEntryRepository::normalizeSearchQuery((string) $request->query->get('q', ''));
+
         $offset = max(0, (int) $request->query->get('offset', 0));
 
         return [[
@@ -355,6 +361,7 @@ final class ChronicleController extends AbstractController
             'year' => $year,
             'liked' => $liked,
             'visitorToken' => $likes->readVisitorToken($request),
+            'q' => $search,
         ], $offset];
     }
 
