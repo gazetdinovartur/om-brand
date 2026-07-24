@@ -4973,6 +4973,10 @@ select.form-control:focus {
 }
 
 @media (max-width: 768px) {
+    .chronicle-detail .case-crumb {
+        display: none;
+    }
+
     .chronicle-hero__layout,
     .chronicle-hero--has-cover .chronicle-hero__layout {
         grid-template-columns: minmax(0, 1fr);
