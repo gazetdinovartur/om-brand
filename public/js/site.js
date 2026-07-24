@@ -1247,9 +1247,11 @@ function initChronicleFeed() {
     const likedInput = document.querySelector('[data-liked-input]');
     const filtersToggle = document.querySelector('[data-chronicle-filters-toggle]');
     const filtersPanel = document.querySelector('[data-chronicle-filters-panel]');
-    const searchRoot = document.querySelector('[data-chronicle-search]');
     const searchToggle = document.querySelector('[data-chronicle-search-toggle]');
+    const searchModal = document.querySelector('[data-chronicle-search-modal]');
     const searchInput = document.querySelector('[data-chronicle-search-input]');
+    const searchHidden = document.querySelector('[data-chronicle-search-hidden]');
+    const searchClose = document.querySelector('[data-chronicle-search-close]');
 
     if (filtersToggle instanceof HTMLButtonElement && filtersPanel instanceof HTMLElement) {
         const syncToggle = () => {
@@ -1263,34 +1265,253 @@ function initChronicleFeed() {
         });
     }
 
+    const prepareFilterSubmit = () => {
+        if (!(filters instanceof HTMLFormElement)) {
+            return;
+        }
+        const year = filters.querySelector('select[name="year"]');
+        if (year instanceof HTMLSelectElement && !year.value) {
+            year.disabled = true;
+        }
+        if (searchHidden instanceof HTMLInputElement) {
+            const q = searchHidden.value.trim();
+            if (q) {
+                searchHidden.disabled = false;
+                searchHidden.value = q;
+            } else {
+                searchHidden.disabled = true;
+            }
+        }
+    };
+
+    const submitFilters = () => {
+        if (!(filters instanceof HTMLFormElement)) {
+            return;
+        }
+        clearChronicleListState();
+        prepareFilterSubmit();
+        filters.submit();
+    };
+
     if (
-        searchRoot instanceof HTMLElement
-        && searchToggle instanceof HTMLButtonElement
+        searchToggle instanceof HTMLButtonElement
+        && searchModal instanceof HTMLDialogElement
         && searchInput instanceof HTMLInputElement
     ) {
-        const syncSearch = () => {
-            const open = searchRoot.classList.contains('is-open');
-            searchToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        };
-        syncSearch();
-        searchToggle.addEventListener('click', () => {
-            const next = !searchRoot.classList.contains('is-open');
-            searchRoot.classList.toggle('is-open', next);
-            syncSearch();
-            if (next) {
-                searchInput.focus();
-                searchInput.select();
+        const searchUrl = searchModal.getAttribute('data-search-url') || '/chronicle/search';
+        const resultsEl = searchModal.querySelector('[data-chronicle-search-results]');
+        const statusEl = searchModal.querySelector('[data-chronicle-search-status]');
+        const applyLink = searchModal.querySelector('[data-chronicle-search-apply]');
+        let searchTimer = 0;
+        let searchAbort = null;
+        let requestSeq = 0;
+        let activeHit = -1;
+
+        const setStatus = (text, loading = false) => {
+            if (!(statusEl instanceof HTMLElement)) {
+                return;
             }
-        });
-        searchInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                if (searchInput.value) {
-                    searchInput.value = '';
+            statusEl.textContent = text;
+            statusEl.classList.toggle('is-loading', loading);
+        };
+
+        const setApply = (href, total) => {
+            if (!(applyLink instanceof HTMLAnchorElement)) {
+                return;
+            }
+            if (!href || !total) {
+                applyLink.hidden = true;
+                return;
+            }
+            applyLink.href = href;
+            applyLink.textContent =
+                total === 1 ? 'Открыть в ленте' : `Показать все ${total} в ленте`;
+            applyLink.hidden = false;
+        };
+
+        const clearResults = () => {
+            if (resultsEl instanceof HTMLElement) {
+                resultsEl.innerHTML = '';
+            }
+            activeHit = -1;
+            setApply('', 0);
+        };
+
+        const hitItems = () =>
+            resultsEl instanceof HTMLElement
+                ? [...resultsEl.querySelectorAll('[data-chronicle-search-hit]')]
+                : [];
+
+        const highlightHit = (index) => {
+            const items = hitItems();
+            items.forEach((el, i) => {
+                const row = el.closest('.chronicle-search-modal__item');
+                row?.classList.toggle('is-active', i === index);
+            });
+            activeHit = index;
+            if (index >= 0 && items[index] instanceof HTMLElement) {
+                items[index].scrollIntoView({ block: 'nearest' });
+            }
+        };
+
+        const currentFilterParams = () => {
+            const params = new URLSearchParams();
+            if (!(filters instanceof HTMLFormElement)) {
+                return params;
+            }
+            const year = filters.querySelector('select[name="year"]');
+            if (year instanceof HTMLSelectElement && year.value) {
+                params.set('year', year.value);
+            }
+            ['series', 'era', 'tag'].forEach((name) => {
+                const input = filters.querySelector(`input[name="${name}"]`);
+                if (input instanceof HTMLInputElement && input.value) {
+                    params.set(name, input.value);
+                }
+            });
+            if (likedInput instanceof HTMLInputElement && !likedInput.disabled) {
+                params.set('liked', '1');
+            }
+            return params;
+        };
+
+        const fetchResults = async (rawQuery) => {
+            const q = rawQuery.trim();
+            if (q.length === 1) {
+                setStatus('Ещё одна буква…');
+                clearResults();
+                return;
+            }
+            if (q.length < 2) {
+                setStatus('По заголовкам, лидам и тексту записей');
+                clearResults();
+                return;
+            }
+
+            if (searchAbort) {
+                searchAbort.abort();
+            }
+            searchAbort = new AbortController();
+            const seq = ++requestSeq;
+            setStatus('Ищем…', true);
+
+            const params = currentFilterParams();
+            params.set('q', q);
+            try {
+                const response = await fetch(`${searchUrl}?${params.toString()}`, {
+                    headers: { Accept: 'application/json' },
+                    signal: searchAbort.signal,
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    throw new Error('search failed');
+                }
+                const data = await response.json();
+                if (seq !== requestSeq) {
                     return;
                 }
-                searchRoot.classList.remove('is-open');
-                syncSearch();
-                searchToggle.focus();
+                if (data.status === 'idle') {
+                    setStatus('По заголовкам, лидам и тексту записей');
+                    clearResults();
+                    return;
+                }
+                if (resultsEl instanceof HTMLElement) {
+                    resultsEl.innerHTML = data.html || '';
+                }
+                activeHit = -1;
+                if (data.status === 'empty') {
+                    setStatus(`Ничего по «${data.q}»`);
+                    setApply('', 0);
+                    return;
+                }
+                const shown = Number(data.count) || 0;
+                const total = Number(data.total) || 0;
+                setStatus(total === shown ? `${total} найдено` : `${shown} из ${total}`);
+                setApply(data.feedUrl || '', total);
+            } catch (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+                if (seq !== requestSeq) {
+                    return;
+                }
+                setStatus('Не удалось найти — попробуйте ещё раз');
+                clearResults();
+            }
+        };
+
+        const scheduleSearch = (immediate = false) => {
+            window.clearTimeout(searchTimer);
+            const run = () => {
+                fetchResults(searchInput.value);
+            };
+            if (immediate) {
+                run();
+                return;
+            }
+            searchTimer = window.setTimeout(run, 280);
+        };
+
+        const openSearch = () => {
+            if (searchHidden instanceof HTMLInputElement && !searchHidden.disabled && searchHidden.value) {
+                searchInput.value = searchHidden.value;
+            }
+            if (!searchModal.open) {
+                searchModal.showModal();
+            }
+            requestAnimationFrame(() => {
+                searchInput.focus();
+                searchInput.select();
+                scheduleSearch(true);
+            });
+        };
+
+        const closeSearch = () => {
+            window.clearTimeout(searchTimer);
+            if (searchAbort) {
+                searchAbort.abort();
+            }
+            if (searchModal.open) {
+                searchModal.close();
+            }
+        };
+
+        searchToggle.addEventListener('click', openSearch);
+        searchClose?.addEventListener('click', closeSearch);
+        searchModal.addEventListener('click', (event) => {
+            if (event.target === searchModal) {
+                closeSearch();
+            }
+        });
+        applyLink?.addEventListener('click', () => {
+            clearChronicleFilters();
+            clearChronicleListState();
+        });
+        searchInput.addEventListener('input', () => scheduleSearch(false));
+        searchInput.addEventListener('keydown', (event) => {
+            const items = hitItems();
+            if (event.key === 'ArrowDown' && items.length) {
+                event.preventDefault();
+                highlightHit(Math.min(items.length - 1, activeHit + 1));
+                return;
+            }
+            if (event.key === 'ArrowUp' && items.length) {
+                event.preventDefault();
+                highlightHit(Math.max(0, activeHit <= 0 ? 0 : activeHit - 1));
+                return;
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (activeHit >= 0 && items[activeHit] instanceof HTMLAnchorElement) {
+                    items[activeHit].click();
+                    return;
+                }
+                if (applyLink instanceof HTMLAnchorElement && !applyLink.hidden && applyLink.href) {
+                    clearChronicleListState();
+                    window.location.href = applyLink.href;
+                    return;
+                }
+                scheduleSearch(true);
             }
         });
     }
@@ -1300,58 +1521,34 @@ function initChronicleFeed() {
         clearChronicleListState();
     });
 
-    const clearListStateOnFilterChange = () => {
-        clearChronicleListState();
-    };
-
     if (filters instanceof HTMLFormElement) {
         filters.addEventListener('submit', () => {
-            clearListStateOnFilterChange();
-            if (searchInput instanceof HTMLInputElement && !searchInput.value.trim()) {
-                searchInput.disabled = true;
-            }
-            const year = filters.querySelector('select[name="year"]');
-            if (year instanceof HTMLSelectElement && !year.value) {
-                year.disabled = true;
-            }
+            clearChronicleListState();
+            prepareFilterSubmit();
         });
         filters.querySelectorAll('a[href]').forEach((link) => {
-            link.addEventListener('click', clearListStateOnFilterChange);
+            link.addEventListener('click', () => {
+                clearChronicleListState();
+            });
         });
     }
 
     if (heartBtn instanceof HTMLButtonElement && filters instanceof HTMLFormElement) {
         heartBtn.addEventListener('click', () => {
-            clearChronicleListState();
             const next = heartBtn.getAttribute('aria-pressed') !== 'true';
             heartBtn.classList.toggle('is-active', next);
             heartBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
             if (likedInput instanceof HTMLInputElement) {
                 likedInput.disabled = !next;
             }
-            const year = filters.querySelector('select[name="year"]');
-            if (year instanceof HTMLSelectElement && !year.value) {
-                year.disabled = true;
-            }
-            if (searchInput instanceof HTMLInputElement && !searchInput.value.trim()) {
-                searchInput.disabled = true;
-            }
-            filters.submit();
+            submitFilters();
         });
     }
 
     if (filters instanceof HTMLFormElement) {
         filters.querySelectorAll('[data-chronicle-auto]').forEach((el) => {
             el.addEventListener('change', () => {
-                clearChronicleListState();
-                const year = filters.querySelector('select[name="year"]');
-                if (year instanceof HTMLSelectElement && !year.value) {
-                    year.disabled = true;
-                }
-                if (searchInput instanceof HTMLInputElement && !searchInput.value.trim()) {
-                    searchInput.disabled = true;
-                }
-                filters.submit();
+                submitFilters();
             });
         });
     }

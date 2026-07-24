@@ -11,7 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ChronicleSearchTest extends WebTestCase
 {
-    public function testSearchMatchesTitleLedeAndBlockBody(): void
+    public function testSearchEndpointReturnsLiveResultsWithoutMisses(): void
     {
         $client = static::createClient();
         $em = static::getContainer()->get(EntityManagerInterface::class);
@@ -28,16 +28,41 @@ final class ChronicleSearchTest extends WebTestCase
         $em->persist($miss);
         $em->flush();
 
-        $client->request('GET', '/chronicle?q='.rawurlencode($token));
+        $client->request('GET', '/chronicle/search?q='.rawurlencode($token));
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('content-type', 'application/json');
+
+        /** @var array{status: string, total: int, html: string, feedUrl: string} $payload */
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+
+        self::assertSame('results', $payload['status']);
+        self::assertGreaterThanOrEqual(3, $payload['total']);
+        self::assertStringContainsString((string) $hitTitle->getSlug(), $payload['html']);
+        self::assertStringContainsString((string) $hitLede->getSlug(), $payload['html']);
+        self::assertStringContainsString((string) $hitBody->getSlug(), $payload['html']);
+        self::assertStringNotContainsString((string) $miss->getSlug(), $payload['html']);
+        self::assertStringContainsString('q='.$token, $payload['feedUrl']);
+    }
+
+    public function testHubRendersSearchModalAndFeedFilter(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/chronicle');
         self::assertResponseIsSuccessful();
         $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('data-chronicle-search-modal', $html);
+        self::assertStringContainsString('data-chronicle-search-results', $html);
+        self::assertStringContainsString('/chronicle/search', $html);
+    }
 
-        self::assertStringContainsString('data-chronicle-search', $html);
-        self::assertStringContainsString('Поиск: <strong>«'.$token.'»</strong>', $html);
-        self::assertStringContainsString((string) $hitTitle->getSlug(), $html);
-        self::assertStringContainsString((string) $hitLede->getSlug(), $html);
-        self::assertStringContainsString((string) $hitBody->getSlug(), $html);
-        self::assertStringNotContainsString((string) $miss->getSlug(), $html);
+    public function testIdleSearchReturnsEmptyHtml(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/chronicle/search');
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+        self::assertSame('idle', $payload['status']);
+        self::assertSame('', $payload['html']);
     }
 
     private function publishedEntry(string $title, string $lede, string $body): ChronicleEntry

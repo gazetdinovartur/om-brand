@@ -28,6 +28,7 @@
             {% if filterQuery.era is defined %}<input type="hidden" name="era" value="{{ filterQuery.era }}">{% endif %}
             {% if filterQuery.tag is defined %}<input type="hidden" name="tag" value="{{ filterQuery.tag }}">{% endif %}
             <input type="hidden" name="liked" value="1" data-liked-input{% if not activeLiked %} disabled{% endif %}>
+            <input type="hidden" name="q" value="{{ activeQuery }}" data-chronicle-search-hidden{% if not activeQuery %} disabled{% endif %}>
 
             <div class="chronicle-hub__toolbar">
                 <label class="chronicle-hub__year">
@@ -58,38 +59,23 @@
                     </svg>
                     <span class="visually-hidden">Избранное</span>
                 </button>
-                <div class="chronicle-hub__search{% if activeQuery %} is-open is-active{% endif %}" data-chronicle-search>
-                    <button
-                        type="button"
-                        class="chronicle-hub__icon-btn chronicle-hub__search-btn{% if activeQuery %} is-active{% endif %}"
-                        data-chronicle-search-toggle
-                        aria-expanded="{{ activeQuery ? 'true' : 'false' }}"
-                        aria-controls="chronicle-search-field"
-                        title="Поиск"
-                    >
-                        <svg class="chronicle-hub__icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
-                            <circle class="chronicle-hub__icon-chrome" cx="18" cy="18" r="16.5"/>
-                            <g transform="translate(18 18)" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
-                                <circle cx="-1.6" cy="-1.6" r="5.4"/>
-                                <path d="M2.6 2.6 L7.1 7.1"/>
-                            </g>
-                        </svg>
-                        <span class="visually-hidden">Поиск</span>
-                    </button>
-                    <label class="chronicle-hub__search-field" id="chronicle-search-field">
-                        <span class="visually-hidden">Поиск по хронике</span>
-                        <input
-                            type="search"
-                            name="q"
-                            value="{{ activeQuery }}"
-                            placeholder="Поиск…"
-                            maxlength="100"
-                            autocomplete="off"
-                            enterkeyhint="search"
-                            data-chronicle-search-input
-                        >
-                    </label>
-                </div>
+                <button
+                    type="button"
+                    class="chronicle-hub__icon-btn chronicle-hub__search-btn{% if activeQuery %} is-active{% endif %}"
+                    data-chronicle-search-toggle
+                    aria-haspopup="dialog"
+                    aria-controls="chronicle-search-modal"
+                    title="Поиск"
+                >
+                    <svg class="chronicle-hub__icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+                        <circle class="chronicle-hub__icon-chrome" cx="18" cy="18" r="16.5"/>
+                        <g transform="translate(18 18)" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+                            <circle cx="-1.6" cy="-1.6" r="5.4"/>
+                            <path d="M2.6 2.6 L7.1 7.1"/>
+                        </g>
+                    </svg>
+                    <span class="visually-hidden">Поиск</span>
+                </button>
                 <div class="chronicle-hub__filters-actions">
                     <button
                         type="button"
@@ -106,10 +92,9 @@
                             href="{{ path('web_chronicle') }}"
                             data-chronicle-filters-reset
                             aria-label="Сбросить фильтры"
-                            title="Сбросить"
+                            title="Сбросить фильтры"
                         >
-                            <span class="chronicle-hub__reset-label">Сбросить</span>
-                            <svg class="chronicle-hub__icon chronicle-hub__reset-icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+                            <svg class="chronicle-hub__icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
                                 <circle class="chronicle-hub__icon-chrome" cx="18" cy="18" r="16.5"/>
                                 <g transform="translate(18 18)" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
                                     <path d="M-5.6 -5.6 L5.6 5.6"/>
@@ -206,6 +191,58 @@
             </div>
         {% endif %}
     </div>
+
+    <dialog
+        class="chronicle-search-modal"
+        id="chronicle-search-modal"
+        data-chronicle-search-modal
+        data-search-url="{{ path('web_chronicle_search') }}"
+        aria-labelledby="chronicle-search-modal-title"
+    >
+        <div class="chronicle-search-modal__shell">
+            <button type="button" class="chronicle-search-modal__close" data-chronicle-search-close aria-label="Закрыть">
+                <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <div class="chronicle-search-modal__head">
+                <div class="chronicle-search-modal__badge" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 36 36" focusable="false">
+                        <g transform="translate(18 18)" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                            <circle cx="-1.6" cy="-1.6" r="5.4"/>
+                            <path d="M2.6 2.6 L7.1 7.1"/>
+                        </g>
+                    </svg>
+                </div>
+                <p class="chronicle-search-modal__eyebrow" id="chronicle-search-modal-title">Поиск по хронике</p>
+            </div>
+            <label class="chronicle-search-modal__field">
+                <span class="visually-hidden">Запрос</span>
+                <input
+                    type="search"
+                    value="{{ activeQuery }}"
+                    placeholder="Начните печатать…"
+                    maxlength="100"
+                    autocomplete="off"
+                    enterkeyhint="search"
+                    data-chronicle-search-input
+                >
+            </label>
+            <div
+                class="chronicle-search-modal__status"
+                data-chronicle-search-status
+                role="status"
+                aria-live="polite"
+            >По заголовкам, лидам и тексту записей</div>
+            <div class="chronicle-search-modal__results" data-chronicle-search-results></div>
+            <a
+                class="chronicle-search-modal__apply"
+                data-chronicle-search-apply
+                hidden
+                href="{{ path('web_chronicle') }}"
+            >Показать все в ленте</a>
+        </div>
+    </dialog>
 </section>
 
 {% include 'web/_partials/page_nav.html.twig' with {

@@ -118,7 +118,6 @@ class ChronicleEntryCrudController extends AbstractCrudController
             ->onlyOnIndex();
         yield TextField::new('title', 'Заголовок')
             ->setTemplatePath('admin/chronicle/field_title_link.html.twig');
-        yield TextField::new('shortHash', 'Hash')->onlyOnIndex();
         yield ChoiceField::new('status', 'Статус')
             ->setChoices(array_combine(
                 array_map(static fn (ChronicleStatus $s) => $s->label(), ChronicleStatus::cases()),

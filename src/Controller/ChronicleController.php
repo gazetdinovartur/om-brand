@@ -24,6 +24,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class ChronicleController extends AbstractController
 {
     private const PAGE_SIZE = 24;
+    private const SEARCH_SIZE = 12;
 
     #[Route('/chronicle', name: 'web_chronicle', methods: ['GET'])]
     public function index(
@@ -37,6 +38,47 @@ final class ChronicleController extends AbstractController
         ContentLikeService $likes,
     ): Response {
         return $this->renderFeed($request, $entries, $eras, $tags, $series, $siteContext, $seo, $likes);
+    }
+
+    #[Route('/chronicle/search', name: 'web_chronicle_search', methods: ['GET'], priority: 20)]
+    public function search(
+        Request $request,
+        ChronicleEntryRepository $entries,
+        ChronicleEraRepository $eras,
+        ChronicleTagRepository $tags,
+        ChronicleSeriesRepository $series,
+        ContentLikeService $likes,
+    ): Response {
+        [$filters] = $this->resolveFilters($request, $eras, $tags, $series, $likes);
+        $query = $filters['q'] ?? null;
+        if (null === $query || '' === $query) {
+            return $this->json([
+                'status' => 'idle',
+                'q' => '',
+                'total' => 0,
+                'count' => 0,
+                'html' => '',
+                'feedUrl' => $this->generateUrl('web_chronicle', $this->filterQueryArray(array_diff_key($filters, ['q' => true]))),
+            ]);
+        }
+
+        $filters = $this->resolveFavoritesSource($filters, $entries);
+        $total = $entries->countFiltered($filters);
+        $page = $entries->findFiltered($filters, self::SEARCH_SIZE, 0);
+        $hubQuery = $this->filterQueryArray($filters);
+
+        return $this->json([
+            'status' => $total > 0 ? 'results' : 'empty',
+            'q' => $query,
+            'total' => $total,
+            'count' => \count($page),
+            'html' => $this->renderView('web/chronicle/_search_results.html.twig', [
+                'entries' => $page,
+                'query' => $query,
+                'total' => $total,
+            ]),
+            'feedUrl' => $this->generateUrl('web_chronicle', $hubQuery),
+        ]);
     }
 
     #[Route('/chronicle/more', name: 'web_chronicle_more', methods: ['GET'], priority: 20)]

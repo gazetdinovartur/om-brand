@@ -1,0 +1,37 @@
+{% if entries is empty %}
+    <p class="chronicle-search-modal__empty" role="status">Ничего не найдено по «{{ query }}»</p>
+{% else %}
+    <ul class="chronicle-search-modal__list" role="listbox" aria-label="Результаты поиска">
+        {% for entry in entries %}
+            {% set cover = chronicle_cover(entry.coverImagePath) %}
+            {% set href = path('web_chronicle_show', {slug: entry.slug}) %}
+            <li class="chronicle-search-modal__item" role="option">
+                <a class="chronicle-search-modal__hit" href="{{ href }}" data-chronicle-search-hit>
+                    <span class="chronicle-search-modal__thumb{% if not cover %} chronicle-search-modal__thumb--empty{% endif %}">
+                        {% if cover %}
+                            <img src="{{ asset(cover) }}" alt="" loading="lazy" decoding="async">
+                        {% else %}
+                            <span aria-hidden="true">✦</span>
+                        {% endif %}
+                    </span>
+                    <span class="chronicle-search-modal__hit-body">
+                        <span class="chronicle-search-modal__hit-title">{{ entry.title }}</span>
+                        <span class="chronicle-search-modal__hit-meta">
+                            {% if entry.publishedAt %}
+                                <time datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('short') }}</time>
+                            {% endif %}
+                            {% if entry.series %}
+                                <span>· {{ entry.series.title }}</span>
+                            {% elseif entry.era %}
+                                <span>· {{ entry.era.title }}</span>
+                            {% endif %}
+                        </span>
+                    </span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    {% if total > entries|length %}
+        <p class="chronicle-search-modal__more-note">Показаны {{ entries|length }} из {{ total }}</p>
+    {% endif %}
+{% endif %}

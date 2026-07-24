@@ -6,6 +6,7 @@
 # Первый деплой:   ./deploy-script.sh --first
 # Обновление:     ./deploy-script.sh
 # + sync текстов: ./deploy-script.sh --sync-content
+# + сброс css/js: ./deploy-script.sh --bust-assets
 #
 set -euo pipefail
 
@@ -20,6 +21,7 @@ FIRST_DEPLOY=0
 SYNC_CONTENT=0
 SKIP_GIT=0
 SKIP_COMPOSER=0
+BUST_ASSETS=0
 
 usage() {
     cat <<'EOF'
@@ -28,6 +30,7 @@ usage() {
 Опции:
   --first          Первый деплой: seed (настройки, блоки, админ)
   --sync-content   Перезаписать блоки из LandingContent.php
+  --bust-assets    Сбросить кэш css/js: bump ASSETS_VERSION в .env
   --skip-git       Не выполнять git pull
   --skip-composer  Не выполнять composer install
   -h, --help       Эта справка
@@ -42,6 +45,9 @@ usage() {
 Тексты дома: src/Content/HouseContent.php (без sync).
 Блоки лендинга: LandingContent.php → --sync-content при необходимости.
 Лайки после импорта VK: php bin/console app:chronicle:seed-likes --env=prod
+
+Кеш Symfony (var/cache) очищается и прогревается при каждом деплое.
+Браузерный кэш статитки (css/js ?v=): ./deploy-script.sh --bust-assets
 EOF
 }
 
@@ -49,6 +55,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --first) FIRST_DEPLOY=1 ;;
         --sync-content) SYNC_CONTENT=1 ;;
+        --bust-assets) BUST_ASSETS=1 ;;
         --skip-git) SKIP_GIT=1 ;;
         --skip-composer) SKIP_COMPOSER=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -59,6 +66,28 @@ done
 
 log() { echo "→ $*"; }
 fail() { echo "✗ $*" >&2; exit 1; }
+
+bump_assets_version() {
+    local new_ver old_ver tmp
+    new_ver="$(date -u +%Y%m%d%H%M)"
+    tmp="$(mktemp)"
+    if grep -qE '^ASSETS_VERSION=' .env; then
+        old_ver="$(grep -E '^ASSETS_VERSION=' .env | head -n1 | cut -d= -f2-)"
+        awk -v ver="$new_ver" '
+            BEGIN { done = 0 }
+            /^ASSETS_VERSION=/ {
+                if (!done) { print "ASSETS_VERSION=" ver; done = 1; next }
+            }
+            { print }
+            END { if (!done) print "ASSETS_VERSION=" ver }
+        ' .env > "$tmp"
+        mv "$tmp" .env
+        log "ASSETS_VERSION: ${old_ver} → ${new_ver}"
+    else
+        printf '\nASSETS_VERSION=%s\n' "$new_ver" >> .env
+        log "ASSETS_VERSION: (не было) → ${new_ver}"
+    fi
+}
 
 # --- проверки ---
 
@@ -129,6 +158,12 @@ elif [[ $SYNC_CONTENT -eq 1 ]]; then
     $CONSOLE app:content:sync --env=prod
 fi
 
+# --- браузерный кэш css/js ---
+
+if [[ $BUST_ASSETS -eq 1 ]]; then
+    bump_assets_version
+fi
+
 # --- кеш Symfony ---
 
 log "Очистка и прогрев кеша (prod)"
@@ -139,4 +174,7 @@ echo ""
 echo "✓ Деплой завершён."
 echo "  Проверьте: HTTPS, / , /dev--null , /contact , /cases , /chronicle ,"
 echo "  /admin/login , форма заявки, var/log/prod.log при ошибках."
-echo "  После импорта VK / миграции лайков: php bin/console app:chronicle:seed-likes --env=prod"
+echo "  После импорта VK / фиксации лайков: php bin/console app:chronicle:seed-likes --env=prod"
+if [[ $BUST_ASSETS -eq 1 ]]; then
+    echo "  ASSETS_VERSION обновлён — у посетителей подтянутся новые css/js."
+fi

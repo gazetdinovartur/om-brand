@@ -3794,63 +3794,6 @@ select.form-control:focus {
     line-height: 1;
 }
 
-.chronicle-hub__search {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-width: 0;
-}
-
-.chronicle-hub__search-btn {
-    display: none;
-}
-
-.chronicle-hub__search-field {
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
-}
-
-.chronicle-hub__search-field input {
-    box-sizing: border-box;
-    width: min(14rem, 42vw);
-    height: 2.25rem;
-    margin: 0;
-    padding: 0 0.85rem;
-    border: 1px solid rgba(26, 22, 18, 0.14);
-    border-radius: 999px;
-    background: #fff;
-    font: inherit;
-    font-size: 0.85rem;
-    line-height: 1;
-    color: inherit;
-}
-
-.chronicle-hub__search-field input:focus {
-    outline: 2px solid rgba(196, 92, 74, 0.35);
-    outline-offset: 1px;
-}
-
-.chronicle-hub__reset {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--primary-dark);
-    text-decoration: none;
-}
-
-.chronicle-hub__reset:hover {
-    text-decoration: underline;
-    color: #c45c4a;
-}
-
-.chronicle-hub__reset-icon {
-    display: none;
-}
-
-.chronicle-hub__reset-label {
-    display: inline;
-}
-
 .chronicle-hub__panels {
     display: grid;
     gap: 0.85rem;
@@ -3952,19 +3895,249 @@ select.form-control:focus {
     fill: currentColor;
 }
 
-.chronicle-hub__icon-btn.chronicle-hub__reset {
-    flex: 0 0 auto;
-    width: auto;
-    height: auto;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--primary-dark);
-    border-radius: 0;
+.chronicle-search-modal {
+    width: min(calc(100vw - 1.5rem), 32rem);
+    margin: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
 }
 
-.chronicle-hub__icon-btn.chronicle-hub__reset:hover {
-    color: #c45c4a;
-    text-decoration: underline;
+.chronicle-search-modal::backdrop {
+    background:
+        radial-gradient(ellipse at 50% 20%, rgba(232, 168, 73, 0.18), transparent 55%),
+        rgba(18, 14, 10, 0.52);
+    backdrop-filter: blur(8px);
+}
+
+.chronicle-search-modal__shell {
+    position: relative;
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.35rem 1.2rem 1.15rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(232, 168, 73, 0.3);
+    background:
+        linear-gradient(155deg, rgba(255, 252, 245, 0.99), rgba(248, 241, 228, 0.94)),
+        radial-gradient(circle at top right, rgba(232, 168, 73, 0.16), transparent 58%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.7) inset,
+        0 24px 60px rgba(26, 22, 18, 0.18);
+    max-height: min(88vh, 40rem);
+    overflow: hidden;
+}
+
+.chronicle-search-modal__close {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(26, 22, 18, 0.05);
+    color: rgba(26, 22, 18, 0.45);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    z-index: 1;
+}
+
+.chronicle-search-modal__close:hover {
+    background: rgba(26, 22, 18, 0.09);
+    color: rgba(26, 22, 18, 0.75);
+}
+
+.chronicle-search-modal__head {
+    display: grid;
+    justify-items: center;
+    gap: 0.55rem;
+    padding-right: 1.5rem;
+}
+
+.chronicle-search-modal__badge {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    background: rgba(232, 168, 73, 0.18);
+    color: rgba(120, 72, 18, 0.92);
+    box-shadow: 0 0 0 1px rgba(232, 168, 73, 0.2);
+}
+
+.chronicle-search-modal__eyebrow {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(26, 22, 18, 0.48);
+}
+
+.chronicle-search-modal__field {
+    display: block;
+    width: 100%;
+}
+
+.chronicle-search-modal__field input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 3rem;
+    margin: 0;
+    padding: 0 1.1rem;
+    border: 1px solid rgba(26, 22, 18, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    font: inherit;
+    font-size: 1.05rem;
+    line-height: 1;
+    color: inherit;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chronicle-search-modal__field input::placeholder {
+    color: rgba(26, 22, 18, 0.35);
+}
+
+.chronicle-search-modal__field input:focus {
+    outline: none;
+    border-color: rgba(200, 120, 40, 0.45);
+    box-shadow:
+        0 0 0 3px rgba(232, 168, 73, 0.22),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+.chronicle-search-modal__status {
+    margin: 0;
+    min-height: 1.2em;
+    text-align: center;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: rgba(26, 22, 18, 0.45);
+}
+
+.chronicle-search-modal__status.is-loading {
+    color: rgba(120, 72, 18, 0.75);
+}
+
+.chronicle-search-modal__results {
+    min-height: 0;
+    max-height: min(48vh, 22rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0 -0.15rem;
+    padding: 0 0.15rem;
+    scrollbar-width: thin;
+}
+
+.chronicle-search-modal__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.chronicle-search-modal__hit {
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.45rem 0.5rem;
+    border-radius: 0.85rem;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.12s ease;
+}
+
+.chronicle-search-modal__hit:hover,
+.chronicle-search-modal__hit:focus-visible,
+.chronicle-search-modal__item.is-active .chronicle-search-modal__hit {
+    background: rgba(232, 168, 73, 0.14);
+    outline: none;
+}
+
+.chronicle-search-modal__thumb {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.65rem;
+    overflow: hidden;
+    background: rgba(26, 22, 18, 0.06);
+    flex-shrink: 0;
+}
+
+.chronicle-search-modal__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chronicle-search-modal__thumb--empty {
+    color: rgba(200, 120, 40, 0.55);
+    font-size: 0.85rem;
+}
+
+.chronicle-search-modal__hit-body {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.chronicle-search-modal__hit-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.chronicle-search-modal__hit-meta {
+    font-size: 0.74rem;
+    color: rgba(26, 22, 18, 0.48);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chronicle-search-modal__empty,
+.chronicle-search-modal__more-note {
+    margin: 0.35rem 0 0;
+    text-align: center;
+    font-size: 0.82rem;
+    color: rgba(26, 22, 18, 0.5);
+}
+
+.chronicle-search-modal__apply {
+    display: inline-flex;
+    justify-self: center;
+    align-items: center;
+    margin-top: 0.15rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid rgba(200, 120, 40, 0.35);
+    background: rgba(232, 168, 73, 0.12);
+    color: var(--primary-dark);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.chronicle-search-modal__apply:hover {
+    background: rgba(232, 168, 73, 0.2);
+}
+
+.chronicle-search-modal__apply[hidden] {
+    display: none !important;
 }
 
 .chronicle-hub__series,
@@ -4059,59 +4232,6 @@ select.form-control:focus {
         font-size: 0.8rem;
     }
 
-    .chronicle-hub__icon-btn.chronicle-hub__reset {
-        width: 2.1rem;
-        height: 2.1rem;
-        flex: 0 0 2.1rem;
-        color: rgba(26, 22, 18, 0.32);
-        text-decoration: none;
-        border-radius: 999px;
-        font-size: inherit;
-        font-weight: inherit;
-    }
-
-    .chronicle-hub__icon-btn.chronicle-hub__reset:hover {
-        text-decoration: none;
-        color: #c45c4a;
-    }
-
-    .chronicle-hub__reset-label {
-        display: none;
-    }
-
-    .chronicle-hub__reset-icon {
-        display: block;
-    }
-
-    .chronicle-hub__search {
-        flex: 0 0 auto;
-        min-width: 0;
-    }
-
-    .chronicle-hub__search-btn {
-        display: inline-flex;
-    }
-
-    .chronicle-hub__search-field {
-        display: none;
-        flex: 1 1 auto;
-    }
-
-    .chronicle-hub__search.is-open {
-        flex: 1 1 100%;
-        order: 5;
-    }
-
-    .chronicle-hub__search.is-open .chronicle-hub__search-field {
-        display: inline-flex;
-    }
-
-    .chronicle-hub__search-field input {
-        width: 100%;
-        height: 2.1rem;
-        font-size: 0.8rem;
-    }
-
     .chronicle-hub__year select {
         height: 2.1rem;
         min-width: 6.5rem;
@@ -4125,6 +4245,26 @@ select.form-control:focus {
         width: 2.1rem;
         height: 2.1rem;
         flex-basis: 2.1rem;
+    }
+
+    .chronicle-search-modal {
+        width: min(calc(100vw - 1rem), 32rem);
+        margin: auto;
+    }
+
+    .chronicle-search-modal__shell {
+        padding: 1.2rem 0.95rem 1rem;
+        border-radius: 1.1rem;
+        max-height: min(92vh, 40rem);
+    }
+
+    .chronicle-search-modal__field input {
+        height: 2.75rem;
+        font-size: 1rem;
+    }
+
+    .chronicle-search-modal__results {
+        max-height: min(52vh, 22rem);
     }
 
     .chronicle-hub__panels {
