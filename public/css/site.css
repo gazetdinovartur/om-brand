@@ -4977,6 +4977,19 @@ select.form-control:focus {
         display: none;
     }
 
+    .chronicle-detail .chronicle-hero--default-cover .chronicle-hero__cover-wrap {
+        display: none;
+    }
+
+    .chronicle-detail .chronicle-hero--default-cover {
+        padding-top: clamp(1.25rem, 4vw, 2rem);
+        padding-bottom: 0.75rem;
+    }
+
+    .chronicle-detail .chronicle-hero--default-cover .chronicle-hero__layout {
+        gap: 0;
+    }
+
     .chronicle-hero__layout,
     .chronicle-hero--has-cover .chronicle-hero__layout {
         grid-template-columns: minmax(0, 1fr);
