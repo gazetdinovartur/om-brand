@@ -977,6 +977,7 @@ function initCaseLightbox() {
     }
 
     const img = dialog.querySelector('[data-lightbox-img]');
+    const stage = dialog.querySelector('[data-lightbox-stage]');
     const captionEl = dialog.querySelector('[data-lightbox-caption]');
     const closeBtn = dialog.querySelector('[data-lightbox-close]');
     const prevBtn = dialog.querySelector('[data-lightbox-prev]');
@@ -990,6 +991,30 @@ function initCaseLightbox() {
     dialog.hidden = false;
     let items = [];
     let index = 0;
+    let scrollY = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchActive = false;
+
+    const lockScroll = () => {
+        scrollY = window.scrollY || window.pageYOffset || 0;
+        document.body.classList.add('is-lightbox-open');
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+    };
+
+    const unlockScroll = () => {
+        document.body.classList.remove('is-lightbox-open');
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        window.scrollTo(0, scrollY);
+    };
 
     const collectGroup = (trigger) => {
         const gallery = trigger.closest('[data-lightbox-gallery]');
@@ -1015,9 +1040,11 @@ function initCaseLightbox() {
         const multi = items.length > 1;
         if (prevBtn instanceof HTMLButtonElement) {
             prevBtn.hidden = !multi;
+            prevBtn.disabled = !multi;
         }
         if (nextBtn instanceof HTMLButtonElement) {
             nextBtn.hidden = !multi;
+            nextBtn.disabled = !multi;
         }
     };
 
@@ -1028,6 +1055,7 @@ function initCaseLightbox() {
         index = (i + items.length) % items.length;
         render();
         if (!dialog.open) {
+            lockScroll();
             dialog.showModal();
         }
     };
@@ -1051,9 +1079,14 @@ function initCaseLightbox() {
     prevBtn?.addEventListener('click', () => openAt(index - 1));
     nextBtn?.addEventListener('click', () => openAt(index + 1));
 
+    dialog.addEventListener('close', unlockScroll);
+
     dialog.addEventListener('click', (event) => {
-        if (event.target === dialog) {
-            close();
+        if (event.target === dialog || event.target === stage) {
+            // Only close on empty stage chrome, not when swiping — stage clicks on img are pointer-events none
+            if (event.target === dialog) {
+                close();
+            }
         }
     });
 
@@ -1066,6 +1099,55 @@ function initCaseLightbox() {
             openAt(index + 1);
         }
     });
+
+    const onTouchStart = (event) => {
+        if (items.length < 2 || event.touches.length !== 1) {
+            touchActive = false;
+            return;
+        }
+        touchActive = true;
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+    };
+
+    const onTouchMove = (event) => {
+        if (!touchActive || event.touches.length !== 1) {
+            return;
+        }
+        const dx = event.touches[0].clientX - touchStartX;
+        const dy = event.touches[0].clientY - touchStartY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+            event.preventDefault();
+        }
+    };
+
+    const onTouchEnd = (event) => {
+        if (!touchActive || items.length < 2) {
+            touchActive = false;
+            return;
+        }
+        touchActive = false;
+        const touch = event.changedTouches[0];
+        if (!touch) {
+            return;
+        }
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.2) {
+            return;
+        }
+        if (dx < 0) {
+            openAt(index + 1);
+        } else {
+            openAt(index - 1);
+        }
+    };
+
+    const swipeTarget = stage instanceof HTMLElement ? stage : dialog;
+    swipeTarget.addEventListener('touchstart', onTouchStart, { passive: true });
+    swipeTarget.addEventListener('touchmove', onTouchMove, { passive: false });
+    swipeTarget.addEventListener('touchend', onTouchEnd, { passive: true });
+    swipeTarget.addEventListener('touchcancel', () => { touchActive = false; }, { passive: true });
 }
 
 function initCopyLink() {

@@ -9,7 +9,7 @@
         <h{{ block.headingLevel }} class="chronicle-block chronicle-block--heading"{% if anchor %} id="{{ anchor }}"{% endif %}>{{ block.body }}</h{{ block.headingLevel }}>
     {% elseif type == 'quote' %}
         <blockquote class="chronicle-block chronicle-block--quote">
-            <p>{{ block.body|chronicle_markdown|raw }}</p>
+            {{ block.body|chronicle_markdown|raw }}
             {% if block.author %}<footer>— {{ block.author }}</footer>{% endif %}
         </blockquote>
     {% elseif type == 'callout' and block.calloutStyle|default('note') != 'meta' %}

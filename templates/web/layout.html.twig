@@ -138,16 +138,26 @@
         {% endif %}
     </footer>
 
-    <a class="site-fab" href="{{ fabHref|default(path('web_contact')) }}">Написать мне</a>
+    <a class="site-fab" href="{{ fabHref|default(path('web_contact')) }}" aria-label="Написать мне" title="Написать мне">
+        <span class="site-fab__label">Написать мне</span>
+        <span class="site-fab__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+        </span>
+    </a>
     {% endif %}
 
     <dialog class="case-lightbox" data-lightbox hidden>
         <div class="case-lightbox__inner">
             <button type="button" class="case-lightbox__close" data-lightbox-close aria-label="Закрыть">×</button>
             <button type="button" class="case-lightbox__nav case-lightbox__nav--prev" data-lightbox-prev aria-label="Предыдущий">‹</button>
-            <img class="case-lightbox__img" data-lightbox-img src="" alt="">
+            <div class="case-lightbox__stage" data-lightbox-stage>
+                <img class="case-lightbox__img" data-lightbox-img src="" alt="">
+                <p class="case-lightbox__caption" data-lightbox-caption></p>
+            </div>
             <button type="button" class="case-lightbox__nav case-lightbox__nav--next" data-lightbox-next aria-label="Следующий">›</button>
-            <p class="case-lightbox__caption" data-lightbox-caption></p>
         </div>
     </dialog>
 
