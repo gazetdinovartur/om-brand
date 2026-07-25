@@ -522,7 +522,6 @@ class ChronicleEntryRepository extends ServiceEntityRepository
             $qb->andWhere($qb->expr()->orX(
                 $qb->expr()->like('e.title', ':'.$param),
                 $qb->expr()->like('e.lede', ':'.$param),
-                $qb->expr()->like('e.excerpt', ':'.$param),
                 $qb->expr()->exists(
                     'SELECT 1 FROM App\Entity\ChronicleBlock sb'.$i
                     .' WHERE sb'.$i.'.entry = e AND ('

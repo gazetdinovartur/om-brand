@@ -100,7 +100,6 @@ final class SeedChronicleCommand extends Command
         $entry->setTitle(ChronicleSeedContent::ENTRY_TITLE);
         $entry->setSlug(ChronicleSeedContent::ENTRY_SLUG);
         $entry->setLede(ChronicleSeedContent::ledeFromBody());
-        $entry->setExcerpt(null);
         $entry->setEra($eraMap['ryabinovoe-gosudarstvo'] ?? null);
         $entry->getTags()->clear();
         $entry->addTag($tagLeto);

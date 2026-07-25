@@ -38,10 +38,6 @@
                         <textarea class="form-control" rows="3" data-field="lede">{{ entry.lede }}</textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Excerpt (SEO / лента)</label>
-                        <textarea class="form-control" rows="2" data-field="excerpt">{{ entry.excerpt }}</textarea>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Обложка</label>
                         <div class="chronicle-editor-drop" data-upload-kind="cover">
                             {% set cover = chronicle_cover(entry.coverImagePath) %}
@@ -88,7 +84,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Дата публикации</label>
-                        <input type="datetime-local" class="form-control" data-field="publishedAt" value="{{ entry.publishedAt ? entry.publishedAt|date('Y-m-d\\TH:i') : '' }}">
+                        <input type="datetime-local" class="form-control" data-field="publishedAt" value="" data-published-at="{{ entry.publishedAt ? entry.publishedAt|date('c') : '' }}">
+                        <p class="form-text mb-0" data-published-tz-hint>По вашему местному времени</p>
                     </div>
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" data-field="isFeatured" id="featured"{% if entry.isFeatured %} checked{% endif %}>
@@ -145,6 +142,6 @@
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260721b' }}"></script>
+    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260725excerpt' }}"></script>
 </body>
 </html>

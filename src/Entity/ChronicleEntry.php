@@ -31,9 +31,6 @@ class ChronicleEntry
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $lede = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $excerpt = null;
-
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $coverImagePath = null;
 
@@ -168,18 +165,6 @@ class ChronicleEntry
     public function setLede(?string $lede): static
     {
         $this->lede = $lede;
-
-        return $this;
-    }
-
-    public function getExcerpt(): ?string
-    {
-        return $this->excerpt;
-    }
-
-    public function setExcerpt(?string $excerpt): static
-    {
-        $this->excerpt = $excerpt;
 
         return $this;
     }
@@ -480,10 +465,6 @@ class ChronicleEntry
             return (string) $this->lede;
         }
 
-        if ($this->isFilled($this->excerpt)) {
-            return (string) $this->excerpt;
-        }
-
         return $this->title;
     }
 
@@ -500,10 +481,6 @@ class ChronicleEntry
     {
         if ($this->isFilled($this->seoDescription)) {
             return (string) $this->seoDescription;
-        }
-
-        if ($this->isFilled($this->excerpt)) {
-            return (string) $this->excerpt;
         }
 
         if ($this->isFilled($this->lede)) {

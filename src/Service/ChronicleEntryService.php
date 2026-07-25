@@ -61,10 +61,6 @@ final class ChronicleEntryService
             $entry->setLede(\is_string($payload['lede']) ? $payload['lede'] : null);
         }
 
-        if (\array_key_exists('excerpt', $payload)) {
-            $entry->setExcerpt(\is_string($payload['excerpt']) ? $payload['excerpt'] : null);
-        }
-
         if (\array_key_exists('coverImagePath', $payload)) {
             $entry->setCoverImagePath(\is_string($payload['coverImagePath']) && '' !== $payload['coverImagePath']
                 ? basename($payload['coverImagePath'])
@@ -291,7 +287,10 @@ final class ChronicleEntryService
 
         if (\is_string($value)) {
             try {
-                return new \DateTimeImmutable($value);
+                $parsed = new \DateTimeImmutable($value);
+
+                // Store wall-clock in app timezone; clients may send local offset.
+                return $parsed->setTimezone(new \DateTimeZone(date_default_timezone_get()));
             } catch (\Exception) {
                 return null;
             }
@@ -342,13 +341,12 @@ final class ChronicleEntryService
             'slug' => $entry->getSlug(),
             'shortHash' => $entry->getShortHash(),
             'lede' => $entry->getLede(),
-            'excerpt' => $entry->getExcerpt(),
             'coverImagePath' => $entry->getCoverImagePath(),
             'eraId' => $entry->getEra()?->getId(),
             'seriesId' => $entry->getSeries()?->getId(),
             'tagIds' => array_map(static fn (ChronicleTag $tag): int => (int) $tag->getId(), $entry->getTags()->toArray()),
             'status' => $entry->getStatus()->value,
-            'publishedAt' => $entry->getPublishedAt()?->format('Y-m-d\TH:i'),
+            'publishedAt' => $entry->getPublishedAt()?->format('c'),
             'isFeatured' => $entry->isFeatured(),
             'isUnlisted' => $entry->isUnlisted(),
             'readingTimeMin' => $entry->getReadingTimeMin(),

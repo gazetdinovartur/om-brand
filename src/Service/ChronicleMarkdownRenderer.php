@@ -51,7 +51,6 @@ final class ChronicleMarkdownRenderer
     public function estimateReadingMinutes(ChronicleEntry $entry): int
     {
         $text = $entry->getLede() ?? '';
-        $text .= ' '.$entry->getExcerpt();
 
         foreach ($entry->getBlocks() as $block) {
             $text .= ' '.($block->getBody() ?? '');

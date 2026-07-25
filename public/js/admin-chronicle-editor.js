@@ -85,6 +85,67 @@
         els.saveStatus.dataset.kind = kind;
     }
 
+    function timezoneOffsetLabel(date = new Date()) {
+        const offsetMin = -date.getTimezoneOffset();
+        const sign = offsetMin >= 0 ? '+' : '-';
+        const abs = Math.abs(offsetMin);
+        const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+        const mm = String(abs % 60).padStart(2, '0');
+
+        return `${sign}${hh}:${mm}`;
+    }
+
+    function browserTimeZoneName() {
+        try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        } catch {
+            return '';
+        }
+    }
+
+    /** ISO / server datetime → value for <input type="datetime-local"> in browser TZ. */
+    function toLocalDatetimeInput(value) {
+        if (!value) return '';
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) {
+            return String(value).slice(0, 16);
+        }
+
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+
+        return `${y}-${m}-${day}T${h}:${min}`;
+    }
+
+    /** datetime-local wall clock → ISO with browser offset for the server. */
+    function fromLocalDatetimeInput(localValue) {
+        if (!localValue) return null;
+
+        return `${localValue}:00${timezoneOffsetLabel()}`;
+    }
+
+    function syncPublishedAtField(isoValue) {
+        const field = document.querySelector('[data-field="publishedAt"]');
+        if (!(field instanceof HTMLInputElement)) return;
+
+        const source = isoValue || field.dataset.publishedAt || '';
+        field.value = toLocalDatetimeInput(source);
+    }
+
+    function updatePublishedTzHint() {
+        const hint = document.querySelector('[data-published-tz-hint]');
+        if (!(hint instanceof HTMLElement)) return;
+
+        const tz = browserTimeZoneName();
+        const offset = timezoneOffsetLabel();
+        hint.textContent = tz
+            ? `По вашему местному времени (${tz}, UTC${offset})`
+            : `По вашему местному времени (UTC${offset})`;
+    }
+
     function collectMeta() {
         if (!state) return {};
         readMetaFieldsFromDom();
@@ -94,12 +155,11 @@
             title: document.querySelector('[data-field="title"]')?.value ?? '',
             slug: document.querySelector('[data-field="slug"]')?.value ?? '',
             lede: document.querySelector('[data-field="lede"]')?.value ?? '',
-            excerpt: document.querySelector('[data-field="excerpt"]')?.value ?? '',
             coverImagePath: state.coverImagePath ?? null,
             eraId: document.querySelector('[data-field="eraId"]')?.value || null,
             seriesId: document.querySelector('[data-field="seriesId"]')?.value || null,
             tagIds,
-            publishedAt: document.querySelector('[data-field="publishedAt"]')?.value || null,
+            publishedAt: fromLocalDatetimeInput(document.querySelector('[data-field="publishedAt"]')?.value || ''),
             isFeatured: document.querySelector('[data-field="isFeatured"]')?.checked ?? false,
             isUnlisted: document.querySelector('[data-field="isUnlisted"]')?.checked ?? false,
             seoTitle: document.querySelector('[data-field="seoTitle"]')?.value ?? '',
@@ -747,6 +807,8 @@
 
         state = initState(data);
         await tagsPromise;
+        updatePublishedTzHint();
+        syncPublishedAtField(state.publishedAt);
         renderBlocks();
         setStatus('Готово');
     }
