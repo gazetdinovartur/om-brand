@@ -6,27 +6,31 @@ use App\Service\VkApiClient;
 use App\Service\VkApiException;
 use App\Service\VkCredentials;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * VK wall-token connect.
+ *
+ * Scope «wall» доступен только Standalone + redirect_uri=blank.html (implicit token).
+ * Кастомный /oauth/vk/callback с response_type=code даёт Security Error.
+ */
+#[IsGranted('ROLE_ADMIN')]
 final class VkOauthController extends AbstractController
 {
+    private const AUTHORIZE = 'https://oauth.vk.com/authorize';
+    private const BLANK = 'https://oauth.vk.com/blank.html';
+
     public function __construct(
         private readonly VkCredentials $credentials,
         private readonly VkApiClient $vk,
-        private readonly UrlGeneratorInterface $urlGenerator,
-        #[Autowire('%env(default:app.site_url:APP_SITE_URL)%')]
-        private readonly string $siteUrl = '',
     ) {
     }
 
     #[Route('/admin/oauth/vk/start', name: 'admin_oauth_vk_start', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
-    public function start(Request $request): Response
+    public function start(): Response
     {
         $appId = $this->credentials->appId();
         if ('' === $appId) {
@@ -35,64 +39,55 @@ final class VkOauthController extends AbstractController
             return $this->redirectToRoute('admin');
         }
 
-        $state = bin2hex(random_bytes(16));
-        $request->getSession()->set('vk_oauth_state', $state);
-
-        $redirectUri = $this->callbackUrl();
-        $query = http_build_query([
+        $authorizeUrl = self::AUTHORIZE.'?'.http_build_query([
             'client_id' => $appId,
             'display' => 'page',
-            'redirect_uri' => $redirectUri,
+            'redirect_uri' => self::BLANK,
             'scope' => 'wall,photos,offline',
-            'response_type' => 'code',
+            'response_type' => 'token',
             'v' => '5.199',
-            'state' => $state,
         ]);
 
-        return $this->redirect('https://oauth.vk.com/authorize?'.$query);
+        return $this->render('admin/vk_oauth_connect.html.twig', [
+            'authorizeUrl' => $authorizeUrl,
+            'blankUri' => self::BLANK,
+            'connected' => $this->credentials->hasUserToken(),
+            'ownerId' => $this->credentials->ownerId(),
+        ]);
     }
 
-    #[Route('/oauth/vk/callback', name: 'oauth_vk_callback', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
-    public function callback(Request $request): Response
+    #[Route('/admin/oauth/vk/token', name: 'admin_oauth_vk_token', methods: ['POST'])]
+    public function saveToken(Request $request): Response
     {
-        $session = $request->getSession();
-        $expected = (string) $session->get('vk_oauth_state', '');
-        $state = (string) $request->query->get('state', '');
-        $session->remove('vk_oauth_state');
+        if (!$this->isCsrfTokenValid('vk_oauth_token', (string) $request->request->get('_csrf_token'))) {
+            $this->addFlash('danger', 'CSRF: обновите страницу и попробуйте снова.');
 
-        if ('' === $expected || !hash_equals($expected, $state)) {
-            return $this->render('admin/vk_oauth_result.html.twig', [
-                'ok' => false,
-                'message' => 'Неверный state (CSRF). Запустите подключение VK снова.',
-            ]);
+            return $this->redirectToRoute('admin_oauth_vk_start');
         }
 
-        if ($request->query->has('error')) {
-            return $this->render('admin/vk_oauth_result.html.twig', [
-                'ok' => false,
-                'message' => (string) $request->query->get('error_description', $request->query->get('error')),
-            ]);
-        }
+        $raw = trim((string) $request->request->get('token_payload', ''));
+        $token = $this->extractAccessToken($raw);
+        if (null === $token) {
+            $this->addFlash('danger', 'Не нашёл access_token. Вставьте фрагмент из адресной строки blank.html целиком.');
 
-        $code = (string) $request->query->get('code', '');
-        if ('' === $code) {
-            return $this->render('admin/vk_oauth_result.html.twig', [
-                'ok' => false,
-                'message' => 'VK не вернул code.',
-            ]);
+            return $this->redirectToRoute('admin_oauth_vk_start');
         }
 
         try {
-            $token = $this->vk->exchangeCode($code, $this->callbackUrl());
-            $this->credentials->storeUserAccessToken($token['access_token']);
+            $this->credentials->storeUserAccessToken($token);
+            $ownerId = $this->vk->resolveOwnerId();
 
             return $this->render('admin/vk_oauth_result.html.twig', [
                 'ok' => true,
                 'message' => 'Токен VK сохранён. Можно публиковать хронику на стену.',
-                'userId' => $token['user_id'] ?? null,
+                'userId' => $ownerId,
             ]);
         } catch (VkApiException $e) {
+            return $this->render('admin/vk_oauth_result.html.twig', [
+                'ok' => false,
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
             return $this->render('admin/vk_oauth_result.html.twig', [
                 'ok' => false,
                 'message' => $e->getMessage(),
@@ -100,17 +95,24 @@ final class VkOauthController extends AbstractController
         }
     }
 
-    private function callbackUrl(): string
+    /**
+     * Accepts raw access_token, full blank.html URL, or #access_token=… fragment.
+     */
+    private function extractAccessToken(string $raw): ?string
     {
-        $base = rtrim($this->siteUrl, '/');
-        if ('' !== $base) {
-            return $base.'/oauth/vk/callback';
+        if ('' === $raw) {
+            return null;
         }
 
-        return $this->urlGenerator->generate(
-            'oauth_vk_callback',
-            [],
-            UrlGeneratorInterface::ABSOLUTE_URL,
-        );
+        if (preg_match('/access_token=([^&\s#]+)/', $raw, $m)) {
+            return rawurldecode($m[1]);
+        }
+
+        // Bare token (no & or =).
+        if (!str_contains($raw, '=') && !str_contains($raw, ' ') && \strlen($raw) > 20) {
+            return $raw;
+        }
+
+        return null;
     }
 }

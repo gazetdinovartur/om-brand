@@ -66,15 +66,19 @@ ASSETS_VERSION=20260723a
 
 **Откуда взять `VK_USER_ACCESS_TOKEN` и `VK_OWNER_ID`**
 
-1. В `.env` задай `VK_APP_ID` + `VK_APP_SECRET` (или `VK_SECRET_KEY`), `VK_CROSSPOST_ENABLED=1`.
-2. Задеплой, зайди в админку под собой.
-3. В редакторе хроники нажми **«Подключить VK»** → разреши `wall`, `photos`, `offline`.
-4. После редиректа на `/oauth/vk/callback`:
-   - токен сохранится в `var/vk/user_access_token` (gitignored) — **в `.env` копировать не обязательно**;
-   - на экране будет `user_id: …` — это и есть **`VK_OWNER_ID`** (положительное число страницы arturlun). Пропиши его в `.env`.
-5. Альтернатива `VK_OWNER_ID`: страница VK → URL вида `vk.com/id123456` (не короткое имя `arturlun`).
+Scope `wall` у VK работает **только** для приложения типа **Standalone** и `redirect_uri=https://oauth.vk.com/blank.html`.  
+Кастомный `https://arturlun.ru/oauth/vk/callback` + Website → чаще всего `{"error":"invalid_request","error_description":"Security Error"}`.
 
-`VK_SERVICE_TOKEN` / service key для постинга на **личную** стену не заменяет user token.
+1. В кабинете VK создай / переключи приложение на **Standalone**.
+2. В `.env`: `VK_APP_ID`, `VK_APP_SECRET` (или `VK_SECRET_KEY`), `VK_CROSSPOST_ENABLED=1`.
+3. Админка → редактор → **«Подключить VK»** (или `/admin/oauth/vk/start`).
+4. «Открыть авторизацию VK» → Разрешить → на `blank.html` скопируй **весь URL** из адресной строки (`#access_token=…`).
+5. Вставь URL в форму на сайте → Сохранить.
+6. На экране успеха будет `user_id` — пропиши `VK_OWNER_ID=…` в `.env`, затем `cache:clear --env=prod`.
+
+Токен лежит в `var/vk/user_access_token` (в `.env` дублировать не обязательно).
+
+`VK_SERVICE_TOKEN` для личной стены **не** заменяет user token.
 
 Cron (каждые 15 мин) — отложенная публикация + кросспост + sync стены:
 
