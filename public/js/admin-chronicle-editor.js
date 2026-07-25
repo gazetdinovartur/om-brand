@@ -448,12 +448,21 @@
         return card;
     }
 
+    const canFieldSize = typeof CSS !== 'undefined' && CSS.supports('field-sizing', 'content');
+
     function autosizeTextarea(el) {
         if (!(el instanceof HTMLTextAreaElement)) return;
-        // Reset so scrollHeight reflects content, not the previous fixed height.
-        el.style.height = '0px';
-        const next = Math.max(el.scrollHeight, 40);
-        el.style.height = `${next}px`;
+        // field-sizing: content (CSS) — do not touch height; height:0 caused page/caret jump.
+        if (canFieldSize) {
+            el.style.height = '';
+            return;
+        }
+        const scrollY = window.scrollY;
+        el.style.height = 'auto';
+        el.style.height = `${Math.max(el.scrollHeight, 40)}px`;
+        if (window.scrollY !== scrollY) {
+            window.scrollTo(0, scrollY);
+        }
     }
 
     function imgWithFallback(filename, dirs, className = '') {

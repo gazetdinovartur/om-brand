@@ -389,14 +389,23 @@ function setMediaVisibility(kind, visible) {
 
 function initCaseTextareaGrow() {
     const selector = '.ea-new textarea.form-control, .ea-edit textarea.form-control';
+    // CSS field-sizing avoids caret/page jump; JS height:0 resets caused the scroll thrash.
+    const canFieldSize = typeof CSS !== 'undefined' && CSS.supports('field-sizing', 'content');
 
     const grow = (ta) => {
         if (!(ta instanceof HTMLTextAreaElement)) {
             return;
         }
-        // Reset so scrollHeight reflects content (hidden tabs otherwise stay short).
-        ta.style.height = '0px';
+        if (canFieldSize) {
+            ta.style.height = '';
+            return;
+        }
+        const scrollY = window.scrollY;
+        ta.style.height = 'auto';
         ta.style.height = `${Math.max(ta.scrollHeight, 44)}px`;
+        if (window.scrollY !== scrollY) {
+            window.scrollTo(0, scrollY);
+        }
     };
 
     const growAll = () => {
@@ -405,8 +414,9 @@ function initCaseTextareaGrow() {
 
     document.querySelectorAll(selector).forEach((ta) => {
         grow(ta);
-        ta.addEventListener('input', () => grow(ta));
-        ta.addEventListener('focus', () => grow(ta));
+        if (!canFieldSize) {
+            ta.addEventListener('input', () => grow(ta));
+        }
     });
 
     // EasyAdmin tabs hide fields on load — remeasure when a tab becomes visible.
