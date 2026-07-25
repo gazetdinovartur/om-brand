@@ -151,8 +151,13 @@ class VkApiClient
     /**
      * @param list<string> $attachments
      */
-    public function wallPost(int $ownerId, string $message, array $attachments = [], ?string $guid = null): int
-    {
+    public function wallPost(
+        int $ownerId,
+        string $message,
+        array $attachments = [],
+        ?string $guid = null,
+        ?string $copyright = null,
+    ): int {
         $params = [
             'owner_id' => $ownerId,
             'from_group' => 0,
@@ -161,6 +166,10 @@ class VkApiClient
         ];
         if ([] !== $attachments) {
             $params['attachments'] = implode(',', $attachments);
+        }
+        if (null !== $copyright && '' !== trim($copyright)) {
+            // Системная пометка «Источник» под постом.
+            $params['copyright'] = trim($copyright);
         }
 
         $result = $this->call('wall.post', $params);

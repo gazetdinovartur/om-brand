@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class ChronicleVkMessageBuilderTest extends TestCase
 {
-    public function testBuildAppendsSiteFooterWithShortLink(): void
+    public function testBuildUsesCopyrightNotTextFooter(): void
     {
         $entry = new ChronicleEntry();
         $entry->setTitle('Окна и двери');
@@ -42,10 +42,9 @@ final class ChronicleVkMessageBuilderTest extends TestCase
 
         self::assertStringContainsString('Окна и двери', $payload['message']);
         self::assertStringContainsString('Текст поста.', $payload['message']);
-        self::assertStringEndsWith(
-            "*\n\nОпубликовано на сайте: https://arturlun.ru/p/j0m83fj0",
-            $payload['message'],
-        );
+        self::assertStringNotContainsString('Опубликовано на сайте', $payload['message']);
+        self::assertStringNotContainsString('*', $payload['message']);
         self::assertSame('https://arturlun.ru/p/j0m83fj0', $payload['shortUrl']);
+        self::assertSame('https://arturlun.ru/p/j0m83fj0', $payload['copyright']);
     }
 }

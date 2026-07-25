@@ -26,7 +26,7 @@ final class ChronicleVkMessageBuilder
     }
 
     /**
-     * @return array{message: string, imagePaths: list<string>, shortUrl: string}
+     * @return array{message: string, imagePaths: list<string>, shortUrl: string, copyright: string}
      */
     public function build(ChronicleEntry $entry): array
     {
@@ -68,19 +68,18 @@ final class ChronicleVkMessageBuilder
         }
 
         $body = trim(implode("\n\n", array_filter($parts, static fn (string $p): bool => '' !== trim($p))));
-        $footer = "*\n\nОпубликовано на сайте: ".$shortUrl;
-        $message = '' === $body ? $footer : $body."\n\n".$footer;
+        $message = $body;
 
         if (mb_strlen($message) > self::MAX_MESSAGE_CHARS) {
-            $keep = self::MAX_MESSAGE_CHARS - mb_strlen($footer) - 20;
-            $body = rtrim(mb_substr($body, 0, max(0, $keep)))."\n\n…";
-            $message = $body."\n\n".$footer;
+            $message = rtrim(mb_substr($message, 0, self::MAX_MESSAGE_CHARS - 1)).'…';
         }
 
         return [
             'message' => $message,
             'imagePaths' => $this->collectImagePaths($entry),
             'shortUrl' => $shortUrl,
+            // VK wall.post «Источник» (copyright) — системная пометка, не текст поста.
+            'copyright' => $shortUrl,
         ];
     }
 

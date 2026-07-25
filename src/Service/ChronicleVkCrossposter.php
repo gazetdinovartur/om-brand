@@ -76,6 +76,7 @@ final class ChronicleVkCrossposter
                 $payload['message'],
                 $attachments,
                 'chronicle-entry-'.(int) $entry->getId(),
+                $payload['copyright'] ?? $payload['shortUrl'] ?? null,
             );
 
             $entry->setVkPostId($postId);

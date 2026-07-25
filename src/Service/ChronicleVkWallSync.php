@@ -62,7 +62,7 @@ final class ChronicleVkWallSync
             }
 
             $text = trim((string) ($post['text'] ?? ''));
-            if ($this->looksLikeOurCrosspost($text)) {
+            if ($this->looksLikeOurCrosspost($text, $post)) {
                 ++$stats['skipped'];
                 continue;
             }
@@ -119,8 +119,25 @@ final class ChronicleVkWallSync
         return $stats;
     }
 
-    public function looksLikeOurCrosspost(string $text): bool
+    /**
+     * @param array<string, mixed>|null $post
+     */
+    public function looksLikeOurCrosspost(string $text, ?array $post = null): bool
     {
+        $copyrightLink = '';
+        if (\is_array($post)) {
+            $copyright = $post['copyright'] ?? null;
+            if (\is_array($copyright)) {
+                $copyrightLink = (string) ($copyright['link'] ?? '');
+            } elseif (\is_string($copyright)) {
+                $copyrightLink = $copyright;
+            }
+        }
+
+        if ('' !== $copyrightLink && preg_match('#/p/([a-z0-9]{8})\b#', $copyrightLink, $m)) {
+            return null !== $this->entries->findOneByShortHashAny($m[1]);
+        }
+
         if (preg_match('#Опубликовано на сайте:\s*https?://[^\s]+/p/[a-z0-9]{8}#u', $text)) {
             return true;
         }
