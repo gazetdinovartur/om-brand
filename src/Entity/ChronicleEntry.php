@@ -96,6 +96,16 @@ class ChronicleEntry
     #[ORM\Column(length: 160, unique: true, nullable: true)]
     private ?string $sourceKey = null;
 
+    /** VK wall post id after successful crosspost (idempotency). */
+    #[ORM\Column(nullable: true, unique: true)]
+    private ?int $vkPostId = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $vkPostedAt = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $vkCrosspostError = null;
+
     /** @var Collection<int, ChronicleBlock> */
     #[ORM\OneToMany(targetEntity: ChronicleBlock::class, mappedBy: 'entry', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['sortOrder' => 'ASC', 'id' => 'ASC'])]
@@ -405,6 +415,47 @@ class ChronicleEntry
         $this->sourceKey = $sourceKey;
 
         return $this;
+    }
+
+    public function getVkPostId(): ?int
+    {
+        return $this->vkPostId;
+    }
+
+    public function setVkPostId(?int $vkPostId): static
+    {
+        $this->vkPostId = $vkPostId;
+
+        return $this;
+    }
+
+    public function getVkPostedAt(): ?\DateTimeImmutable
+    {
+        return $this->vkPostedAt;
+    }
+
+    public function setVkPostedAt(?\DateTimeImmutable $vkPostedAt): static
+    {
+        $this->vkPostedAt = $vkPostedAt;
+
+        return $this;
+    }
+
+    public function getVkCrosspostError(): ?string
+    {
+        return $this->vkCrosspostError;
+    }
+
+    public function setVkCrosspostError(?string $vkCrosspostError): static
+    {
+        $this->vkCrosspostError = $vkCrosspostError;
+
+        return $this;
+    }
+
+    public function isImportedFromVk(): bool
+    {
+        return null !== $this->sourceKey && str_starts_with($this->sourceKey, 'vk:wall:');
     }
 
     /** @return Collection<int, ChronicleBlock> */

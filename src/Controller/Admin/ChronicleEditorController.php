@@ -10,6 +10,8 @@ use App\Repository\ChronicleTagRepository;
 use App\Service\ChronicleEntryService;
 use App\Service\ChroniclePublisher;
 use App\Service\ChronicleUploadStorage;
+use App\Service\VkCredentials;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -31,6 +33,8 @@ final class ChronicleEditorController extends AbstractController
         private readonly ChronicleUploadStorage $uploads,
         private readonly ChroniclePublisher $publisher,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly VkCredentials $vkCredentials,
+        private readonly EntityManagerInterface $em,
     ) {
     }
 
@@ -62,6 +66,9 @@ final class ChronicleEditorController extends AbstractController
                 ? $this->urlGenerator->generate('web_chronicle_show', ['slug' => $entry->getSlug()])
                 : null,
             'shortUrl' => $this->urlGenerator->generate('web_chronicle_short', ['hash' => $entry->getShortHash()]),
+            'vk_connected' => $this->vkCredentials->hasUserToken(),
+            'vk_owner_id' => $this->vkCredentials->ownerId(),
+            'vk_crosspost_enabled' => $this->vkCredentials->isEnabled(),
         ]);
     }
 
@@ -147,6 +154,7 @@ final class ChronicleEditorController extends AbstractController
         $action = (string) ($payload['action'] ?? 'publish');
         if ('schedule' === $action) {
             $entry->setStatus(\App\Enum\ChronicleStatus::Scheduled);
+            $this->em->flush();
         } else {
             $this->publisher->publishNow($entry, $entry->getPublishedAt());
         }

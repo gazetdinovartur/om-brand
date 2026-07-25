@@ -424,6 +424,53 @@ class ChronicleEntryRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Published feed-visible entries ready for VK crosspost.
+     *
+     * @return list<ChronicleEntry>
+     */
+    public function findDueForVkCrosspost(int $limit = 20): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.status = :status')
+            ->andWhere('e.publishedAt IS NOT NULL')
+            ->andWhere('e.publishedAt <= :now')
+            ->andWhere('e.isUnlisted = false')
+            ->andWhere('e.isAdminOnly = false')
+            ->andWhere('e.vkPostId IS NULL')
+            ->andWhere('(e.sourceKey IS NULL OR e.sourceKey NOT LIKE :vkPrefix)')
+            ->andWhere('(e.vkCrosspostError IS NULL OR e.vkCrosspostError != :pending)')
+            ->setParameter('status', ChronicleStatus::Published)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->setParameter('vkPrefix', 'vk:wall:%')
+            ->setParameter('pending', \App\Service\VkCredentials::PENDING_MARKER)
+            ->orderBy('e.publishedAt', 'ASC')
+            ->setMaxResults(max(1, $limit))
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findOneByVkSourceKey(string $sourceKey): ?ChronicleEntry
+    {
+        $entry = $this->findOneBy(['sourceKey' => $sourceKey]);
+
+        return $entry instanceof ChronicleEntry ? $entry : null;
+    }
+
+    public function findOneByShortHashAny(string $hash): ?ChronicleEntry
+    {
+        $entry = $this->findOneBy(['shortHash' => $hash]);
+
+        return $entry instanceof ChronicleEntry ? $entry : null;
+    }
+
+    public function findOneByVkPostId(int $vkPostId): ?ChronicleEntry
+    {
+        $entry = $this->findOneBy(['vkPostId' => $vkPostId]);
+
+        return $entry instanceof ChronicleEntry ? $entry : null;
+    }
+
     public function isShortHashTaken(string $hash, ?int $excludeId = null): bool
     {
         $qb = $this->createQueryBuilder('e')

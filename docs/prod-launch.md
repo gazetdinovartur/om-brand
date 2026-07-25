@@ -46,6 +46,14 @@ ADMIN_PASSWORD=...   # только для app:seed, потом сменить �
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHAT_ID=...
 
+# VK кросспост (callback https://arturlun.ru/oauth/vk/callback)
+VK_APP_ID=...
+VK_APP_SECRET=...   # или VK_SECRET_KEY
+VK_SERVICE_TOKEN=...
+VK_OWNER_ID=...     # числовой id (см. ниже); после OAuth показывается на экране успеха
+VK_CROSSPOST_ENABLED=1
+# VK_USER_ACCESS_TOKEN не обязателен вручную — см. «Подключить VK»
+
 MAILER_DSN=smtp://info@arturlun.ru:ПАРОЛЬ@mail.netangels.ru:587
 MAILER_FROM=info@arturlun.ru
 
@@ -55,6 +63,27 @@ OM_PLAYER_API_BASE=https://music.arturlun.ru/api/v1
 # Сброс кэша CSS/JS у вернувшихся посетителей — bump при каждом фронт-релизе
 ASSETS_VERSION=20260723a
 ```
+
+**Откуда взять `VK_USER_ACCESS_TOKEN` и `VK_OWNER_ID`**
+
+1. В `.env` задай `VK_APP_ID` + `VK_APP_SECRET` (или `VK_SECRET_KEY`), `VK_CROSSPOST_ENABLED=1`.
+2. Задеплой, зайди в админку под собой.
+3. В редакторе хроники нажми **«Подключить VK»** → разреши `wall`, `photos`, `offline`.
+4. После редиректа на `/oauth/vk/callback`:
+   - токен сохранится в `var/vk/user_access_token` (gitignored) — **в `.env` копировать не обязательно**;
+   - на экране будет `user_id: …` — это и есть **`VK_OWNER_ID`** (положительное число страницы arturlun). Пропиши его в `.env`.
+5. Альтернатива `VK_OWNER_ID`: страница VK → URL вида `vk.com/id123456` (не короткое имя `arturlun`).
+
+`VK_SERVICE_TOKEN` / service key для постинга на **личную** стену не заменяет user token.
+
+Cron (каждые 15 мин) — отложенная публикация + кросспост + sync стены:
+
+```cron
+*/15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:crosspost-vk --env=prod >/dev/null 2>&1
+*/15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:sync-vk-wall --env=prod >/dev/null 2>&1
+```
+
+После деплоя: в админке редактора → «Подключить VK» (scopes wall,photos,offline).
 
 ---
 

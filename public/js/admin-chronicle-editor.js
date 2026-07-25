@@ -327,6 +327,35 @@
         }
         setStatus(action === 'schedule' ? 'Запланировано' : 'Опубликовано', 'published');
         if (json.publicUrl) cfg.publicUrl = json.publicUrl;
+        if (json.data) updateVkStatus(json.data);
+    }
+
+    function updateVkStatus(data) {
+        const el = document.querySelector('[data-vk-status]');
+        if (!(el instanceof HTMLElement) || !data) return;
+
+        const postId = data.vkPostId;
+        const error = data.vkCrosspostError;
+        const ownerId = cfg.vkOwnerId;
+        el.title = error || '';
+
+        if (postId) {
+            if (ownerId) {
+                el.innerHTML = `ВК: <a href="https://vk.com/wall${ownerId}_${postId}" target="_blank" rel="noopener">опубликовано</a>`;
+            } else {
+                el.textContent = 'ВК: опубликовано';
+            }
+            return;
+        }
+        if (error && error !== '__vk_crosspost_pending__') {
+            el.textContent = 'ВК: ошибка';
+            return;
+        }
+        if (cfg.vkCrosspostEnabled && (data.status === 'published')) {
+            el.textContent = 'ВК: ожидает';
+            return;
+        }
+        el.textContent = 'ВК: —';
     }
 
     async function uploadFile(file, kind = 'inline') {
@@ -809,6 +838,7 @@
         await tagsPromise;
         updatePublishedTzHint();
         syncPublishedAtField(state.publishedAt);
+        updateVkStatus(state);
         renderBlocks();
         setStatus('Готово');
     }

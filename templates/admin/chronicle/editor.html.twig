@@ -14,6 +14,25 @@
             <span class="chronicle-editor-bar__status" data-save-status>Черновик</span>
         </div>
         <div class="chronicle-editor-bar__actions">
+            <span class="chronicle-editor-bar__vk text-muted small" data-vk-status title="{{ entry.vkCrosspostError }}">
+                {% if entry.vkPostId %}
+                    ВК:
+                    {% if vk_owner_id %}
+                        <a href="https://vk.com/wall{{ vk_owner_id }}_{{ entry.vkPostId }}" target="_blank" rel="noopener">опубликовано</a>
+                    {% else %}
+                        опубликовано
+                    {% endif %}
+                {% elseif entry.vkCrosspostError %}
+                    ВК: ошибка
+                {% elseif vk_crosspost_enabled and entry.status.value == 'published' %}
+                    ВК: ожидает
+                {% else %}
+                    ВК: —
+                {% endif %}
+            </span>
+            {% if not vk_connected %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_oauth_vk_start') }}">Подключить VK</a>
+            {% endif %}
             <button type="button" class="btn btn-outline-secondary btn-sm" data-action="preview">Предпросмотр</button>
             <button type="button" class="btn btn-outline-secondary btn-sm" data-action="copy-short">/p/{{ entry.shortHash }}</button>
             <button type="button" class="btn btn-primary btn-sm" data-action="publish">Опубликовать</button>
@@ -139,9 +158,11 @@
             publishUrl: {{ path('admin_chronicle_publish', {id: entry.id})|json_encode|raw }},
             uploadUrl: {{ path('admin_chronicle_upload')|json_encode|raw }},
             tagCreateUrl: {{ path('admin_chronicle_tag_create')|json_encode|raw }},
+            vkOwnerId: {{ vk_owner_id|json_encode|raw }},
+            vkCrosspostEnabled: {{ vk_crosspost_enabled|json_encode|raw }},
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260725excerpt' }}"></script>
+    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260725vk' }}"></script>
 </body>
 </html>

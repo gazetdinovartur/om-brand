@@ -354,6 +354,9 @@ final class ChronicleEntryService
             'seoDescription' => $entry->getSeoDescription(),
             'ogImagePath' => $entry->getOgImagePath(),
             'previewToken' => $entry->getPreviewToken(),
+            'vkPostId' => $entry->getVkPostId(),
+            'vkPostedAt' => $entry->getVkPostedAt()?->format('c'),
+            'vkCrosspostError' => $entry->getVkCrosspostError(),
             'updatedAt' => $entry->getUpdatedAt()->format('c'),
             'blocks' => $blocks,
         ];
