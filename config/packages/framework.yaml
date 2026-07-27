@@ -15,7 +15,7 @@ framework:
     #fragments: true
 
 parameters:
-    assets_version_fallback: '20260725c'
+    assets_version_fallback: '20260725j'
 
 when@test:
     framework:

@@ -11,6 +11,8 @@
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.6",
         "easycorp/easyadmin-bundle": "^5.0",
+        "minishlink/web-push": "^11.0",
+        "nyholm/psr7": "^1.8",
         "symfony/asset": "8.0.*",
         "symfony/console": "8.0.*",
         "symfony/dotenv": "8.0.*",

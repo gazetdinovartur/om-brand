@@ -8,8 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libjpeg62-turbo-dev \
     libwebp-dev \
+    libgmp-dev \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
-    && docker-php-ext-install pdo_mysql zip intl gd \
+    && docker-php-ext-install pdo_mysql zip intl gd gmp bcmath \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

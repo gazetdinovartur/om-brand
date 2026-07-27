@@ -1,0 +1,19 @@
+{
+  "name": "Хроника",
+  "short_name": "Хроника",
+  "description": "Тексты и фото по эпохам",
+  "start_url": "/chronicle",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5efe4",
+  "theme_color": "#f5efe4",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

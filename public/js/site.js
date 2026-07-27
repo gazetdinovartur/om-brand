@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCaseLightbox();
     initCopyLink();
     initContentEngage();
+    initNotifySubscribe();
     initChronicleFeed();
     initPageBack();
     initChronicleFiltersPersist();
@@ -977,6 +978,7 @@ function initCaseLightbox() {
     }
 
     const img = dialog.querySelector('[data-lightbox-img]');
+    const inner = dialog.querySelector('.case-lightbox__inner');
     const stage = dialog.querySelector('[data-lightbox-stage]');
     const captionEl = dialog.querySelector('[data-lightbox-caption]');
     const closeBtn = dialog.querySelector('[data-lightbox-close]');
@@ -992,9 +994,15 @@ function initCaseLightbox() {
     let items = [];
     let index = 0;
     let scrollY = 0;
+    let opener = null;
     let touchStartX = 0;
     let touchStartY = 0;
     let touchActive = false;
+    let suppressClick = false;
+
+    const restoreScroll = (y) => {
+        window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+    };
 
     const lockScroll = () => {
         scrollY = window.scrollY || window.pageYOffset || 0;
@@ -1007,13 +1015,21 @@ function initCaseLightbox() {
     };
 
     const unlockScroll = () => {
+        const y = scrollY;
         document.body.classList.remove('is-lightbox-open');
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.left = '';
         document.body.style.right = '';
         document.body.style.width = '';
-        window.scrollTo(0, scrollY);
+        restoreScroll(y);
+        // Dialog focus restore otherwise scrolls the page to the trigger.
+        if (opener instanceof HTMLElement) {
+            opener.focus({ preventScroll: true });
+        }
+        opener = null;
+        restoreScroll(y);
+        requestAnimationFrame(() => restoreScroll(y));
     };
 
     const collectGroup = (trigger) => {
@@ -1055,6 +1071,7 @@ function initCaseLightbox() {
         index = (i + items.length) % items.length;
         render();
         if (!dialog.open) {
+            opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             lockScroll();
             dialog.showModal();
         }
@@ -1082,11 +1099,25 @@ function initCaseLightbox() {
     dialog.addEventListener('close', unlockScroll);
 
     dialog.addEventListener('click', (event) => {
-        if (event.target === dialog || event.target === stage) {
-            // Only close on empty stage chrome, not when swiping — stage clicks on img are pointer-events none
-            if (event.target === dialog) {
-                close();
-            }
+        if (suppressClick) {
+            suppressClick = false;
+            return;
+        }
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+        if (target.closest('[data-lightbox-close], [data-lightbox-prev], [data-lightbox-next]')) {
+            return;
+        }
+        // Full-bleed dialog: dimmed chrome is __inner / empty stage, not ::backdrop.
+        if (
+            target === dialog
+            || target === inner
+            || target === stage
+            || target === captionEl
+        ) {
+            close();
         }
     });
 
@@ -1122,8 +1153,7 @@ function initCaseLightbox() {
     };
 
     const onTouchEnd = (event) => {
-        if (!touchActive || items.length < 2) {
-            touchActive = false;
+        if (!touchActive) {
             return;
         }
         touchActive = false;
@@ -1133,7 +1163,11 @@ function initCaseLightbox() {
         }
         const dx = touch.clientX - touchStartX;
         const dy = touch.clientY - touchStartY;
-        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.2) {
+        // Any intentional drag should not also close via the synthesized click.
+        if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
+            suppressClick = true;
+        }
+        if (items.length < 2 || Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.2) {
             return;
         }
         if (dx < 0) {
@@ -1223,6 +1257,269 @@ async function copyText(text) {
 function formatLikeCount(count) {
     const n = Number(count) || 0;
     return n > 0 ? String(n) : '';
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    const output = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) {
+        output[i] = raw.charCodeAt(i);
+    }
+    return output;
+}
+
+function isIosSafari() {
+    const ua = window.navigator.userAgent || '';
+    const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const webkit = /WebKit/.test(ua);
+    const chrome = /CriOS|FxiOS|EdgiOS/.test(ua);
+    return iOS && webkit && !chrome;
+}
+
+function isStandaloneDisplay() {
+    return window.matchMedia('(display-mode: standalone)').matches
+        || ('standalone' in navigator && Boolean(navigator.standalone));
+}
+
+async function registerNotifyServiceWorker(swUrl) {
+    if (!('serviceWorker' in navigator)) {
+        return null;
+    }
+    try {
+        return await navigator.serviceWorker.register(swUrl, { scope: '/' });
+    } catch {
+        return null;
+    }
+}
+
+async function getPushSubscription() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return null;
+    }
+    const registration = await navigator.serviceWorker.ready;
+    return registration.pushManager.getSubscription();
+}
+
+function initNotifySubscribe() {
+    const configEl = document.querySelector('[data-notify-config]');
+    const dialog = document.querySelector('[data-notify-dialog]');
+    if (!(configEl instanceof HTMLElement) || !(dialog instanceof HTMLDialogElement)) {
+        return;
+    }
+
+    const csrf = configEl.dataset.csrf || '';
+    const vapidPublic = configEl.dataset.vapidPublic || '';
+    const pushSubscribeUrl = configEl.dataset.pushSubscribe || '';
+    const pushUnsubscribeUrl = configEl.dataset.pushUnsubscribe || '';
+    const emailSubscribeUrl = configEl.dataset.emailSubscribe || '';
+    const swUrl = configEl.dataset.swUrl || '/sw.js';
+
+    const pushToggle = dialog.querySelector('[data-notify-push-toggle]');
+    const pushHint = dialog.querySelector('[data-notify-push-hint]');
+    const pushBlocked = dialog.querySelector('[data-notify-push-blocked]');
+    const iosHint = dialog.querySelector('[data-notify-ios-hint]');
+    const pushSection = dialog.querySelector('[data-notify-push-section]');
+    const emailForm = dialog.querySelector('[data-notify-email-form]');
+    const emailInput = dialog.querySelector('[data-notify-email-input]');
+    const emailStatus = dialog.querySelector('[data-notify-email-status]');
+    const closeBtn = dialog.querySelector('[data-notify-close]');
+
+    const pushSupported = 'Notification' in window
+        && 'serviceWorker' in navigator
+        && 'PushManager' in window
+        && Boolean(vapidPublic);
+
+    const syncBellState = (active) => {
+        document.querySelectorAll('[data-notify-bell]').forEach((btn) => {
+            if (btn instanceof HTMLElement) {
+                btn.classList.toggle('is-active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            }
+        });
+    };
+
+    const setPushUi = ({ state, label }) => {
+        if (pushToggle instanceof HTMLButtonElement) {
+            pushToggle.textContent = label;
+            pushToggle.disabled = state === 'unsupported' || state === 'blocked' || state === 'busy';
+            pushToggle.setAttribute('aria-pressed', state === 'on' ? 'true' : 'false');
+            pushToggle.classList.toggle('is-on', state === 'on');
+        }
+        if (pushBlocked instanceof HTMLElement) {
+            pushBlocked.hidden = state !== 'blocked';
+        }
+        if (pushHint instanceof HTMLElement) {
+            if (state === 'unsupported') {
+                pushHint.textContent = 'В этом браузере пуш недоступен — используйте email или RSS';
+            } else if (state === 'on') {
+                pushHint.textContent = 'Включено на этом устройстве';
+            } else {
+                pushHint.textContent = 'Короткий пуш, когда выходит новая запись';
+            }
+        }
+        syncBellState(state === 'on');
+    };
+
+    const refreshPushState = async () => {
+        if (iosHint instanceof HTMLElement) {
+            iosHint.hidden = !(isIosSafari() && !isStandaloneDisplay());
+        }
+
+        if (!pushSupported) {
+            setPushUi({ state: 'unsupported', label: 'Недоступно' });
+            return;
+        }
+
+        if (Notification.permission === 'denied') {
+            setPushUi({ state: 'blocked', label: 'Заблокировано' });
+            return;
+        }
+
+        await registerNotifyServiceWorker(swUrl);
+        const sub = await getPushSubscription();
+        if (sub) {
+            setPushUi({ state: 'on', label: 'Выключить' });
+        } else {
+            setPushUi({ state: 'off', label: 'Включить' });
+        }
+    };
+
+    const postJson = async (url, body) => {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(body),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+            throw new Error((data && data.message) || 'request failed');
+        }
+        return data;
+    };
+
+    const enablePush = async () => {
+        setPushUi({ state: 'busy', label: '…' });
+        try {
+            const registration = await registerNotifyServiceWorker(swUrl);
+            if (!registration) {
+                throw new Error('sw');
+            }
+            await navigator.serviceWorker.ready;
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                if (permission === 'denied') {
+                    setPushUi({ state: 'blocked', label: 'Заблокировано' });
+                } else {
+                    setPushUi({ state: 'off', label: 'Включить' });
+                }
+                return;
+            }
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublic),
+            });
+            await postJson(pushSubscribeUrl, subscription.toJSON());
+            setPushUi({ state: 'on', label: 'Выключить' });
+            showToast('Уведомления включены');
+        } catch {
+            setPushUi({ state: 'off', label: 'Включить' });
+            showToast('Не удалось включить уведомления');
+        }
+    };
+
+    const disablePush = async () => {
+        setPushUi({ state: 'busy', label: '…' });
+        try {
+            const subscription = await getPushSubscription();
+            if (subscription) {
+                await postJson(pushUnsubscribeUrl, { endpoint: subscription.endpoint });
+                await subscription.unsubscribe();
+            }
+            setPushUi({ state: 'off', label: 'Включить' });
+            showToast('Уведомления выключены');
+        } catch {
+            await refreshPushState();
+            showToast('Не удалось выключить уведомления');
+        }
+    };
+
+    document.querySelectorAll('[data-notify-bell]').forEach((btn) => {
+        btn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            await refreshPushState();
+            if (typeof dialog.showModal === 'function') {
+                dialog.showModal();
+            } else {
+                dialog.setAttribute('open', '');
+            }
+        });
+    });
+
+    closeBtn?.addEventListener('click', () => {
+        if (typeof dialog.close === 'function') {
+            dialog.close();
+        } else {
+            dialog.removeAttribute('open');
+        }
+    });
+
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) {
+            dialog.close();
+        }
+    });
+
+    pushToggle?.addEventListener('click', async () => {
+        if (!(pushToggle instanceof HTMLButtonElement) || pushToggle.disabled) {
+            return;
+        }
+        if (pushToggle.getAttribute('aria-pressed') === 'true') {
+            await disablePush();
+        } else {
+            await enablePush();
+        }
+    });
+
+    emailForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!(emailInput instanceof HTMLInputElement) || !(emailStatus instanceof HTMLElement)) {
+            return;
+        }
+        const email = emailInput.value.trim();
+        if (!email) {
+            return;
+        }
+        emailStatus.hidden = false;
+        emailStatus.textContent = 'Отправляем…';
+        emailStatus.classList.remove('is-error');
+        try {
+            const data = await postJson(emailSubscribeUrl, { email });
+            emailStatus.textContent = data.message || 'Проверьте почту — подтвердите подписку.';
+            emailInput.value = '';
+        } catch (error) {
+            emailStatus.classList.add('is-error');
+            emailStatus.textContent = error instanceof Error && error.message !== 'request failed'
+                ? error.message
+                : 'Не удалось подписаться. Попробуйте позже.';
+        }
+    });
+
+    if (pushSupported) {
+        registerNotifyServiceWorker(swUrl).then(() => refreshPushState());
+    } else {
+        setPushUi({ state: 'unsupported', label: 'Недоступно' });
+        if (pushSection instanceof HTMLElement && !vapidPublic) {
+            /* keep section visible: email/RSS still useful; push button says unavailable */
+        }
+    }
 }
 
 function initContentEngage() {

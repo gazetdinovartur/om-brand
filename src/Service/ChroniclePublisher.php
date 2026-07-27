@@ -13,6 +13,7 @@ final class ChroniclePublisher
         private readonly EntityManagerInterface $em,
         private readonly ChronicleEntryRepository $entries,
         private readonly ChronicleVkCrossposter $vkCrossposter,
+        private readonly NewPostNotifier $newPostNotifier,
     ) {
     }
 
@@ -31,6 +32,7 @@ final class ChroniclePublisher
             foreach ($ready as $entry) {
                 if ($entry->isVisibleInFeed()) {
                     $this->vkCrossposter->crosspostEntry($entry);
+                    $this->newPostNotifier->notifyPublished($entry);
                 }
             }
         }
@@ -46,6 +48,7 @@ final class ChroniclePublisher
 
         if ($entry->isVisibleInFeed()) {
             $this->vkCrossposter->crosspostEntry($entry);
+            $this->newPostNotifier->notifyPublished($entry);
         }
     }
 }

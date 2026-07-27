@@ -61,6 +61,22 @@
                 </button>
                 <button
                     type="button"
+                    class="chronicle-hub__icon-btn chronicle-hub__notify-btn"
+                    data-notify-bell
+                    aria-haspopup="dialog"
+                    title="Уведомления о новых записях"
+                >
+                    <svg class="chronicle-hub__icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+                        <circle class="chronicle-hub__icon-chrome" cx="18" cy="18" r="16.5"/>
+                        <g transform="translate(18 18)" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M-5.2-2.2a5.2 5.2 0 0 1 10.4 0c0 6 2.6 7.8 2.6 7.8H-7.8s2.6-1.8 2.6-7.8"/>
+                            <path d="M-1.6 8.2a1.7 1.7 0 0 0 3.2 0"/>
+                        </g>
+                    </svg>
+                    <span class="visually-hidden">Уведомления о новых записях</span>
+                </button>
+                <button
+                    type="button"
                     class="chronicle-hub__icon-btn chronicle-hub__search-btn{% if activeQuery %} is-active{% endif %}"
                     data-chronicle-search-toggle
                     aria-haspopup="dialog"

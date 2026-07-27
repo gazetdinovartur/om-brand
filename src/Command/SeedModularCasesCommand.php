@@ -156,7 +156,7 @@ final class SeedModularCasesCommand extends Command
         $case->setOutcomeLine((string) $row['outcomeLine']);
         $case->setDomain((string) $row['domain']);
         $case->setRole((string) $row['role']);
-        $case->setYear((int) $row['year']);
+        $case->setYear(isset($row['year']) ? (string) $row['year'] : null);
         $case->setStoryHook((string) $row['storyHook']);
         $case->setStoryBody((string) $row['storyBody']);
         $case->setStoryOutcome((string) $row['storyOutcome']);

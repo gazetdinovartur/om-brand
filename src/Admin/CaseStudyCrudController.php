@@ -125,7 +125,7 @@ class CaseStudyCrudController extends AbstractCrudController
             yield TextareaField::new('outcomeLine', 'Что изменилось');
             yield TextField::new('domain', 'Сфера');
             yield TextField::new('role', 'Роль');
-            yield IntegerField::new('year', 'Год');
+            yield TextField::new('year', 'Период');
             yield BooleanField::new('isPublished', 'Опубликован');
             yield BooleanField::new('showOnLanding', 'На лендинге');
             yield BooleanField::new('isFeatured', 'Крупный');
@@ -165,8 +165,9 @@ class CaseStudyCrudController extends AbstractCrudController
         yield TextField::new('role', 'Роль')
             ->setColumns(4)
             ->setHelp('продукт, разработка');
-        yield IntegerField::new('year', 'Год')
-            ->setColumns(4);
+        yield TextField::new('year', 'Период')
+            ->setColumns(4)
+            ->setHelp('Например: 2014–2026 или 2024');
 
         yield FormField::addFieldset('Публикация');
         yield BooleanField::new('isPublished', 'Опубликован')

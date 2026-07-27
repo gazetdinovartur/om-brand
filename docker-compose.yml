@@ -12,9 +12,11 @@ services:
       - .env
     environment:
       APP_ENV: dev
-      DEFAULT_URI: http://nginx
+      # Public absolute URLs in CLI (scheduled publish emails/push payloads)
+      DEFAULT_URI: "${APP_SITE_URL:-http://localhost:8085}"
       # Inside the compose network MySQL is `mysql`, not host-mapped 127.0.0.1
-      DATABASE_URL: mysql://${MYSQL_USER:-site}:${MYSQL_PASSWORD:-site}@mysql:3306/${MYSQL_DATABASE:-site}?serverVersion=8.0&charset=utf8mb4
+      DATABASE_URL: "mysql://${MYSQL_USER:-site}:${MYSQL_PASSWORD:-site}@mysql:3306/${MYSQL_DATABASE:-site}?serverVersion=8.0&charset=utf8mb4"
+      MAILER_DSN: "${MAILER_DSN:-smtp://mailpit:1025}"
     depends_on:
       mysql:
         condition: service_healthy
@@ -28,6 +30,12 @@ services:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - php
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
   mysql:
     image: mysql:8.0

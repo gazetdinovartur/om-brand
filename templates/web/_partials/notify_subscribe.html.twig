@@ -1,0 +1,61 @@
+{# Shared notify panel (Web Push + email). Opened by [data-notify-bell]. #}
+<dialog class="notify-dialog" data-notify-dialog aria-labelledby="notify-dialog-title">
+    <div class="notify-dialog__inner">
+        <header class="notify-dialog__head">
+            <h2 id="notify-dialog-title" class="notify-dialog__title">Уведомления о новых записях</h2>
+            <button type="button" class="notify-dialog__close" data-notify-close aria-label="Закрыть">×</button>
+        </header>
+        <p class="notify-dialog__lead">Раз в пост. Без рекламы. Отписаться можно в любой момент.</p>
+
+        <div class="notify-dialog__section" data-notify-push-section>
+            <div class="notify-dialog__row">
+                <div class="notify-dialog__copy">
+                    <strong>В браузере</strong>
+                    <span data-notify-push-hint>Короткий пуш, когда выходит новая запись</span>
+                </div>
+                <button type="button" class="notify-dialog__toggle" data-notify-push-toggle aria-pressed="false">
+                    Включить
+                </button>
+            </div>
+            <p class="notify-dialog__note" data-notify-ios-hint hidden>
+                На iPhone: «Поделиться → На экран Домой», затем откройте сайт с иконки и включите уведомления.
+            </p>
+            <p class="notify-dialog__note" data-notify-push-blocked hidden>
+                Браузер заблокировал уведомления. Разрешите их в настройках сайта.
+            </p>
+        </div>
+
+        <div class="notify-dialog__section">
+            <label class="notify-dialog__label" for="notify-email-input">На почту</label>
+            <form class="notify-dialog__email" data-notify-email-form>
+                <input
+                    id="notify-email-input"
+                    class="notify-dialog__input"
+                    type="email"
+                    name="email"
+                    autocomplete="email"
+                    placeholder="you@example.com"
+                    required
+                    data-notify-email-input
+                >
+                <button type="submit" class="notify-dialog__submit">Подписаться</button>
+            </form>
+            <p class="notify-dialog__status" data-notify-email-status hidden></p>
+        </div>
+
+        <p class="notify-dialog__rss">
+            Или <a href="{{ path('web_chronicle_feed') }}" rel="alternate" type="application/rss+xml">RSS-лента</a>
+        </p>
+    </div>
+</dialog>
+
+<div
+    hidden
+    data-notify-config
+    data-vapid-public="{{ vapidPublicKey|default('')|e('html_attr') }}"
+    data-csrf="{{ csrf_token('subscribe') }}"
+    data-push-subscribe="{{ path('web_push_subscribe') }}"
+    data-push-unsubscribe="{{ path('web_push_unsubscribe') }}"
+    data-email-subscribe="{{ path('web_email_subscribe') }}"
+    data-sw-url="/sw.js"
+></div>

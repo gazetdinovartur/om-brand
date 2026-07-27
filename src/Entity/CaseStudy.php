@@ -58,8 +58,8 @@ class CaseStudy
     #[ORM\Column(length: 80, nullable: true)]
     private ?string $role = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?int $year = null;
+    #[ORM\Column(length: 40, nullable: true)]
+    private ?string $year = null;
 
     #[ORM\Column(length: 200, nullable: true)]
     private ?string $outcomeLine = null;
@@ -302,14 +302,14 @@ class CaseStudy
         return $this;
     }
 
-    public function getYear(): ?int
+    public function getYear(): ?string
     {
         return $this->year;
     }
 
-    public function setYear(?int $year): static
+    public function setYear(?string $year): static
     {
-        $this->year = $year;
+        $this->year = null !== $year && '' === trim($year) ? null : $year;
 
         return $this;
     }
@@ -771,8 +771,8 @@ class CaseStudy
             }
         }
 
-        if (null !== $this->year) {
-            $keywords[] = (string) $this->year;
+        if (null !== $this->year && '' !== trim($this->year)) {
+            $keywords[] = trim($this->year);
         }
 
         return array_values(array_unique($keywords));

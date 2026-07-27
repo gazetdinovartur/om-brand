@@ -7,7 +7,9 @@
     {% set siteName = siteName|default(blocksBySlug.hero.title|default(settings.name)) %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
     {% include 'web/_partials/seo_head.html.twig' %}
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23e8a849' opacity='0.8'/></svg>">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap&subset=cyrillic,cyrillic-ext,latin" rel="stylesheet">
@@ -160,6 +162,8 @@
             <button type="button" class="case-lightbox__nav case-lightbox__nav--next" data-lightbox-next aria-label="Следующий">›</button>
         </div>
     </dialog>
+
+    {% include 'web/_partials/notify_subscribe.html.twig' %}
 
     <script src="{{ asset('js/site.js') }}" defer></script>
     {% block javascripts %}{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block body %}
+<section class="section">
+    <div class="container narrow">
+        <div class="subscribe-result">
+            {% if mode == 'confirm' %}
+                {% if ok %}
+                    <h1 class="subscribe-result__title">Подписка подтверждена</h1>
+                    <p class="subscribe-result__text">Будем писать только о новых записях в хронике — без рекламы.</p>
+                {% else %}
+                    <h1 class="subscribe-result__title">Ссылка недействительна</h1>
+                    <p class="subscribe-result__text">Возможно, подписка уже подтверждена или ссылка устарела. Попробуйте подписаться снова на странице хроники.</p>
+                {% endif %}
+            {% else %}
+                {% if ok %}
+                    <h1 class="subscribe-result__title">Вы отписались</h1>
+                    <p class="subscribe-result__text">Письма о новых записях больше не будут приходить на этот адрес.</p>
+                {% else %}
+                    <h1 class="subscribe-result__title">Ссылка недействительна</h1>
+                    <p class="subscribe-result__text">Возможно, вы уже отписались раньше.</p>
+                {% endif %}
+            {% endif %}
+            <p class="subscribe-result__back">
+                <a href="{{ path('web_chronicle') }}">← К хронике</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

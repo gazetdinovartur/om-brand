@@ -20,6 +20,8 @@ final class TwigSiteGlobalsProvider
         private readonly SeoMetadataFactory $seoMetadataFactory,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly CaseStudyRepository $caseStudyRepository,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(default::VAPID_PUBLIC_KEY)%')]
+        private readonly string $vapidPublicKey = '',
     ) {
     }
 
@@ -64,6 +66,7 @@ final class TwigSiteGlobalsProvider
         $twig->addGlobal('navAnchors', $navItems);
         $twig->addGlobal('siteShell', $shell);
         $twig->addGlobal('fabHref', $fabHref);
+        $twig->addGlobal('vapidPublicKey', trim($this->vapidPublicKey));
         $twig->addGlobal('seo', $this->seoMetadataFactory->forRoute(
             $route,
             $request,
