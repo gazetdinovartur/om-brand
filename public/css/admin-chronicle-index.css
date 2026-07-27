@@ -1,5 +1,12 @@
 /* Chronicle admin index: filters + drag + featured heart */
 
+.ea-index .datagrid th[data-column="era"],
+.ea-index .datagrid td[data-column="era"] {
+    min-width: 11.5rem;
+    width: 13%;
+    max-width: 16rem;
+}
+
 .chronicle-admin-heart {
     color: rgba(26, 22, 18, 0.25);
     padding: 0.15rem;

@@ -92,7 +92,7 @@ class ChronicleEntryCrudController extends AbstractCrudController
             ->createAsGlobalAction();
 
         return $actions
-            ->disable(Action::NEW, Action::EDIT, Action::DETAIL)
+            ->disable(Action::NEW, Action::EDIT, Action::DETAIL, Action::BATCH_DELETE)
             ->add(Crud::PAGE_INDEX, $editor)
             ->add(Crud::PAGE_INDEX, $newEntry)
             ->update(
