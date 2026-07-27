@@ -21,6 +21,22 @@ final class ChroniclePublisherTest extends KernelTestCase
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
     }
 
+    public function testPublishScheduledNotifiesVisibleEntries(): void
+    {
+        $entry = $this->draftEntry();
+        $entry->setStatus(ChronicleStatus::Scheduled);
+        $entry->setPublishedAt(new \DateTimeImmutable('-5 minutes'));
+        $this->em->persist($entry);
+        $this->em->flush();
+
+        $count = $this->publisher->publishScheduled();
+        $this->em->refresh($entry);
+
+        self::assertSame(1, $count);
+        self::assertSame(ChronicleStatus::Published, $entry->getStatus());
+        self::assertTrue($entry->hasNotifiedSubscribers());
+    }
+
     public function testPublishNowNotifiesOnFirstPublicPublish(): void
     {
         $entry = $this->draftEntry();

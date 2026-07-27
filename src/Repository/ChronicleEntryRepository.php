@@ -432,15 +432,18 @@ class ChronicleEntryRepository extends ServiceEntityRepository
     public function findDueForVkCrosspost(int $limit = 20): array
     {
         return $this->createQueryBuilder('e')
-            ->andWhere('e.status = :status')
-            ->andWhere('e.publishedAt IS NOT NULL')
-            ->andWhere('e.publishedAt <= :now')
-            ->andWhere('e.isUnlisted = false')
+            ->andWhere('e.vkCrosspostRequested = :requested')
             ->andWhere('e.isAdminOnly = false')
             ->andWhere('e.vkPostId IS NULL')
+            ->andWhere('e.publishedAt IS NOT NULL')
             ->andWhere('(e.sourceKey IS NULL OR e.sourceKey NOT LIKE :vkPrefix)')
             ->andWhere('(e.vkCrosspostError IS NULL OR e.vkCrosspostError != :pending)')
-            ->setParameter('status', ChronicleStatus::Published)
+            ->andWhere(
+                '(e.status = :published AND e.publishedAt <= :now) OR (e.status = :scheduled)'
+            )
+            ->setParameter('requested', true)
+            ->setParameter('published', ChronicleStatus::Published)
+            ->setParameter('scheduled', ChronicleStatus::Scheduled)
             ->setParameter('now', new \DateTimeImmutable())
             ->setParameter('vkPrefix', 'vk:wall:%')
             ->setParameter('pending', \App\Service\VkCredentials::PENDING_MARKER)

@@ -1,0 +1,25 @@
+# om-brand — production crontab
+#
+# Установка на сервере:
+#   crontab -e
+#   # вставить строки ниже (без этого заголовка-комментария можно целиком)
+#   # или: crontab /home/c502022/arturlun.ru/om-brand/deploy/crontab
+#
+# Перед установкой проверьте путь к PHP: `which php` или `php -v`
+# (на хостинге иногда /usr/bin/php8.4 и т.п.)
+#
+# Логи: var/log/cron-*.log  (ротация — по желанию logrotate)
+# Ручная проверка: cd …/om-brand && php bin/console <command> --env=prod
+
+SHELL=/bin/bash
+MAILTO=""
+
+# --- отложенная публикация хроники (+ email/Web Push подписчикам) ---
+# Каждые 5 мин: scheduled → published, затем NewPostNotifier.
+*/5 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:publish-scheduled --env=prod >> var/log/cron-publish.log 2>&1
+
+# --- VK: кросспост по галочке (vk_crosspost_requested), ретраи и отложенные >31 дн ---
+*/15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:crosspost-vk --env=prod >> var/log/cron-vk-crosspost.log 2>&1
+
+# --- VK: новые посты со стены → в хронику ---
+*/15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:sync-vk-wall --env=prod >> var/log/cron-vk-sync.log 2>&1

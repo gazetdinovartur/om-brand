@@ -86,12 +86,20 @@ Scope `wall` у VK работает **только** для приложения
 
 `VK_SERVICE_TOKEN` для личной стены **не** заменяет user token.
 
-Cron (каждые 15 мин) — отложенная публикация + кросспост + sync стены:
+Cron — готовый файл: [`deploy/crontab`](../deploy/crontab).
 
-```cron
-*/15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:crosspost-vk --env=prod >/dev/null 2>&1
-*/15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:sync-vk-wall --env=prod >/dev/null 2>&1
+```bash
+crontab /home/c502022/arturlun.ru/om-brand/deploy/crontab
+# или: crontab -e  и вставить содержимое файла
 ```
+
+| Расписание | Команда | Зачем |
+|------------|---------|--------|
+| каждые 5 мин | `app:chronicle:publish-scheduled` | отложенные посты → published + email/Web Push |
+| каждые 15 мин | `app:chronicle:crosspost-vk` | ретраи VK для записей с галочкой «В VK» (не заменяет publish-scheduled) |
+| каждые 15 мин | `app:chronicle:sync-vk-wall` | новые посты со стены VK → в хронику |
+
+Логи: `var/log/cron-*.log`. `app:chronicle:notify` — только вручную (повторная рассылка / smoke).
 
 После деплоя: в админке редактора → «Подключить VK» (scopes wall,photos,offline).
 

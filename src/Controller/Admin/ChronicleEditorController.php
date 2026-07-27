@@ -8,6 +8,7 @@ use App\Repository\ChronicleEraRepository;
 use App\Repository\ChronicleSeriesRepository;
 use App\Repository\ChronicleTagRepository;
 use App\Service\ChronicleEntryService;
+use App\Service\ChronicleEntryVkActions;
 use App\Service\ChroniclePublisher;
 use App\Service\ChronicleUploadStorage;
 use App\Service\VkCredentials;
@@ -32,6 +33,7 @@ final class ChronicleEditorController extends AbstractController
         private readonly ChronicleTagRepository $tags,
         private readonly ChronicleUploadStorage $uploads,
         private readonly ChroniclePublisher $publisher,
+        private readonly ChronicleEntryVkActions $vkActions,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly VkCredentials $vkCredentials,
         private readonly EntityManagerInterface $em,
@@ -129,6 +131,7 @@ final class ChronicleEditorController extends AbstractController
         $payload = json_decode($request->getContent(), true) ?? [];
         $this->entryService->applyPayload($entry, $payload);
         $this->uploads->optimizeEntryImages($entry);
+        $this->vkActions->applyFromPayload($entry, $payload);
 
         return new JsonResponse([
             'ok' => true,
@@ -160,6 +163,7 @@ final class ChronicleEditorController extends AbstractController
         }
 
         $this->uploads->optimizeEntryImages($entry);
+        $this->vkActions->applyFromPayload($entry, $payload);
 
         return new JsonResponse([
             'ok' => true,

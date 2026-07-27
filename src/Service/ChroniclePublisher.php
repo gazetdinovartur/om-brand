@@ -12,7 +12,6 @@ final class ChroniclePublisher
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly ChronicleEntryRepository $entries,
-        private readonly ChronicleVkCrossposter $vkCrossposter,
         private readonly NewPostNotifier $newPostNotifier,
     ) {
     }
@@ -31,7 +30,6 @@ final class ChroniclePublisher
             $this->em->flush();
             foreach ($ready as $entry) {
                 if ($entry->isVisibleInFeed()) {
-                    $this->vkCrossposter->crosspostEntry($entry);
                     if (!$entry->hasNotifiedSubscribers()) {
                         $this->newPostNotifier->notifyPublished($entry);
                     }
@@ -51,7 +49,6 @@ final class ChroniclePublisher
         $this->em->flush();
 
         if ($entry->isVisibleInFeed()) {
-            $this->vkCrossposter->crosspostEntry($entry);
             if (!$wasAlreadyVisibleInFeed || !$entry->hasNotifiedSubscribers()) {
                 $this->newPostNotifier->notifyPublished($entry);
             }

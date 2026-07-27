@@ -106,6 +106,10 @@ class ChronicleEntry
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $vkCrosspostError = null;
 
+    /** Admin opted in to VK wall post (publish / schedule / cron retry). */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $vkCrosspostRequested = false;
+
     /** When email/push subscribers were notified about this public publish (idempotency). */
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $subscribersNotifiedAt = null;
@@ -453,6 +457,18 @@ class ChronicleEntry
     public function setVkCrosspostError(?string $vkCrosspostError): static
     {
         $this->vkCrosspostError = $vkCrosspostError;
+
+        return $this;
+    }
+
+    public function isVkCrosspostRequested(): bool
+    {
+        return $this->vkCrosspostRequested;
+    }
+
+    public function setVkCrosspostRequested(bool $vkCrosspostRequested): static
+    {
+        $this->vkCrosspostRequested = $vkCrosspostRequested;
 
         return $this;
     }

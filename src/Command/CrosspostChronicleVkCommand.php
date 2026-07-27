@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Service\ChroniclePublisher;
 use App\Service\ChronicleVkCrossposter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,7 +19,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class CrosspostChronicleVkCommand extends Command
 {
     public function __construct(
-        private readonly ChroniclePublisher $publisher,
         private readonly ChronicleVkCrossposter $crossposter,
     ) {
         parent::__construct();
@@ -29,25 +27,18 @@ final class CrosspostChronicleVkCommand extends Command
     protected function configure(): void
     {
         $this->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Макс. записей за запуск', '20');
-        $this->addOption('skip-scheduled', null, InputOption::VALUE_NONE, 'Не поднимать scheduled → published');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
-        if (!$input->getOption('skip-scheduled')) {
-            $scheduled = $this->publisher->publishScheduled();
-            if ($scheduled > 0) {
-                $io->writeln(sprintf('Scheduled → published: %d', $scheduled));
-            }
-        }
-
         $limit = max(1, (int) $input->getOption('limit'));
         $stats = $this->crossposter->crosspostDue($limit);
         $io->success(sprintf(
-            'VK crosspost: posted=%d skipped=%d failed=%d',
+            'VK crosspost: posted=%d deferred=%d skipped=%d failed=%d',
             $stats['posted'],
+            $stats['deferred'],
             $stats['skipped'],
             $stats['failed'],
         ));

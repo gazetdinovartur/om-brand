@@ -14,22 +14,9 @@
             <span class="chronicle-editor-bar__status" data-save-status>Черновик</span>
         </div>
         <div class="chronicle-editor-bar__actions">
-            <span class="chronicle-editor-bar__vk text-muted small" data-vk-status title="{{ entry.vkCrosspostError }}">
-                {% if entry.vkPostId %}
-                    ВК:
-                    {% if vk_owner_id %}
-                        <a href="https://vk.com/wall{{ vk_owner_id }}_{{ entry.vkPostId }}" target="_blank" rel="noopener">опубликовано</a>
-                    {% else %}
-                        опубликовано
-                    {% endif %}
-                {% elseif entry.vkCrosspostError %}
-                    ВК: ошибка
-                {% elseif vk_crosspost_enabled and entry.status.value == 'published' %}
-                    ВК: ожидает
-                {% else %}
-                    ВК: —
-                {% endif %}
-            </span>
+            {% if vk_crosspost_enabled %}
+                {% include 'admin/chronicle/_vk_status_badge.html.twig' with { entry: entry, vk_status_attr: true } only %}
+            {% endif %}
             {% if not vk_connected %}
                 <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_oauth_vk_start') }}">Подключить VK</a>
             {% endif %}
@@ -114,6 +101,25 @@
                         <input class="form-check-input" type="checkbox" data-field="isUnlisted" id="unlisted"{% if entry.isUnlisted %} checked{% endif %}>
                         <label class="form-check-label" for="unlisted">Unlisted (только по ссылке)</label>
                     </div>
+                    {% if vk_crosspost_enabled %}
+                        <div class="chronicle-editor-vk-panel mb-3">
+                            <div class="form-check mb-2">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    data-field="vkCrosspostRequested"
+                                    id="vk-crosspost"
+                                    {% if entry.vkCrosspostRequested %} checked{% endif %}
+                                >
+                                <label class="form-check-label" for="vk-crosspost">Опубликовать в VK</label>
+                            </div>
+                            <p class="form-text mb-2">При отложенной дате — отложенный пост VK на то же время.</p>
+                            <div class="form-check mb-0" data-vk-update-wrap{% if not entry.vkPostId %} hidden{% endif %}>
+                                <input class="form-check-input" type="checkbox" data-field="vkUpdateToVk" id="vk-update">
+                                <label class="form-check-label" for="vk-update">Обновить пост в VK</label>
+                            </div>
+                        </div>
+                    {% endif %}
                 </section>
 
                 <details class="chronicle-editor-panel mt-3">
@@ -163,6 +169,6 @@
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260725vk' }}"></script>
+    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260727vk2' }}"></script>
 </body>
 </html>

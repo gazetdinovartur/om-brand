@@ -27,6 +27,121 @@
 .chronicle-editor-bar__status[data-kind="error"] { color: #e07070; }
 .chronicle-editor-bar__status[data-kind="published"] { color: #8fd48a; }
 
+.chronicle-editor-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.chronicle-vk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.25;
+    padding: 0.22rem 0.55rem 0.22rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    max-width: 11rem;
+}
+
+.chronicle-vk-badge__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    padding: 0.05rem 0.25rem;
+    border-radius: 0.35rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fffdf9;
+}
+
+.chronicle-vk-badge__link,
+.chronicle-vk-badge__label {
+    color: inherit;
+    text-decoration: none;
+}
+
+.chronicle-vk-badge__link:hover {
+    text-decoration: underline;
+}
+
+.chronicle-vk-badge[data-kind="posted"] {
+    background: rgba(111, 196, 118, 0.16);
+    border-color: rgba(111, 196, 118, 0.35);
+    color: #8fd48a;
+}
+
+.chronicle-vk-badge[data-kind="posted"] .chronicle-vk-badge__icon {
+    background: rgba(111, 196, 118, 0.28);
+    color: #d8f5da;
+}
+
+.chronicle-vk-badge[data-kind="scheduled"],
+.chronicle-vk-badge[data-kind="pending"],
+.chronicle-vk-badge[data-kind="deferred"],
+.chronicle-vk-badge[data-kind="progress"] {
+    background: rgba(232, 168, 73, 0.14);
+    border-color: rgba(232, 168, 73, 0.35);
+    color: #e8a849;
+}
+
+.chronicle-vk-badge[data-kind="scheduled"] .chronicle-vk-badge__icon,
+.chronicle-vk-badge[data-kind="pending"] .chronicle-vk-badge__icon,
+.chronicle-vk-badge[data-kind="deferred"] .chronicle-vk-badge__icon,
+.chronicle-vk-badge[data-kind="progress"] .chronicle-vk-badge__icon {
+    background: rgba(232, 168, 73, 0.28);
+    color: #fff4e0;
+}
+
+.chronicle-vk-badge[data-kind="error"] {
+    background: rgba(224, 112, 112, 0.14);
+    border-color: rgba(224, 112, 112, 0.4);
+    color: #e07070;
+}
+
+.chronicle-vk-badge[data-kind="error"] .chronicle-vk-badge__icon {
+    background: rgba(224, 112, 112, 0.28);
+    color: #ffe8e8;
+}
+
+.chronicle-vk-badge--import-note,
+.chronicle-vk-badge[data-kind="imported"] {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 253, 249, 0.62);
+    font-size: 0.68rem;
+    padding: 0.2rem 0.5rem;
+}
+
+.chronicle-vk-badge[data-kind="offline"] {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 253, 249, 0.72);
+}
+
+.chronicle-vk-badge[data-kind="none"],
+.chronicle-vk-badge[data-kind="disabled"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 253, 249, 0.45);
+}
+
+.chronicle-vk-badge[data-kind="progress"] .chronicle-vk-badge__label {
+    animation: chronicle-vk-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes chronicle-vk-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
 .chronicle-editor-main {
     padding: 1.25rem;
 }

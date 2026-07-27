@@ -165,6 +165,8 @@
             seoTitle: document.querySelector('[data-field="seoTitle"]')?.value ?? '',
             seoDescription: document.querySelector('[data-field="seoDescription"]')?.value ?? '',
             status: state.status,
+            vkCrosspostRequested: document.querySelector('[data-field="vkCrosspostRequested"]')?.checked ?? false,
+            vkUpdateToVk: document.querySelector('[data-field="vkUpdateToVk"]')?.checked ?? false,
             blocks: state.blocks.map((block, index) => ({ ...block, sortOrder: index * 10 })),
         };
     }
@@ -292,6 +294,7 @@
 
             state = mergeStateFromServer(json.data, clientIds, imageClientIds);
             dirty = false;
+            syncVkFieldsFromState(state);
             if (els.readingTime) els.readingTime.textContent = `${json.readingTimeMin} мин`;
             const updated = new Date(json.updatedAt);
             setStatus(`Сохранено ${updated.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`);
@@ -325,37 +328,53 @@
             state = mergeStateFromServer(json.data, clientIds, imageClientIds);
             renderBlocks();
         }
+        syncVkFieldsFromState(state);
         setStatus(action === 'schedule' ? 'Запланировано' : 'Опубликовано', 'published');
         if (json.publicUrl) cfg.publicUrl = json.publicUrl;
         if (json.data) updateVkStatus(json.data);
     }
 
+    function syncVkFieldsFromState(data) {
+        const crosspost = document.querySelector('[data-field="vkCrosspostRequested"]');
+        if (crosspost instanceof HTMLInputElement) {
+            crosspost.checked = Boolean(data?.vkCrosspostRequested);
+        }
+
+        const update = document.querySelector('[data-field="vkUpdateToVk"]');
+        if (update instanceof HTMLInputElement) {
+            update.checked = false;
+        }
+
+        const updateWrap = document.querySelector('[data-vk-update-wrap]');
+        if (updateWrap instanceof HTMLElement) {
+            updateWrap.hidden = !data?.vkPostId;
+        }
+
+        updateVkStatus(data);
+    }
+
     function updateVkStatus(data) {
         const el = document.querySelector('[data-vk-status]');
-        if (!(el instanceof HTMLElement) || !data) return;
+        if (!(el instanceof HTMLElement)) return;
 
-        const postId = data.vkPostId;
-        const error = data.vkCrosspostError;
-        const ownerId = cfg.vkOwnerId;
-        el.title = error || '';
+        const vk = data?.vkStatus;
+        if (!vk) return;
 
-        if (postId) {
-            if (ownerId) {
-                el.innerHTML = `ВК: <a href="https://vk.com/wall${ownerId}_${postId}" target="_blank" rel="noopener">опубликовано</a>`;
-            } else {
-                el.textContent = 'ВК: опубликовано';
-            }
+        el.dataset.kind = vk.kind;
+        el.title = vk.hint || '';
+
+        if (vk.kind === 'imported') {
+            el.className = 'chronicle-vk-badge chronicle-vk-badge--import-note';
+            el.textContent = 'импорт с VK';
             return;
         }
-        if (error && error !== '__vk_crosspost_pending__') {
-            el.textContent = 'ВК: ошибка';
-            return;
-        }
-        if (cfg.vkCrosspostEnabled && (data.status === 'published')) {
-            el.textContent = 'ВК: ожидает';
-            return;
-        }
-        el.textContent = 'ВК: —';
+
+        const icon = '<span class="chronicle-vk-badge__icon" aria-hidden="true">VK</span>';
+        const label = vk.wallUrl
+            ? `<a class="chronicle-vk-badge__link" href="${vk.wallUrl}" target="_blank" rel="noopener">${vk.label}</a>`
+            : `<span class="chronicle-vk-badge__label">${vk.label}</span>`;
+        el.className = 'chronicle-vk-badge';
+        el.innerHTML = icon + label;
     }
 
     async function uploadFile(file, kind = 'inline') {
@@ -847,7 +866,7 @@
         await tagsPromise;
         updatePublishedTzHint();
         syncPublishedAtField(state.publishedAt);
-        updateVkStatus(state);
+        syncVkFieldsFromState(state);
         renderBlocks();
         setStatus('Готово');
     }

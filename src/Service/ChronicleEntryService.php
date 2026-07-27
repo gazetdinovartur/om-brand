@@ -26,6 +26,7 @@ final class ChronicleEntryService
         private readonly ChronicleMarkdownRenderer $markdown,
         private readonly SluggerInterface $slugger,
         private readonly ChronicleEntryRepository $entries,
+        private readonly ChronicleVkCrosspostStatusResolver $vkStatusResolver,
     ) {
     }
 
@@ -357,6 +358,8 @@ final class ChronicleEntryService
             'vkPostId' => $entry->getVkPostId(),
             'vkPostedAt' => $entry->getVkPostedAt()?->format('c'),
             'vkCrosspostError' => $entry->getVkCrosspostError(),
+            'vkCrosspostRequested' => $entry->isVkCrosspostRequested(),
+            'vkStatus' => $this->vkStatusResolver->resolve($entry)->toArray(),
             'updatedAt' => $entry->getUpdatedAt()->format('c'),
             'blocks' => $blocks,
         ];

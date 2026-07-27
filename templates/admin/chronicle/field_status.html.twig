@@ -1,0 +1,14 @@
+{% set entry = entity.instance %}
+<div class="chronicle-admin-status-cell">
+    <span class="chronicle-admin-status-badge chronicle-admin-status-badge--{{ entry.status.value }}">
+        {{ entry.status.label() }}
+    </span>
+    {% if entry.isImportedFromVk() %}
+        <span class="chronicle-admin-status-meta" title="Запись подтянута с стены VK, не кросспост">импорт с VK</span>
+    {% else %}
+        {% set vk = chronicle_vk_status(entry) %}
+        {% if vk.kind not in ['none', 'disabled', 'imported'] %}
+            {% include 'admin/chronicle/_vk_status_badge.html.twig' with { entry: entry, compact: true } only %}
+        {% endif %}
+    {% endif %}
+</div>

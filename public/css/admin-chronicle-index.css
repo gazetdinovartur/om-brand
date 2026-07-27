@@ -72,6 +72,131 @@
     display: none;
 }
 
+/* Status column: site status + VK crosspost hint */
+.chronicle-admin-status-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.28rem;
+}
+
+.chronicle-admin-status-badge {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.chronicle-admin-status-badge--draft {
+    background: rgba(26, 22, 18, 0.06);
+    border-color: rgba(26, 22, 18, 0.12);
+    color: rgba(26, 22, 18, 0.62);
+}
+
+.chronicle-admin-status-badge--published {
+    background: rgba(76, 140, 82, 0.1);
+    border-color: rgba(76, 140, 82, 0.22);
+    color: #3d8b40;
+}
+
+.chronicle-admin-status-badge--scheduled {
+    background: rgba(200, 120, 40, 0.1);
+    border-color: rgba(200, 120, 40, 0.22);
+    color: #a86a28;
+}
+
+.chronicle-admin-status-badge--archived {
+    background: rgba(26, 22, 18, 0.04);
+    border-color: rgba(26, 22, 18, 0.1);
+    color: rgba(26, 22, 18, 0.48);
+}
+
+.chronicle-admin-status-meta {
+    font-size: 0.68rem;
+    line-height: 1.25;
+    color: rgba(26, 22, 18, 0.48);
+    white-space: nowrap;
+}
+
+/* VK crosspost badge in status column */
+.ea-index .datagrid .chronicle-vk-badge {
+    max-width: 9.5rem;
+    font-size: 0.68rem;
+}
+
+.ea-index .datagrid .chronicle-vk-badge__icon {
+    background: rgba(26, 22, 18, 0.08);
+    color: #6a6056;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="posted"] {
+    background: rgba(76, 140, 82, 0.1);
+    border-color: rgba(76, 140, 82, 0.22);
+    color: #3d8b40;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="posted"] .chronicle-vk-badge__icon {
+    background: rgba(76, 140, 82, 0.18);
+    color: #2f6f34;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="scheduled"],
+.ea-index .datagrid .chronicle-vk-badge[data-kind="pending"],
+.ea-index .datagrid .chronicle-vk-badge[data-kind="deferred"],
+.ea-index .datagrid .chronicle-vk-badge[data-kind="progress"] {
+    background: rgba(200, 120, 40, 0.1);
+    border-color: rgba(200, 120, 40, 0.22);
+    color: #a86a28;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="scheduled"] .chronicle-vk-badge__icon,
+.ea-index .datagrid .chronicle-vk-badge[data-kind="pending"] .chronicle-vk-badge__icon,
+.ea-index .datagrid .chronicle-vk-badge[data-kind="deferred"] .chronicle-vk-badge__icon,
+.ea-index .datagrid .chronicle-vk-badge[data-kind="progress"] .chronicle-vk-badge__icon {
+    background: rgba(200, 120, 40, 0.18);
+    color: #8a5520;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="error"] {
+    background: rgba(196, 92, 74, 0.1);
+    border-color: rgba(196, 92, 74, 0.24);
+    color: #b54a3a;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="error"] .chronicle-vk-badge__icon {
+    background: rgba(196, 92, 74, 0.18);
+    color: #8f3a2d;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="imported"] {
+    background: rgba(70, 120, 190, 0.1);
+    border-color: rgba(70, 120, 190, 0.22);
+    color: #3d6ea8;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="imported"] .chronicle-vk-badge__icon {
+    background: rgba(70, 120, 190, 0.18);
+    color: #2d5580;
+}
+
+.ea-index .datagrid .chronicle-vk-badge[data-kind="none"],
+.ea-index .datagrid .chronicle-vk-badge[data-kind="disabled"],
+.ea-index .datagrid .chronicle-vk-badge[data-kind="offline"] {
+    background: rgba(26, 22, 18, 0.04);
+    border-color: rgba(26, 22, 18, 0.1);
+    color: rgba(26, 22, 18, 0.42);
+}
+
+.ea-index .datagrid .chronicle-vk-badge--compact {
+    max-width: 8.5rem;
+    font-size: 0.64rem;
+    padding: 0.14rem 0.4rem 0.14rem 0.32rem;
+}
+
 /* Premium filter toolbar */
 .chronicle-admin-filters {
     display: grid;

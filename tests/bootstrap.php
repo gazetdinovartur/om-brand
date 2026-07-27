@@ -14,3 +14,6 @@ if (method_exists(Dotenv::class, 'bootEnv')) {
 if ($_SERVER['APP_DEBUG'] ?? false) {
     umask(0000);
 }
+
+require_once __DIR__.'/DatabaseSchema.php';
+\App\Tests\DatabaseSchema::ensureUpToDate();

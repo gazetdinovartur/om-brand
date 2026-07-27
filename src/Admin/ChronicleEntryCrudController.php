@@ -122,7 +122,9 @@ class ChronicleEntryCrudController extends AbstractCrudController
             ->setChoices(array_combine(
                 array_map(static fn (ChronicleStatus $s) => $s->label(), ChronicleStatus::cases()),
                 ChronicleStatus::cases(),
-            ));
+            ))
+            ->setTemplatePath('admin/chronicle/field_status.html.twig')
+            ->onlyOnIndex();
         yield AssociationField::new('series', 'Канал');
         yield AssociationField::new('era', 'Эпоха');
         yield DateTimeField::new('publishedAt', 'Опубликован')->hideOnForm();

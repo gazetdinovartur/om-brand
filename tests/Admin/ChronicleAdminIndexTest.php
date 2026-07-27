@@ -51,6 +51,8 @@ final class ChronicleAdminIndexTest extends WebTestCase
         $entry->setShortHash(substr(bin2hex(random_bytes(4)), 0, 8));
         $entry->setStatus(ChronicleStatus::Draft);
         $entry->setSortOrder(-100);
+        $entry->setVkPostId(random_int(100000, 999999));
+        $entry->setVkCrosspostRequested(true);
         $em->persist($entry);
         $em->flush();
 
@@ -66,6 +68,7 @@ final class ChronicleAdminIndexTest extends WebTestCase
         $content = (string) $client->getResponse()->getContent();
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('chronicle-admin-filters', $content);
+        self::assertStringContainsString('chronicle-admin-status-cell', $content);
         self::assertStringContainsString('data-chronicle-id', $content);
         self::assertStringContainsString('admin-chronicle-index.js', $content);
         self::assertStringContainsString('♥ Избранное', $content);

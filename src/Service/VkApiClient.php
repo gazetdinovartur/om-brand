@@ -157,6 +157,7 @@ class VkApiClient
         array $attachments = [],
         ?string $guid = null,
         ?string $copyright = null,
+        ?int $publishDate = null,
     ): int {
         $params = [
             'owner_id' => $ownerId,
@@ -171,6 +172,9 @@ class VkApiClient
             // Системная пометка «Источник» под постом.
             $params['copyright'] = trim($copyright);
         }
+        if (null !== $publishDate) {
+            $params['publish_date'] = $publishDate;
+        }
 
         $result = $this->call('wall.post', $params);
         $postId = $result['post_id'] ?? $result['value'] ?? null;
@@ -179,6 +183,31 @@ class VkApiClient
         }
 
         return (int) $postId;
+    }
+
+    /**
+     * @param list<string> $attachments
+     */
+    public function wallEdit(
+        int $ownerId,
+        int $postId,
+        string $message,
+        array $attachments = [],
+        ?string $copyright = null,
+    ): void {
+        $params = [
+            'owner_id' => $ownerId,
+            'post_id' => $postId,
+            'message' => $message,
+        ];
+        if ([] !== $attachments) {
+            $params['attachments'] = implode(',', $attachments);
+        }
+        if (null !== $copyright && '' !== trim($copyright)) {
+            $params['copyright'] = trim($copyright);
+        }
+
+        $this->call('wall.edit', $params);
     }
 
     public function resolveOwnerId(): int

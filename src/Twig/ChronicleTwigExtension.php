@@ -2,9 +2,12 @@
 
 namespace App\Twig;
 
+use App\Entity\ChronicleEntry;
 use App\Service\ChronicleDisplayDeduper;
 use App\Service\ChronicleMarkdownRenderer;
 use App\Service\ChronicleMediaEmbedFactory;
+use App\Service\ChronicleVkCrosspostStatusResolver;
+use App\Service\ChronicleVkCrosspostStatusView;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -15,6 +18,7 @@ final class ChronicleTwigExtension extends AbstractExtension
         private readonly ChronicleMarkdownRenderer $markdown,
         private readonly ChronicleMediaEmbedFactory $media,
         private readonly ChronicleDisplayDeduper $deduper,
+        private readonly ChronicleVkCrosspostStatusResolver $vkStatus,
     ) {
     }
 
@@ -101,6 +105,12 @@ final class ChronicleTwigExtension extends AbstractExtension
             new TwigFunction('chronicle_show_hero_lede', $this->deduper->showHeroLede(...)),
             new TwigFunction('chronicle_show_card_lede', $this->deduper->showCardLede(...)),
             new TwigFunction('chronicle_blocks_for_display', $this->deduper->blocksForDisplay(...)),
+            new TwigFunction('chronicle_vk_status', $this->vkCrosspostStatus(...)),
         ];
+    }
+
+    public function vkCrosspostStatus(ChronicleEntry $entry): ChronicleVkCrosspostStatusView
+    {
+        return $this->vkStatus->resolve($entry);
     }
 }

@@ -1,0 +1,23 @@
+{% set vk = chronicle_vk_status(entry) %}
+{% if vk.kind == 'imported' %}
+    <span
+        class="chronicle-vk-badge chronicle-vk-badge--import-note"
+        data-kind="imported"
+        {% if vk_status_attr|default(false) %}data-vk-status{% endif %}
+        {% if vk.hint %}title="{{ vk.hint|e('html_attr') }}"{% endif %}
+    >импорт с VK</span>
+{% else %}
+    <span
+        class="chronicle-vk-badge{% if compact|default(false) %} chronicle-vk-badge--compact{% endif %}"
+        data-kind="{{ vk.kind }}"
+        {% if vk_status_attr|default(false) %}data-vk-status{% endif %}
+        {% if vk.hint %}title="{{ vk.hint|e('html_attr') }}"{% endif %}
+    >
+        <span class="chronicle-vk-badge__icon" aria-hidden="true">VK</span>
+        {% if vk.wallUrl %}
+            <a class="chronicle-vk-badge__link" href="{{ vk.wallUrl }}" target="_blank" rel="noopener">{{ vk.label }}</a>
+        {% else %}
+            <span class="chronicle-vk-badge__label">{{ vk.label }}</span>
+        {% endif %}
+    </span>
+{% endif %}
