@@ -2982,12 +2982,13 @@ select.form-control:focus {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(180deg, rgba(18, 14, 10, 0.18) 0%, rgba(18, 14, 10, 0.42) 40%, rgba(18, 14, 10, 0.9) 100%),
-        var(--case-cover, #1a1612);
+        linear-gradient(135deg, rgba(247, 243, 235, 0.92) 0%, rgba(247, 243, 235, 0.78) 45%, rgba(247, 243, 235, 0.95) 100%),
+        var(--case-cover, none) center / cover no-repeat;
     background-size: cover;
     background-position: center;
-    transform: scale(1.04);
-    filter: saturate(0.92);
+    filter: blur(0);
+    transform: scale(1.08);
+    opacity: 0.55;
 }
 
 .case-detail__hero:not(.case-detail__hero--has-cover) .case-detail__hero-backdrop {
