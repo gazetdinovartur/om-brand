@@ -45,7 +45,7 @@ final class NotifyChronicleSubscribersCommand extends Command
             $io->warning('Entry is not visible in the public feed; notifier will no-op.');
         }
 
-        $this->notifier->notifyPublished($entry);
+        $this->notifier->notifyPublished($entry, force: true);
         $io->success(sprintf('Notifications dispatched for "%s".', $entry->getTitle()));
 
         return Command::SUCCESS;

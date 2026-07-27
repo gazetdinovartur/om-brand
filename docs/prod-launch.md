@@ -57,6 +57,12 @@ VK_CROSSPOST_ENABLED=1
 MAILER_DSN=smtp://info@arturlun.ru:ПАРОЛЬ@mail.netangels.ru:587
 MAILER_FROM=info@arturlun.ru
 
+# Web Push (VAPID) — подписка в браузере + push при новой записи
+# php -r 'require "vendor/autoload.php"; print_r(Minishlink\WebPush\VAPID::createVapidKeys());'
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:info@arturlun.ru
+
 OM_PLAYER_SCRIPT_URL=https://music.arturlun.ru/build/player/om-player.iife.js
 OM_PLAYER_API_BASE=https://music.arturlun.ru/api/v1
 
@@ -183,6 +189,7 @@ rm -rf content/instagram content/instagram-heyteaflow content/vk \
 - [ ] Картинки хроники (Instagram галереи, VK)
 - [ ] Лайки / шаринг `/p/…`
 - [ ] Форма заявки → Telegram / email
+- [ ] Email/push подписка и notify — см. [notify-smoke-checklist.md](notify-smoke-checklist.md)
 - [ ] `view-source`: canonical `https://arturlun.ru`, CSS/JS с `?v=20260723a`
 - [ ] `/robots.txt`, `/sitemap.xml`
 - [ ] В админке опубликовать нужные кейсы вручную

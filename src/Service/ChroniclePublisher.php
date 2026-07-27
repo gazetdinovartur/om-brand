@@ -32,7 +32,9 @@ final class ChroniclePublisher
             foreach ($ready as $entry) {
                 if ($entry->isVisibleInFeed()) {
                     $this->vkCrossposter->crosspostEntry($entry);
-                    $this->newPostNotifier->notifyPublished($entry);
+                    if (!$entry->hasNotifiedSubscribers()) {
+                        $this->newPostNotifier->notifyPublished($entry);
+                    }
                 }
             }
         }
@@ -42,13 +44,17 @@ final class ChroniclePublisher
 
     public function publishNow(ChronicleEntry $entry, ?\DateTimeImmutable $at = null): void
     {
+        $wasAlreadyVisibleInFeed = $entry->isVisibleInFeed();
+
         $entry->setStatus(ChronicleStatus::Published);
         $entry->setPublishedAt($at ?? new \DateTimeImmutable());
         $this->em->flush();
 
         if ($entry->isVisibleInFeed()) {
             $this->vkCrossposter->crosspostEntry($entry);
-            $this->newPostNotifier->notifyPublished($entry);
+            if (!$wasAlreadyVisibleInFeed || !$entry->hasNotifiedSubscribers()) {
+                $this->newPostNotifier->notifyPublished($entry);
+            }
         }
     }
 }

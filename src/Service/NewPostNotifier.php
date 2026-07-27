@@ -43,14 +43,21 @@ final class NewPostNotifier
             && '' !== trim($this->vapidSubject);
     }
 
-    public function notifyPublished(ChronicleEntry $entry): void
+    public function notifyPublished(ChronicleEntry $entry, bool $force = false): void
     {
         if (!$entry->isVisibleInFeed()) {
             return;
         }
 
+        if (!$force && $entry->hasNotifiedSubscribers()) {
+            return;
+        }
+
         $this->notifyEmail($entry);
         $this->notifyPush($entry);
+
+        $entry->markSubscribersNotified();
+        $this->em->flush();
     }
 
     private function notifyEmail(ChronicleEntry $entry): void

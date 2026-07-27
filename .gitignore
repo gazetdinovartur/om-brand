@@ -23,6 +23,12 @@ _symfony_tmp/
 .DS_Store
 .vk_token
 
+# Local Python venv for corpus/audio transcription tooling (not for git / deploy)
+/.venv-transcribe/
+
+# PHPUnit result cache sometimes written next to bin/
+/bin/.phpunit.result.cache
+
 # Local-only: archives, corpus, analysis (not for git)
 /content/
 /corpus/

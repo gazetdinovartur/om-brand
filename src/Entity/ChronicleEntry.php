@@ -106,6 +106,10 @@ class ChronicleEntry
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $vkCrosspostError = null;
 
+    /** When email/push subscribers were notified about this public publish (idempotency). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $subscribersNotifiedAt = null;
+
     /** @var Collection<int, ChronicleBlock> */
     #[ORM\OneToMany(targetEntity: ChronicleBlock::class, mappedBy: 'entry', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['sortOrder' => 'ASC', 'id' => 'ASC'])]
@@ -451,6 +455,28 @@ class ChronicleEntry
         $this->vkCrosspostError = $vkCrosspostError;
 
         return $this;
+    }
+
+    public function getSubscribersNotifiedAt(): ?\DateTimeImmutable
+    {
+        return $this->subscribersNotifiedAt;
+    }
+
+    public function setSubscribersNotifiedAt(?\DateTimeImmutable $subscribersNotifiedAt): static
+    {
+        $this->subscribersNotifiedAt = $subscribersNotifiedAt;
+
+        return $this;
+    }
+
+    public function hasNotifiedSubscribers(): bool
+    {
+        return null !== $this->subscribersNotifiedAt;
+    }
+
+    public function markSubscribersNotified(?\DateTimeImmutable $at = null): void
+    {
+        $this->subscribersNotifiedAt = $at ?? new \DateTimeImmutable();
     }
 
     public function isImportedFromVk(): bool
