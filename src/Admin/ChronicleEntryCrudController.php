@@ -127,7 +127,6 @@ class ChronicleEntryCrudController extends AbstractCrudController
             ->onlyOnIndex();
         yield AssociationField::new('series', 'Канал');
         yield AssociationField::new('era', 'Эпоха');
-        yield DateTimeField::new('publishedAt', 'Опубликован')->hideOnForm();
         yield DateTimeField::new('updatedAt', 'Изменён')->hideOnForm();
         yield TextField::new('sourceKey', 'Source')->onlyOnDetail();
         yield BooleanField::new('isUnlisted', 'Unlisted')->hideOnIndex();

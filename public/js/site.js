@@ -999,37 +999,65 @@ function initCaseLightbox() {
     let touchStartY = 0;
     let touchActive = false;
     let suppressClick = false;
+    let focusSink = document.getElementById('lightbox-focus-sink');
 
-    const restoreScroll = (y) => {
+    const getFocusSink = () => {
+        if (focusSink instanceof HTMLElement) {
+            return focusSink;
+        }
+        focusSink = document.createElement('div');
+        focusSink.id = 'lightbox-focus-sink';
+        focusSink.className = 'visually-hidden';
+        focusSink.tabIndex = -1;
+        focusSink.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(focusSink);
+        return focusSink;
+    };
+
+    const stabilizeScroll = (y) => {
+        document.documentElement.scrollTop = y;
+        document.body.scrollTop = y;
         window.scrollTo({ top: y, left: 0, behavior: 'auto' });
     };
 
     const lockScroll = () => {
-        scrollY = window.scrollY || window.pageYOffset || 0;
+        scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.documentElement.classList.add('is-lightbox-open');
         document.body.classList.add('is-lightbox-open');
-        document.body.style.position = 'fixed';
         document.body.style.top = `-${scrollY}px`;
-        document.body.style.left = '0';
-        document.body.style.right = '0';
-        document.body.style.width = '100%';
     };
 
     const unlockScroll = () => {
         const y = scrollY;
+        document.documentElement.classList.remove('is-lightbox-open');
         document.body.classList.remove('is-lightbox-open');
-        document.body.style.position = '';
         document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.width = '';
-        restoreScroll(y);
-        // Dialog focus restore otherwise scrolls the page to the trigger.
-        if (opener instanceof HTMLElement) {
-            opener.focus({ preventScroll: true });
+        stabilizeScroll(y);
+        return y;
+    };
+
+    const focusWithoutScroll = (element) => {
+        if (element instanceof HTMLElement) {
+            element.focus({ preventScroll: true });
         }
-        opener = null;
-        restoreScroll(y);
-        requestAnimationFrame(() => restoreScroll(y));
+    };
+
+    const finalizeClose = () => {
+        const y = unlockScroll();
+        focusWithoutScroll(getFocusSink());
+        stabilizeScroll(y);
+        requestAnimationFrame(() => {
+            stabilizeScroll(y);
+            focusWithoutScroll(getFocusSink());
+            if (opener instanceof HTMLElement) {
+                opener.focus({ preventScroll: true });
+            }
+            stabilizeScroll(y);
+            requestAnimationFrame(() => {
+                stabilizeScroll(y);
+                opener = null;
+            });
+        });
     };
 
     const collectGroup = (trigger) => {
@@ -1073,6 +1101,8 @@ function initCaseLightbox() {
         if (!dialog.open) {
             opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             lockScroll();
+            // Dialog returns focus to the element focused before showModal — not the trigger.
+            focusWithoutScroll(getFocusSink());
             dialog.showModal();
         }
     };
@@ -1096,7 +1126,7 @@ function initCaseLightbox() {
     prevBtn?.addEventListener('click', () => openAt(index - 1));
     nextBtn?.addEventListener('click', () => openAt(index + 1));
 
-    dialog.addEventListener('close', unlockScroll);
+    dialog.addEventListener('close', finalizeClose);
 
     dialog.addEventListener('click', (event) => {
         if (suppressClick) {
