@@ -161,9 +161,9 @@ final class LandingContent
             ['href' => '#philosophy', 'label' => 'Подход'],
         ];
 
-        if ($hasCases) {
-            $items[] = ['href' => '#cases', 'label' => 'Кейсы'];
-        }
+        // if ($hasCases) {
+        //     $items[] = ['href' => '#cases', 'label' => 'Кейсы'];
+        // } // TODO: раскомментировать вместе с HouseContent::CASES_PUBLIC_ENABLED
 
         $items[] = ['href' => '#pricing', 'label' => 'Стоимость'];
         $items[] = ['href' => '#contact', 'label' => 'Контакт'];

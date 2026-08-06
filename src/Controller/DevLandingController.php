@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Content\HouseContent;
 use App\Content\LandingContent;
 use App\Form\InquiryFormType;
 use App\Repository\CaseStudyRepository;
@@ -29,8 +30,12 @@ final class DevLandingController extends AbstractController
     ): Response {
         $settings = $siteContext->getSettings();
         $blocksBySlug = $siteContext->getBlocksBySlug();
-        $cases = $caseStudyRepository->findLandingOrdered();
-        $hasAnyCases = $caseStudyRepository->countPublished() > 0;
+        $cases = [];
+        $hasAnyCases = false;
+        if (HouseContent::CASES_PUBLIC_ENABLED) {
+            $cases = $caseStudyRepository->findLandingOrdered();
+            $hasAnyCases = $caseStudyRepository->countPublished() > 0;
+        }
         $form = $this->createForm(InquiryFormType::class);
         $form->handleRequest($request);
 

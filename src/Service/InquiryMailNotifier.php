@@ -49,11 +49,13 @@ final class InquiryMailNotifier
         $adminUrl = $this->inquiryAdminUrlGenerator->detailUrl($inquiryId);
         $siteDomain = $this->siteDomain();
         $messageText = $this->messageText($inquiry);
+        $siteName = trim((string) $settings->getName()) ?: $siteDomain;
 
         $templateContext = [
             'inquiry' => $inquiry,
             'adminUrl' => $adminUrl,
             'siteDomain' => $siteDomain,
+            'siteName' => $siteName,
             'messageText' => $messageText,
         ];
 

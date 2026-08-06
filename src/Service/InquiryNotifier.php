@@ -19,8 +19,9 @@ final class InquiryNotifier
     {
         $settings = $this->siteContext->getSettings();
         $telegramSent = $this->telegramNotifier->notifyNewInquiry($inquiry);
+        $emailSent = $this->mailNotifier->notifyNewInquiry($inquiry, $settings);
 
-        if (!$telegramSent && !$this->mailNotifier->notifyNewInquiry($inquiry, $settings)) {
+        if (!$telegramSent && !$emailSent) {
             $this->logger->warning('Inquiry saved but no notification channel delivered the message.', [
                 'inquiry_id' => $inquiry->getId(),
             ]);

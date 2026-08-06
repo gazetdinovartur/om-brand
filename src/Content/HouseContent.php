@@ -7,6 +7,9 @@ namespace App\Content;
  */
 final class HouseContent
 {
+    /** Временно: главная «скоро» и пункт меню скрыты, пока не наберётся достаточно кейсов. */
+    public const CASES_PUBLIC_ENABLED = false;
+
     public static function heroGreeting(): string
     {
         return 'Привет, меня зовут Артур';
@@ -66,7 +69,7 @@ final class HouseContent
     {
         return [
             ['route' => 'web_dev_landing', 'label' => 'Разработка'],
-            ['route' => 'web_cases', 'label' => 'Кейсы'],
+            // ['route' => 'web_cases', 'label' => 'Кейсы'], // TODO: раскомментировать вместе с CASES_PUBLIC_ENABLED
             ['route' => 'web_chronicle', 'label' => 'Хроника', 'persistFilters' => true],
             ['route' => 'web_contact', 'label' => 'Связь'],
         ];
