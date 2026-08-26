@@ -174,7 +174,7 @@ class CaseStudyCrudController extends AbstractCrudController
             ->setColumns(3);
         yield BooleanField::new('showOnLanding', 'На лендинге')
             ->setColumns(3)
-            ->setHelp('Секция кейсов на /dev--null');
+            ->setHelp('Секция кейсов на /dev');
         yield BooleanField::new('isFeatured', 'Крупный')
             ->setColumns(3)
             ->setHelp('Выделить на лендинге');

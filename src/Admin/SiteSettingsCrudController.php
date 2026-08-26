@@ -89,7 +89,7 @@ class SiteSettingsCrudController extends AbstractCrudController
         yield TextField::new('tagline', 'Краткое описание')
             ->setHelp('Meta description для поисковиков и превью в соцсетях.');
         yield TextField::new('city', 'Подпись в шапке')
-            ->setHelp('Строка под именем — только на лендинге /dev--null.');
+            ->setHelp('Строка под именем — только на лендинге /dev.');
         yield ImageField::new('avatarPath', 'Аватар')
             ->setBasePath('uploads/avatars')
             ->setUploadDir('public/uploads/avatars')

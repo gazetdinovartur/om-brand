@@ -184,7 +184,7 @@ final class VerifyInquiryFlowCommand extends Command
         $client = HttpClient::create(['timeout' => 10]);
 
         try {
-            $page = $client->request('GET', $baseUrl.'/dev--null');
+            $page = $client->request('GET', $baseUrl.'/dev');
             $html = $page->getContent(false);
             $cookieHeader = implode('; ', array_map(
                 static fn (string $cookie): string => explode(';', $cookie, 2)[0],
@@ -213,7 +213,7 @@ final class VerifyInquiryFlowCommand extends Command
             'inquiry_form[_token]' => $tokenMatch[1],
         ];
 
-        $response = $client->request('POST', $baseUrl.'/dev--null', [
+        $response = $client->request('POST', $baseUrl.'/dev', [
             'headers' => array_filter([
                 'Accept' => 'application/json',
                 'X-Requested-With' => 'XMLHttpRequest',

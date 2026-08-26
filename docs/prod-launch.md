@@ -192,7 +192,7 @@ rm -rf content/instagram content/instagram-heyteaflow content/vk \
 ## 4. Чеклист https://arturlun.ru/
 
 - [ ] `/` — дом, комнаты; кейсы — «скоро», если черновики
-- [ ] `/dev--null`, `/contact`, `/cases`, `/chronicle`
+- [ ] `/dev`, `/contact`, `/cases`, `/chronicle`
 - [ ] `/admin/login` — вход
 - [ ] Картинки хроники (Instagram галереи, VK)
 - [ ] Лайки / шаринг `/p/…`

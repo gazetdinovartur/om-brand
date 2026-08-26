@@ -19,7 +19,13 @@ final class DevLandingController extends AbstractController
 {
     use InquiryFormHandlerTrait;
 
-    #[Route('/dev--null', name: 'web_dev_landing', methods: ['GET', 'POST'])]
+    #[Route('/dev--null', name: 'web_dev_landing_legacy', methods: ['GET'])]
+    public function legacy(): Response
+    {
+        return $this->redirectToRoute('web_dev_landing', [], Response::HTTP_MOVED_PERMANENTLY);
+    }
+
+    #[Route('/dev', name: 'web_dev_landing', methods: ['GET', 'POST'])]
     public function index(
         Request $request,
         PublicSiteContext $siteContext,

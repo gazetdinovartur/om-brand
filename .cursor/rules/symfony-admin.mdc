@@ -1,0 +1,63 @@
+---
+description: EasyAdmin 5 — стандарт студии (om-brand layout + om-player UX). При правках админки.
+globs: "**/src/Admin/**,**/Admin/*CrudController.php,**/Controller/Admin/**,**/templates/admin/**,**/templates/bundles/EasyAdminBundle/**,**/public/css/admin*.css,**/public/js/admin*.js"
+alwaysApply: false
+---
+
+# Symfony Admin (EasyAdmin 5)
+
+**Канон:** `corpus/studio/docs/admin-standard.md` (если kit недоступен — проси путь или @-файл).
+
+**Эталоны:** layout/security/singleton/private uploads/splice DnD → **om-brand**; DnD UX/upload/form theme/`admin.css` → **om-player** `backend/`. Не копировать чужой проект без запроса в задаче.
+
+## Обязательно перед «админка готова»
+
+- [ ] Router/menu: dashboard и CRUD без 500
+- [ ] Create/Edit/Delete или осознанно отключены (singleton!)
+- [ ] Русские labels, кнопки, validation
+- [ ] Поля одной ширины; checkbox/TomSelect/Slug — смотреть в браузере
+- [ ] Upload public vs private download; DnD + CSRF; при фильтрах — splice, не полный rewrite
+- [ ] Observe через единый `qa` + чеклист в admin-standard
+
+## Повторяющиеся ошибки — НЕ ДОПУСКАТЬ
+
+### CSS / селекторы
+
+| Симптом | Причина | Как правильно |
+|---------|---------|---------------|
+| Slug lock «едет» | CSS на несуществующий класс | DevTools: реальные классы EA5 |
+| TomSelect / select «кривой» | Нет theme | om-player form theme + `admin.css`, заменить brand tokens |
+| Checkbox не на линии | flex не на `.form-check` | `align-items: center` на label+input |
+| Огромные gaps | Лишний margin `.form-group` | Сверить с om-player |
+
+### Формы / Doctrine / upload
+
+| Симптом | Причина | Как правильно |
+|---------|---------|---------------|
+| null при save / 500 collection | mapped / hidden id / cascade | Проверить mapping, `by_reference`, entry type |
+| ImageField type error | Неверный return type EA5 | Явный тип поля |
+| Cover только path-строка | Нет FileType mapped=false | Паттерн om-player upload |
+| `download_path` ломается | Нет trailing slash | Slash в конце обязателен |
+| DnD ломает порядок с фильтром | Rewrite только visible ids | Splice vs полный список (om-brand) |
+
+### Локализация
+
+| Симптом | Как правильно |
+|---------|---------------|
+| English buttons | RU locale + labels; при нужде `EasyAdminBundle.ru.yaml` |
+| Enum «could not be converted» | ChoiceField + `label()` / formatValue |
+
+## DO
+
+1. Новый проект: `App\Admin` (CRUD) + `App\Controller\Admin` (custom HTTP).
+2. Singleton settings, password hash subscriber, login throttling 5/15 — как om-brand.
+3. Public → `public/uploads/…`; private → `var/private/…` + admin download.
+4. Минимальный diff; эталон другого репо — только если назван.
+
+## DON'T
+
+- НЕ угадывать CSS EA5 без DevTools
+- НЕ JSON-поля вместо понятного UI
+- НЕ claim готовности без RU + smoke CRUD
+- НЕ отдельный easyadmin-qa — чеклист внутри `qa`
+- НЕ тащить chronicle editor / VK / ContentBlock «на будущее»

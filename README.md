@@ -1,6 +1,6 @@
 # Цифровой дом
 
-Личный сайт-экосистема: **дом** на `/`, лендинг разработчика на `/dev--null`, кейсы, хроника, универсальная связь.
+Личный сайт-экосистема: **дом** на `/`, лендинг разработчика на `/dev`, кейсы, хроника, универсальная связь.
 
 **Стек:** Symfony 8, EasyAdmin, MySQL, Docker (локально).
 
@@ -18,7 +18,7 @@ docker compose exec php php bin/console app:chronicle:seed-likes
 | | |
 |--|--|
 | Дом | http://localhost:8085 |
-| Разработка | http://localhost:8085/dev--null |
+| Разработка | http://localhost:8085/dev |
 | Кейсы | http://localhost:8085/cases |
 | Хроника | http://localhost:8085/chronicle |
 | Связь | http://localhost:8085/contact |
@@ -35,7 +35,7 @@ docker compose exec php php bin/console app:chronicle:seed-likes
 
 | Что | Где |
 |-----|-----|
-| Тексты лендинга `/dev--null` | `src/Content/LandingContent.php` → `app:content:sync` |
+| Тексты лендинга `/dev` | `src/Content/LandingContent.php` → `app:content:sync` |
 | Дом, комнаты, страница связи | `src/Content/HouseContent.php` (только код, без sync) |
 | Политика | `src/Content/LegalContent.php` |
 | Контакты / аватар / email заявок | Админка → **Настройки** |
