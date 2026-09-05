@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\ChronicleBlock;
+use App\Entity\ChronicleBlockImage;
 use App\Entity\ChronicleEntry;
 use App\Enum\ChronicleBlockType;
 
@@ -85,7 +86,7 @@ final class ChronicleDisplayDeduper
             $out[] = $block;
         }
 
-        return $out;
+        return $this->collapseConsecutiveImages($out);
     }
 
     public function showCardLede(ChronicleEntry $entry): bool
@@ -96,6 +97,58 @@ final class ChronicleDisplayDeduper
         }
 
         return !$this->sameProse($this->normalize($lede), $this->normalize($entry->getTitle()));
+    }
+
+    /**
+     * Old VK imports stored one Image block per photo; render them as a gallery grid.
+     *
+     * @param list<ChronicleBlock> $blocks
+     *
+     * @return list<ChronicleBlock>
+     */
+    private function collapseConsecutiveImages(array $blocks): array
+    {
+        $out = [];
+        /** @var list<ChronicleBlock> $run */
+        $run = [];
+
+        $flush = function () use (&$out, &$run): void {
+            if ([] === $run) {
+                return;
+            }
+            if (1 === \count($run)) {
+                $out[] = $run[0];
+                $run = [];
+
+                return;
+            }
+
+            $gallery = new ChronicleBlock();
+            $gallery->setType(ChronicleBlockType::Gallery);
+            $gallery->setSortOrder($run[0]->getSortOrder());
+            foreach ($run as $i => $imageBlock) {
+                $image = new ChronicleBlockImage();
+                $image->setImagePath((string) $imageBlock->getImagePath());
+                $image->setAlt($imageBlock->getAlt());
+                $image->setCaption($imageBlock->getCaption());
+                $image->setSortOrder($i * 10);
+                $gallery->addImage($image);
+            }
+            $out[] = $gallery;
+            $run = [];
+        };
+
+        foreach ($blocks as $block) {
+            if (ChronicleBlockType::Image === $block->getType() && '' !== trim((string) $block->getImagePath())) {
+                $run[] = $block;
+                continue;
+            }
+            $flush();
+            $out[] = $block;
+        }
+        $flush();
+
+        return $out;
     }
 
     private function firstParagraphBody(ChronicleEntry $entry): ?string
@@ -120,6 +173,8 @@ final class ChronicleDisplayDeduper
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $text = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
         $text = preg_replace("/\n{2,}/u", "\n", $text) ?? $text;
+        // Title/lede cuts often end with … or ...
+        $text = preg_replace('/(?:\.{3}|…)+$/u', '', $text) ?? $text;
         $text = trim($text);
 
         return mb_strtolower($text);
@@ -139,7 +194,7 @@ final class ChronicleDisplayDeduper
         $longer = mb_strlen($a) <= mb_strlen($b) ? $b : $a;
 
         if (str_starts_with($longer, $shorter)) {
-            $rest = trim(mb_substr($longer, mb_strlen($shorter)), " \n\t.,;:—–-");
+            $rest = trim(mb_substr($longer, mb_strlen($shorter)), " \n\t.,;:—–-…");
 
             // Prefix match only counts as duplicate when the remainder is tiny
             // OR when the shorter is already most of the longer (title cut).

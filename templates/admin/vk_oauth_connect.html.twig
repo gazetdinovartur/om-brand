@@ -24,25 +24,26 @@
         </div>
     {% endif %}
 
-    <div class="alert alert-info py-2">
-        Ошибка «базовый домен» бывает, когда redirect указывает на <code>oauth.vk.com</code>.
-        Нужен <strong>твой</strong> URL и тот же домен в кабинете id.vk.ru.
+    <div class="alert alert-warning py-2">
+        Сообщение VK «Ошибка загрузки / попробуйте ещё раз» чаще всего значит:
+        приложение не Web в <strong>id.vk.ru</strong>, или не совпали базовый домен / Trusted redirect URI
+        (символ в символ с URL ниже). Старый app из vk.com/apps часто так и ломается — заведи новое Web-приложение в id.vk.ru и обнови <code>VK_APP_ID</code>.
     </div>
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <h2 class="h6">Настройки в id.vk.ru</h2>
-            <ol class="mb-3">
-                <li>Открой приложение → настройки / доверенные redirect URI.</li>
-                <li>Базовый домен: для локалки <code>localhost</code>, для прода — домен сайта.</li>
-                <li>Trusted redirect URI <strong>точно</strong>:<br>
-                    <code class="user-select-all">{{ redirectUri }}</code>
+            <h2 class="h6">Чеклист id.vk.ru (скопируй как есть)</h2>
+            <ul class="mb-3">
+                <li>Тип: веб-сайт / Web</li>
+                <li>Базовый домен: <code>arturlun.ru</code> (без https:// и без www, если сайт без www)</li>
+                <li>Trusted redirect URI:
+                    <br><code class="user-select-all">{{ redirectUri }}</code>
                 </li>
-                <li><code>APP_SITE_URL</code> в .env должен совпадать со схемой/хостом (сейчас из него собран URI выше).</li>
-            </ol>
+                <li>В .env: <code>APP_SITE_URL</code> = <code>https://arturlun.ru</code> (без слэша в конце), затем <code>cache:clear</code></li>
+            </ul>
             <p class="mb-2">Scope: <code>{{ scopes }}</code></p>
             <a class="btn btn-primary" href="{{ authorizeUrl }}">Войти через VK ID</a>
-            <p class="form-text mt-2 mb-0">После разрешения VK вернёт на callback — токен сохранится сам (оставайся залогинен в админке).</p>
+            <p class="form-text mt-2 mb-0">Жми кнопку с этой же вкладки, будучи залогинен в админке — после VK вернёт на callback.</p>
         </div>
     </div>
 

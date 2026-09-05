@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\ChronicleBlock;
+use App\Entity\ChronicleBlockImage;
 use App\Entity\ChronicleEntry;
 use App\Enum\ChronicleBlockType;
 use App\Enum\ChronicleStatus;
@@ -42,6 +43,7 @@ final class ChronicleVkWallSync
 
         $ownerId = $this->vk->resolveSyncOwnerId();
         $vkSeries = $this->series->findOneBy(['slug' => 'vk-wall']);
+        $nextSort = $this->entries->nextTopSortOrder();
 
         foreach ($this->vk->wallGet($ownerId, $count) as $post) {
             $postId = isset($post['id']) ? (int) $post['id'] : 0;
@@ -72,40 +74,60 @@ final class ChronicleVkWallSync
             $entry->setSourceKey($sourceKey);
             $entry->setTitle($this->titleFromText($text, $postId));
             $entry->setSlug('vk-wall-'.$postId);
-            $entry->setLede($this->ledeFromText($text));
             $entry->setStatus(ChronicleStatus::Published);
+            $entry->setSortOrder($nextSort);
+            $nextSort -= 10;
             $date = isset($post['date']) ? (int) $post['date'] : time();
-            $entry->setPublishedAt((new \DateTimeImmutable())->setTimestamp($date));
+            $publishedAt = (new \DateTimeImmutable())->setTimestamp($date);
+            $entry->setPublishedAt($publishedAt);
+            // Avoid false "обновлено" badge: import time must not look like an edit.
+            $entry->setUpdatedAt($publishedAt);
             $entry->setVkPostId($postId);
-            $entry->setVkPostedAt($entry->getPublishedAt());
+            $entry->setVkPostedAt($publishedAt);
             if (null !== $vkSeries) {
                 $entry->setSeries($vkSeries);
             }
 
             $body = $this->stripSiteFooter($text);
+            // Body paragraph carries the text; lede only when there is no body (photo-only).
             if ('' !== $body) {
                 $block = new ChronicleBlock();
                 $block->setType(ChronicleBlockType::Paragraph);
                 $block->setBody($body);
                 $block->setSortOrder(0);
                 $entry->addBlock($block);
+            } else {
+                $entry->setLede($this->ledeFromText($text));
             }
 
-            $sort = 10;
+            $basenames = [];
             foreach ($this->extractPhotoUrls($post) as $url) {
                 $basename = $this->downloadPhoto($url);
-                if (null === $basename) {
-                    continue;
+                if (null !== $basename) {
+                    $basenames[] = $basename;
                 }
-                if (null === $entry->getCoverImagePath()) {
-                    $entry->setCoverImagePath($basename);
+            }
+
+            if ([] !== $basenames) {
+                $entry->setCoverImagePath($basenames[0]);
+                if (1 === \count($basenames)) {
+                    $imageBlock = new ChronicleBlock();
+                    $imageBlock->setType(ChronicleBlockType::Image);
+                    $imageBlock->setImagePath($basenames[0]);
+                    $imageBlock->setSortOrder(10);
+                    $entry->addBlock($imageBlock);
+                } else {
+                    $gallery = new ChronicleBlock();
+                    $gallery->setType(ChronicleBlockType::Gallery);
+                    $gallery->setSortOrder(10);
+                    foreach ($basenames as $i => $basename) {
+                        $image = new ChronicleBlockImage();
+                        $image->setImagePath($basename);
+                        $image->setSortOrder($i * 10);
+                        $gallery->addImage($image);
+                    }
+                    $entry->addBlock($gallery);
                 }
-                $imageBlock = new ChronicleBlock();
-                $imageBlock->setType(ChronicleBlockType::Image);
-                $imageBlock->setImagePath($basename);
-                $imageBlock->setSortOrder($sort);
-                $entry->addBlock($imageBlock);
-                $sort += 10;
             }
 
             $this->em->persist($entry);

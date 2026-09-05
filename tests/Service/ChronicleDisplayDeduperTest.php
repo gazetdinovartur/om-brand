@@ -57,6 +57,45 @@ final class ChronicleDisplayDeduperTest extends TestCase
         self::assertCount(1, $this->deduper->blocksForDisplay($entry));
     }
 
+    public function testHidesLedeWhenTitleIsEllipsisCutOfBody(): void
+    {
+        $body = 'длинный текст поста который обрезается в заголовке и полностью повторяется в лиде';
+        $entry = $this->entry(
+            mb_substr($body, 0, 40).'…',
+            $body,
+            $body,
+        );
+
+        self::assertFalse($this->deduper->showHeroLede($entry));
+    }
+
+    public function testCollapsesConsecutiveImagesIntoGallery(): void
+    {
+        $entry = new ChronicleEntry();
+        $entry->setTitle('фото');
+        $entry->setLede(null);
+
+        $p = new ChronicleBlock();
+        $p->setType(ChronicleBlockType::Paragraph);
+        $p->setBody('текст');
+        $p->setSortOrder(0);
+        $entry->addBlock($p);
+
+        foreach (['a.jpg', 'b.jpg', 'c.jpg'] as $i => $path) {
+            $img = new ChronicleBlock();
+            $img->setType(ChronicleBlockType::Image);
+            $img->setImagePath($path);
+            $img->setSortOrder(10 + $i);
+            $entry->addBlock($img);
+        }
+
+        $blocks = $this->deduper->blocksForDisplay($entry);
+        self::assertCount(2, $blocks);
+        self::assertSame(ChronicleBlockType::Paragraph, $blocks[0]->getType());
+        self::assertSame(ChronicleBlockType::Gallery, $blocks[1]->getType());
+        self::assertCount(3, $blocks[1]->getImages());
+    }
+
     private function entry(string $title, string $lede, string $firstParagraph): ChronicleEntry
     {
         $entry = new ChronicleEntry();
