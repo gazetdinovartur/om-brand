@@ -28,8 +28,8 @@ usage() {
 Использование: ./deploy-script.sh [опции]
 
 Опции:
-  --first          Первый деплой: seed (настройки, блоки, админ)
-  --sync-content   Перезаписать блоки из LandingContent.php
+  --first          Первый деплой: seed (настройки, блоки, админ) — только создаёт отсутствующее
+  --sync-content   Перезаписать блоки лендинга из LandingContent.php (не трогает кейсы и Настройки)
   --bust-assets    Сбросить кэш css/js: bump ASSETS_VERSION в .env
   --skip-git       Не выполнять git pull
   --skip-composer  Не выполнять composer install
@@ -40,6 +40,9 @@ usage() {
   2. MySQL: БД и пользователь созданы
   3. cp .env.example .env — заполнить prod-переменные (только .env, без .env.local)
   4. git clone / загрузка кода на сервер
+
+Обычный ./deploy-script.sh: код + миграции + cache. Не перезаписывает кейсы,
+хронику и «Настройки» из админки. Блоки лендинга — только с --sync-content.
 
 Маршруты после деплоя: / (дом), /dev, /contact, /cases, /chronicle, /admin
 Тексты дома: src/Content/HouseContent.php (без sync).
@@ -172,9 +175,13 @@ $CONSOLE cache:warmup --env=prod
 
 echo ""
 echo "✓ Деплой завершён."
-echo "  Проверьте: HTTPS, / , /dev--null , /contact , /cases , /chronicle ,"
+echo "  Проверьте: HTTPS, / , /dev , /contact , /cases , /chronicle ,"
 echo "  /admin/login , форма заявки, var/log/prod.log при ошибках."
+echo "  Кейсы и «Настройки» из админки при обычном деплое не перезаписываются."
 echo "  После импорта VK / фиксации лайков: php bin/console app:chronicle:seed-likes --env=prod"
 if [[ $BUST_ASSETS -eq 1 ]]; then
     echo "  ASSETS_VERSION обновлён — у посетителей подтянутся новые css/js."
+fi
+if [[ $SYNC_CONTENT -eq 1 ]]; then
+    echo "  Блоки лендинга обновлены из LandingContent.php (--sync-content)."
 fi

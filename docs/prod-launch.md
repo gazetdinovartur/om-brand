@@ -209,9 +209,11 @@ rm -rf content/instagram content/instagram-heyteaflow content/vk \
 | Что менялось | Действие |
 |--------------|----------|
 | Код / шаблоны / CSS | `git pull` → `./deploy-script.sh` + bump `ASSETS_VERSION` в `.env` |
-| Тексты лендинга | `./deploy-script.sh --sync-content` |
+| Тексты лендинга | `./deploy-script.sh --sync-content` (только `content_block`; Настройки/кейсы не трогает) |
 | Корпус хроники | `./sync-prod-content.sh` (или `--corpus-only`) → import на сервере |
-| Только кейсы (тексты из кода) | `php bin/console app:cases:seed --env=prod` (± `--force`) |
-| Обложки кейсов | `./sync-prod-content.sh --cases-only` |
+| Только кейсы (первичный импорт) | `php bin/console app:cases:seed --env=prod` (существующие пропускает; `--force` — осознанная перезапись) |
+| Обложки кейсов | `./sync-prod-content.sh --cases-only` (rsync без `--delete`; совпадающие имена перезапишет) |
+
+Обычный `./deploy-script.sh` **не** вызывает `app:cases:seed` и **не** перезаписывает правки кейсов/настроек из админки.
 
 Не заливай полный mysqldump локальной БД на прод. Хроника = corpus + import.

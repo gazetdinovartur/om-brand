@@ -4,7 +4,6 @@ namespace App\Command;
 
 use App\Content\LandingContent;
 use App\Entity\ContentBlock;
-use App\Entity\SiteSettings;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -14,7 +13,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:content:sync',
-    description: 'Обновляет тексты лендинга из эталонного контента',
+    description: 'Обновляет тексты лендинга из эталонного контента (не трогает настройки, кейсы и хронику)',
 )]
 final class SyncContentCommand extends Command
 {
@@ -47,24 +46,10 @@ final class SyncContentCommand extends Command
             }
         }
 
-        $this->syncSiteSettings();
         $this->entityManager->flush();
 
-        $io->success('Контент лендинга обновлён.');
+        $io->success('Контент лендинга обновлён. Настройки сайта, кейсы и хроника не менялись.');
 
         return Command::SUCCESS;
-    }
-
-    private function syncSiteSettings(): void
-    {
-        $settings = $this->entityManager->getRepository(SiteSettings::class)->findOneBy([]);
-        if (!$settings instanceof SiteSettings) {
-            return;
-        }
-
-        $settings
-            ->setName(LandingContent::personName())
-            ->setTagline(LandingContent::metaDescription())
-            ->setCity(LandingContent::headerSubtitle());
     }
 }

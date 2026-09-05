@@ -79,9 +79,11 @@ final class SeedCommand extends Command
         $repository = $this->entityManager->getRepository(ContentBlock::class);
 
         foreach (LandingContent::blocks() as $data) {
-            $block = $repository->findOneBy(['slug' => $data['slug']]) ?? new ContentBlock();
+            if (null !== $repository->findOneBy(['slug' => $data['slug']])) {
+                continue;
+            }
 
-            $block
+            $block = (new ContentBlock())
                 ->setSlug($data['slug'])
                 ->setType($data['type'])
                 ->setTitle($data['title'])
@@ -91,9 +93,7 @@ final class SeedCommand extends Command
                 ->setSortOrder($data['sortOrder'])
                 ->setIsVisible(true);
 
-            if (null === $block->getId()) {
-                $this->entityManager->persist($block);
-            }
+            $this->entityManager->persist($block);
         }
     }
 
