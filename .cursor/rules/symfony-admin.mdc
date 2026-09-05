@@ -18,6 +18,7 @@ alwaysApply: false
 - [ ] Поля одной ширины; checkbox/TomSelect/Slug — смотреть в браузере
 - [ ] Upload public vs private download; DnD + CSRF; при фильтрах — splice, не полный rewrite
 - [ ] Observe через единый `qa` + чеклист в admin-standard
+- [ ] Удаление файлов, не копить мусор
 
 ## Повторяющиеся ошибки — НЕ ДОПУСКАТЬ
 
