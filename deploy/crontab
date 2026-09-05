@@ -21,5 +21,8 @@ MAILTO=""
 # --- VK: кросспост по галочке (vk_crosspost_requested), ретраи и отложенные >31 дн ---
 */15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:crosspost-vk --env=prod >> var/log/cron-vk-crosspost.log 2>&1
 
-# --- VK: новые посты со стены → в хронику ---
+# --- VK: новые посты со стены сообщества → в хронику ---
 */15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:sync-vk-wall --env=prod >> var/log/cron-vk-sync.log 2>&1
+
+# --- Telegram: кросспост в канал по галочке ---
+*/15 * * * * cd /home/c502022/arturlun.ru/om-brand && php bin/console app:chronicle:crosspost-telegram --env=prod >> var/log/cron-tg-crosspost.log 2>&1

@@ -17,7 +17,12 @@
             {% if vk_crosspost_enabled %}
                 {% include 'admin/chronicle/_vk_status_badge.html.twig' with { entry: entry, vk_status_attr: true } only %}
             {% endif %}
-            {% if not vk_connected %}
+            {% if tg_channel_enabled %}
+                {% include 'admin/chronicle/_tg_status_badge.html.twig' with { entry: entry, tg_status_attr: true } only %}
+            {% endif %}
+            {% if vk_crosspost_enabled and not vk_has_user_token and vk_is_community %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_oauth_vk_start') }}" title="Нужен для фото и sync">Подключить VK (фото)</a>
+            {% elseif vk_crosspost_enabled and not vk_connected %}
                 <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_oauth_vk_start') }}">Подключить VK</a>
             {% endif %}
             <button type="button" class="btn btn-outline-secondary btn-sm" data-action="preview">Предпросмотр</button>
@@ -101,23 +106,50 @@
                         <input class="form-check-input" type="checkbox" data-field="isUnlisted" id="unlisted"{% if entry.isUnlisted %} checked{% endif %}>
                         <label class="form-check-label" for="unlisted">Unlisted (только по ссылке)</label>
                     </div>
-                    {% if vk_crosspost_enabled %}
-                        <div class="chronicle-editor-vk-panel mb-3">
-                            <div class="form-check mb-2">
-                                <input
-                                    class="form-check-input"
-                                    type="checkbox"
-                                    data-field="vkCrosspostRequested"
-                                    id="vk-crosspost"
-                                    {% if entry.vkCrosspostRequested %} checked{% endif %}
-                                >
-                                <label class="form-check-label" for="vk-crosspost">Опубликовать в VK</label>
-                            </div>
-                            <p class="form-text mb-2">При отложенной дате — отложенный пост VK на то же время.</p>
-                            <div class="form-check mb-0" data-vk-update-wrap{% if not entry.vkPostId %} hidden{% endif %}>
-                                <input class="form-check-input" type="checkbox" data-field="vkUpdateToVk" id="vk-update">
-                                <label class="form-check-label" for="vk-update">Обновить пост в VK</label>
-                            </div>
+                    {% if vk_crosspost_enabled or tg_channel_enabled %}
+                        <div class="chronicle-editor-channels mb-3">
+                            <h3 class="chronicle-editor-panel__title h6 mb-2">Каналы</h3>
+                            <p class="form-text mb-2">Сайт публикуется всегда. Соцсети — по галочкам.</p>
+                            {% if vk_crosspost_enabled %}
+                                <div class="chronicle-editor-vk-panel mb-2">
+                                    <div class="form-check mb-2">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            data-field="vkCrosspostRequested"
+                                            id="vk-crosspost"
+                                            {% if entry.vkCrosspostRequested %} checked{% endif %}
+                                        >
+                                        <label class="form-check-label" for="vk-crosspost">
+                                            {% if vk_is_community %}Опубликовать в сообщество VK{% else %}Опубликовать в VK{% endif %}
+                                        </label>
+                                    </div>
+                                    <p class="form-text mb-2">При отложенной дате — отложенный пост VK на то же время.</p>
+                                    <div class="form-check mb-0" data-vk-update-wrap{% if not entry.vkPostId %} hidden{% endif %}>
+                                        <input class="form-check-input" type="checkbox" data-field="vkUpdateToVk" id="vk-update">
+                                        <label class="form-check-label" for="vk-update">Обновить пост в VK</label>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if tg_channel_enabled %}
+                                <div class="chronicle-editor-tg-panel mb-0">
+                                    <div class="form-check mb-2">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            data-field="tgCrosspostRequested"
+                                            id="tg-crosspost"
+                                            {% if entry.tgCrosspostRequested %} checked{% endif %}
+                                        >
+                                        <label class="form-check-label" for="tg-crosspost">Опубликовать в Telegram-канал</label>
+                                    </div>
+                                    <p class="form-text mb-2">Отправится сразу после публикации на сайте (отложка — после даты).</p>
+                                    <div class="form-check mb-0" data-tg-update-wrap{% if not entry.tgMessageId %} hidden{% endif %}>
+                                        <input class="form-check-input" type="checkbox" data-field="tgUpdateToChannel" id="tg-update">
+                                        <label class="form-check-label" for="tg-update">Обновить пост в Telegram</label>
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
                     {% endif %}
                 </section>
@@ -166,9 +198,10 @@
             tagCreateUrl: {{ path('admin_chronicle_tag_create')|json_encode|raw }},
             vkOwnerId: {{ vk_owner_id|json_encode|raw }},
             vkCrosspostEnabled: {{ vk_crosspost_enabled|json_encode|raw }},
+            tgChannelEnabled: {{ tg_channel_enabled|json_encode|raw }},
         };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260727vk2' }}"></script>
+    <script src="{{ asset('js/admin-chronicle-editor.js') ~ '?v=20260905channels' }}"></script>
 </body>
 </html>

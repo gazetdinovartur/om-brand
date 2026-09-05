@@ -14,7 +14,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:chronicle:crosspost-vk',
-    description: 'Публикует due-записи хроники на стену VK (идемпотентно)',
+    description: 'Публикует due-записи хроники в сообщество VK (идемпотентно)',
 )]
 final class CrosspostChronicleVkCommand extends Command
 {

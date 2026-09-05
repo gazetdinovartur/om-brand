@@ -60,7 +60,11 @@ final class ChronicleVkCrosspostStatusResolver
 
         if ($entry->isVkCrosspostRequested()) {
             if (!$this->credentials->canCrosspost()) {
-                return new ChronicleVkCrosspostStatusView('offline', 'нет VK', 'Подключите VK в редакторе');
+                $hint = $this->credentials->isCommunityTarget()
+                    ? 'Для текста — VK_COMMUNITY_TOKEN + VK_OWNER_ID=-group_id. Для фото/sync — «Подключить VK» (user-токен)'
+                    : 'Подключите user-токен: /admin/oauth/vk/start';
+
+                return new ChronicleVkCrosspostStatusView('offline', 'нет VK', $hint);
             }
 
             if ($this->isDeferred($entry)) {
@@ -85,6 +89,11 @@ final class ChronicleVkCrosspostStatusResolver
 
         $ownerId = $this->credentials->ownerId();
         if (null === $ownerId) {
+            $raw = $this->credentials->ownerIdRaw();
+            if ('' !== $raw) {
+                return 'https://vk.com/'.ltrim($raw, '-@');
+            }
+
             return null;
         }
 

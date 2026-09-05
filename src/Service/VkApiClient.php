@@ -36,9 +36,11 @@ class VkApiClient
      */
     public function call(string $method, array $params = [], ?string $token = null): array
     {
-        $accessToken = $token ?? $this->credentials->userAccessToken();
+        $accessToken = $token ?? $this->credentials->userApiToken();
         if ('' === $accessToken) {
-            throw new VkApiException('VK user access token is not configured.');
+            throw new VkApiException(
+                'Нужен user-токен VK (админка → Подключить VK). Community-токен для этого метода не подходит.',
+            );
         }
 
         $payload = array_merge($params, [
@@ -57,6 +59,9 @@ class VkApiClient
         if (isset($data['error']) && \is_array($data['error'])) {
             $code = isset($data['error']['error_code']) ? (int) $data['error']['error_code'] : null;
             $msg = (string) ($data['error']['error_msg'] ?? 'VK API error');
+            if (27 === $code || str_contains(mb_strtolower($msg), 'group authorization failed')) {
+                $msg = 'Group auth: нужен user-токен (Подключить VK), не ключ сообщества. '.$msg;
+            }
             throw new VkApiException($msg, $code);
         }
 
@@ -78,6 +83,11 @@ class VkApiClient
      */
     public function uploadWallPhotos(int $ownerId, array $absolutePaths): array
     {
+        // Community tokens usually cannot upload wall photos (error 27).
+        if ($ownerId < 0 && !$this->credentials->hasUserToken()) {
+            return [];
+        }
+
         $attachments = [];
         foreach (array_slice($absolutePaths, 0, 10) as $path) {
             if (!is_file($path)) {
@@ -91,10 +101,15 @@ class VkApiClient
 
     private function uploadOneWallPhoto(int $ownerId, string $absolutePath): string
     {
+        $token = $this->credentials->userApiToken();
+        if ('' === $token) {
+            return [];
+        }
+
         $server = $this->call('photos.getWallUploadServer', [
             'user_id' => $ownerId > 0 ? $ownerId : null,
             'group_id' => $ownerId < 0 ? abs($ownerId) : null,
-        ]);
+        ], $token);
 
         $uploadUrl = (string) ($server['upload_url'] ?? '');
         if ('' === $uploadUrl) {
@@ -120,7 +135,7 @@ class VkApiClient
             'server' => $uploaded['server'],
             'photo' => $uploaded['photo'],
             'hash' => $uploaded['hash'],
-        ]);
+        ], $token);
 
         $photo = $saved[0] ?? null;
         if (!\is_array($photo) || !isset($photo['owner_id'], $photo['id'])) {
@@ -161,7 +176,7 @@ class VkApiClient
     ): int {
         $params = [
             'owner_id' => $ownerId,
-            'from_group' => 0,
+            'from_group' => $ownerId < 0 ? 1 : 0,
             'message' => $message,
             'guid' => $guid ?? bin2hex(random_bytes(8)),
         ];
@@ -176,7 +191,7 @@ class VkApiClient
             $params['publish_date'] = $publishDate;
         }
 
-        $result = $this->call('wall.post', $params);
+        $result = $this->call('wall.post', $params, $this->credentials->postingToken());
         $postId = $result['post_id'] ?? $result['value'] ?? null;
         if (!is_numeric($postId)) {
             throw new VkApiException('wall.post: missing post_id');
@@ -207,17 +222,44 @@ class VkApiClient
             $params['copyright'] = trim($copyright);
         }
 
-        $this->call('wall.edit', $params);
+        $this->call('wall.edit', $params, $this->requireUserToken('wall.edit'));
     }
 
     public function resolveOwnerId(): int
     {
-        $configured = $this->credentials->ownerId();
+        return $this->resolveConfiguredOwner(
+            $this->credentials->ownerId(),
+            $this->credentials->ownerIdRaw(),
+            'VK_OWNER_ID',
+        );
+    }
+
+    /**
+     * Owner for inbound wall sync (personal page via VK_SYNC_OWNER_ID, else VK_OWNER_ID).
+     */
+    public function resolveSyncOwnerId(): int
+    {
+        return $this->resolveConfiguredOwner(
+            $this->credentials->syncOwnerId(),
+            $this->credentials->syncOwnerIdRaw(),
+            'VK_SYNC_OWNER_ID',
+        );
+    }
+
+    private function resolveConfiguredOwner(?int $configured, string $raw, string $envLabel): int
+    {
         if (null !== $configured) {
             return $configured;
         }
 
-        $me = $this->call('users.get');
+        if ('' !== $raw) {
+            $screen = ltrim($raw, '-@');
+            if ('' !== $screen) {
+                return $this->resolveScreenNameToOwnerId($screen);
+            }
+        }
+
+        $me = $this->call('users.get', [], $this->requireUserToken('users.get'));
         $first = $me[0] ?? null;
         if (!\is_array($first)) {
             foreach ($me as $item) {
@@ -228,10 +270,52 @@ class VkApiClient
             }
         }
         if (!\is_array($first) || !isset($first['id'])) {
-            throw new VkApiException('Cannot resolve VK owner id (set VK_OWNER_ID).');
+            throw new VkApiException(sprintf(
+                'Cannot resolve VK owner id (set %s to numeric id or screen name).',
+                $envLabel,
+            ));
         }
 
         return (int) $first['id'];
+    }
+
+    /**
+     * Resolve club / public / custom screen name to negative owner_id.
+     */
+    private function resolveScreenNameToOwnerId(string $screenName): int
+    {
+        $resolved = $this->call('utils.resolveScreenName', [
+            'screen_name' => $screenName,
+        ], $this->requireUserToken('utils.resolveScreenName'));
+
+        $type = (string) ($resolved['type'] ?? '');
+        $objectId = isset($resolved['object_id']) ? (int) $resolved['object_id'] : 0;
+        if ($objectId <= 0) {
+            throw new VkApiException(sprintf('VK screen name "%s" not found. Use numeric VK_OWNER_ID=-group_id.', $screenName));
+        }
+
+        if (\in_array($type, ['group', 'page', 'event'], true)) {
+            return -$objectId;
+        }
+
+        if ('user' === $type) {
+            return $objectId;
+        }
+
+        throw new VkApiException(sprintf('Unsupported VK screen name type "%s" for "%s".', $type, $screenName));
+    }
+
+    private function requireUserToken(string $method): string
+    {
+        $token = $this->credentials->userApiToken();
+        if ('' === $token) {
+            throw new VkApiException(sprintf(
+                'Метод %s недоступен с ключом сообщества. Подключите user-токен: /admin/oauth/vk/start',
+                $method,
+            ));
+        }
+
+        return $token;
     }
 
     /**
@@ -280,7 +364,7 @@ class VkApiClient
             'owner_id' => $ownerId,
             'count' => min(100, max(1, $count)),
             'filter' => 'owner',
-        ]);
+        ], $this->requireUserToken('wall.get'));
 
         $items = $result['items'] ?? [];
         if (!\is_array($items)) {

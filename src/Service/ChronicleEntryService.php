@@ -27,6 +27,7 @@ final class ChronicleEntryService
         private readonly SluggerInterface $slugger,
         private readonly ChronicleEntryRepository $entries,
         private readonly ChronicleVkCrosspostStatusResolver $vkStatusResolver,
+        private readonly ChronicleTelegramCrosspostStatusResolver $tgStatusResolver,
     ) {
     }
 
@@ -360,6 +361,11 @@ final class ChronicleEntryService
             'vkCrosspostError' => $entry->getVkCrosspostError(),
             'vkCrosspostRequested' => $entry->isVkCrosspostRequested(),
             'vkStatus' => $this->vkStatusResolver->resolve($entry)->toArray(),
+            'tgMessageId' => $entry->getTgMessageId(),
+            'tgPostedAt' => $entry->getTgPostedAt()?->format('c'),
+            'tgCrosspostError' => $entry->getTgCrosspostError(),
+            'tgCrosspostRequested' => $entry->isTgCrosspostRequested(),
+            'tgStatus' => $this->tgStatusResolver->resolve($entry)->toArray(),
             'updatedAt' => $entry->getUpdatedAt()->format('c'),
             'blocks' => $blocks,
         ];

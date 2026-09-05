@@ -36,11 +36,11 @@ final class ChronicleVkWallSync
     public function sync(int $count = 20): array
     {
         $stats = ['created' => 0, 'skipped' => 0];
-        if (!$this->credentials->canCrosspost()) {
+        if (!$this->credentials->canSync()) {
             return $stats;
         }
 
-        $ownerId = $this->vk->resolveOwnerId();
+        $ownerId = $this->vk->resolveSyncOwnerId();
         $vkSeries = $this->series->findOneBy(['slug' => 'vk-wall']);
 
         foreach ($this->vk->wallGet($ownerId, $count) as $post) {

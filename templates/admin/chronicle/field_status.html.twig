@@ -10,5 +10,9 @@
         {% if vk.kind not in ['none', 'disabled', 'imported'] %}
             {% include 'admin/chronicle/_vk_status_badge.html.twig' with { entry: entry, compact: true } only %}
         {% endif %}
+        {% set tg = chronicle_tg_status(entry) %}
+        {% if tg.kind not in ['none', 'disabled'] %}
+            {% include 'admin/chronicle/_tg_status_badge.html.twig' with { entry: entry, compact: true } only %}
+        {% endif %}
     {% endif %}
 </div>

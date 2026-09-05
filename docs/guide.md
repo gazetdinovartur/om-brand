@@ -94,8 +94,13 @@ docker compose logs -f php
 | `APP_ENV` | prod | `prod` на сервере |
 | `APP_DEBUG` | prod | `0` на сервере |
 | `ASSETS_VERSION` | prod | Query `?v=` для css/js — bump при фронт-релизе |
-| `TELEGRAM_BOT_TOKEN` | нет | Уведомления о заявках |
-| `TELEGRAM_CHAT_ID` | нет | Chat ID |
+| `TELEGRAM_BOT_TOKEN` | нет | Бот: заявки + кросспост в канал |
+| `TELEGRAM_CHAT_ID` | нет | Chat ID для уведомлений о заявках |
+| `TELEGRAM_CHANNEL_ID` | нет | Канал для кросспоста хроники (`@name` / `-100…`) |
+| `VK_CROSSPOST_ENABLED` | нет | `1` — кросспост/sync VK |
+| `VK_COMMUNITY_TOKEN` | нет | Ключ сообщества для `wall.post` |
+| `VK_OWNER_ID` | нет | Сообщество для кросспоста (`-group_id`) |
+| `VK_SYNC_OWNER_ID` | нет | Личная стена → хроника (user id) |
 | `MAILER_DSN` | нет | Email fallback (`null://null` = выкл) |
 | `MAILER_FROM` | prod* | Отправитель, совпадает с логином SMTP (напр. `info@arturlun.ru`) |
 
@@ -166,6 +171,18 @@ app:content:sync  # перезаписать блоки лендинга из La
 | | `public/uploads/chronicle/` — картинки после импорта |
 
 **Не тащите mysqldump с локалки на прод.** Источник правды для записей — corpus + `app:chronicle:import`.
+
+### Кросспост в VK / Telegram
+
+В редакторе записи — блок **Каналы**: галочки «сообщество VK» и «Telegram-канал». Сайт публикуется всегда.
+
+| Направление | Что нужно |
+|-------------|-----------|
+| Хроника → VK | `VK_CROSSPOST_ENABLED=1`, `VK_OWNER_ID=-group`, `VK_COMMUNITY_TOKEN`; фото — user-токен («Подключить VK») |
+| VK → хроника | `VK_SYNC_OWNER_ID` (личная) или `VK_OWNER_ID` + user-токен + cron `app:chronicle:sync-vk-wall` |
+| Хроника → TG | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHANNEL_ID` (бот — админ канала); chat заявок отдельно |
+
+Подробности и cron: [`docs/prod-launch.md`](prod-launch.md).
 
 ### Каталог
 

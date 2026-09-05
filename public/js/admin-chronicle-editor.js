@@ -167,6 +167,8 @@
             status: state.status,
             vkCrosspostRequested: document.querySelector('[data-field="vkCrosspostRequested"]')?.checked ?? false,
             vkUpdateToVk: document.querySelector('[data-field="vkUpdateToVk"]')?.checked ?? false,
+            tgCrosspostRequested: document.querySelector('[data-field="tgCrosspostRequested"]')?.checked ?? false,
+            tgUpdateToChannel: document.querySelector('[data-field="tgUpdateToChannel"]')?.checked ?? false,
             blocks: state.blocks.map((block, index) => ({ ...block, sortOrder: index * 10 })),
         };
     }
@@ -295,6 +297,7 @@
             state = mergeStateFromServer(json.data, clientIds, imageClientIds);
             dirty = false;
             syncVkFieldsFromState(state);
+            syncTgFieldsFromState(state);
             if (els.readingTime) els.readingTime.textContent = `${json.readingTimeMin} мин`;
             const updated = new Date(json.updatedAt);
             setStatus(`Сохранено ${updated.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`);
@@ -329,9 +332,13 @@
             renderBlocks();
         }
         syncVkFieldsFromState(state);
+        syncTgFieldsFromState(state);
         setStatus(action === 'schedule' ? 'Запланировано' : 'Опубликовано', 'published');
         if (json.publicUrl) cfg.publicUrl = json.publicUrl;
-        if (json.data) updateVkStatus(json.data);
+        if (json.data) {
+            updateVkStatus(json.data);
+            updateTgStatus(json.data);
+        }
     }
 
     function syncVkFieldsFromState(data) {
@@ -353,6 +360,25 @@
         updateVkStatus(data);
     }
 
+    function syncTgFieldsFromState(data) {
+        const crosspost = document.querySelector('[data-field="tgCrosspostRequested"]');
+        if (crosspost instanceof HTMLInputElement) {
+            crosspost.checked = Boolean(data?.tgCrosspostRequested);
+        }
+
+        const update = document.querySelector('[data-field="tgUpdateToChannel"]');
+        if (update instanceof HTMLInputElement) {
+            update.checked = false;
+        }
+
+        const updateWrap = document.querySelector('[data-tg-update-wrap]');
+        if (updateWrap instanceof HTMLElement) {
+            updateWrap.hidden = !data?.tgMessageId;
+        }
+
+        updateTgStatus(data);
+    }
+
     function updateVkStatus(data) {
         const el = document.querySelector('[data-vk-status]');
         if (!(el instanceof HTMLElement)) return;
@@ -369,12 +395,75 @@
             return;
         }
 
-        const icon = '<span class="chronicle-vk-badge__icon" aria-hidden="true">VK</span>';
-        const label = vk.wallUrl
-            ? `<a class="chronicle-vk-badge__link" href="${vk.wallUrl}" target="_blank" rel="noopener">${vk.label}</a>`
-            : `<span class="chronicle-vk-badge__label">${vk.label}</span>`;
         el.className = 'chronicle-vk-badge';
-        el.innerHTML = icon + label;
+        const icon = el.querySelector('.chronicle-vk-badge__icon') || (() => {
+            const span = document.createElement('span');
+            span.className = 'chronicle-vk-badge__icon';
+            span.setAttribute('aria-hidden', 'true');
+            span.textContent = 'VK';
+            el.prepend(span);
+            return span;
+        })();
+        icon.textContent = 'VK';
+
+        let label = el.querySelector('.chronicle-vk-badge__link, .chronicle-vk-badge__label');
+        if (vk.wallUrl) {
+            if (!(label instanceof HTMLAnchorElement)) {
+                label?.remove();
+                label = document.createElement('a');
+                label.className = 'chronicle-vk-badge__link';
+                label.target = '_blank';
+                label.rel = 'noopener';
+                el.appendChild(label);
+            }
+            label.href = vk.wallUrl;
+            label.textContent = vk.label;
+        } else {
+            if (!(label instanceof HTMLSpanElement) || label.classList.contains('chronicle-vk-badge__icon')) {
+                el.querySelector('.chronicle-vk-badge__link')?.remove();
+                label = document.createElement('span');
+                label.className = 'chronicle-vk-badge__label';
+                el.appendChild(label);
+            }
+            label.textContent = vk.label;
+        }
+    }
+
+    function updateTgStatus(data) {
+        const el = document.querySelector('[data-tg-status]');
+        if (!(el instanceof HTMLElement)) return;
+
+        const tg = data?.tgStatus;
+        if (!tg) return;
+
+        el.dataset.kind = tg.kind;
+        el.title = tg.hint || '';
+        el.className = 'chronicle-vk-badge';
+
+        let icon = el.querySelector('.chronicle-vk-badge__icon');
+        if (!(icon instanceof HTMLElement)) {
+            icon = document.createElement('span');
+            icon.className = 'chronicle-vk-badge__icon';
+            icon.setAttribute('aria-hidden', 'true');
+            el.prepend(icon);
+        }
+        icon.textContent = 'TG';
+
+        el.querySelectorAll('.chronicle-vk-badge__link, .chronicle-vk-badge__label').forEach((n) => n.remove());
+        if (tg.channelUrl) {
+            const link = document.createElement('a');
+            link.className = 'chronicle-vk-badge__link';
+            link.href = tg.channelUrl;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = tg.label;
+            el.appendChild(link);
+        } else {
+            const label = document.createElement('span');
+            label.className = 'chronicle-vk-badge__label';
+            label.textContent = tg.label;
+            el.appendChild(label);
+        }
     }
 
     async function uploadFile(file, kind = 'inline') {
@@ -867,6 +956,7 @@
         updatePublishedTzHint();
         syncPublishedAtField(state.publishedAt);
         syncVkFieldsFromState(state);
+        syncTgFieldsFromState(state);
         renderBlocks();
         setStatus('Готово');
     }

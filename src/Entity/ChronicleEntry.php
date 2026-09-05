@@ -110,6 +110,20 @@ class ChronicleEntry
     #[ORM\Column(options: ['default' => false])]
     private bool $vkCrosspostRequested = false;
 
+    /** Telegram channel message id after successful crosspost. */
+    #[ORM\Column(nullable: true)]
+    private ?int $tgMessageId = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $tgPostedAt = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $tgCrosspostError = null;
+
+    /** Admin opted in to Telegram channel post. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $tgCrosspostRequested = false;
+
     /** When email/push subscribers were notified about this public publish (idempotency). */
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $subscribersNotifiedAt = null;
@@ -469,6 +483,54 @@ class ChronicleEntry
     public function setVkCrosspostRequested(bool $vkCrosspostRequested): static
     {
         $this->vkCrosspostRequested = $vkCrosspostRequested;
+
+        return $this;
+    }
+
+    public function getTgMessageId(): ?int
+    {
+        return $this->tgMessageId;
+    }
+
+    public function setTgMessageId(?int $tgMessageId): static
+    {
+        $this->tgMessageId = $tgMessageId;
+
+        return $this;
+    }
+
+    public function getTgPostedAt(): ?\DateTimeImmutable
+    {
+        return $this->tgPostedAt;
+    }
+
+    public function setTgPostedAt(?\DateTimeImmutable $tgPostedAt): static
+    {
+        $this->tgPostedAt = $tgPostedAt;
+
+        return $this;
+    }
+
+    public function getTgCrosspostError(): ?string
+    {
+        return $this->tgCrosspostError;
+    }
+
+    public function setTgCrosspostError(?string $tgCrosspostError): static
+    {
+        $this->tgCrosspostError = $tgCrosspostError;
+
+        return $this;
+    }
+
+    public function isTgCrosspostRequested(): bool
+    {
+        return $this->tgCrosspostRequested;
+    }
+
+    public function setTgCrosspostRequested(bool $tgCrosspostRequested): static
+    {
+        $this->tgCrosspostRequested = $tgCrosspostRequested;
 
         return $this;
     }

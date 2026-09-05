@@ -7,8 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
-<main class="container py-5" style="max-width: 40rem">
-    <h1 class="h4 mb-3">Подключить VK (стена)</h1>
+<main class="container py-5" style="max-width: 42rem">
+    <h1 class="h4 mb-3">Подключить VK (user-токен)</h1>
 
     {% for label, messages in app.flashes %}
         {% for message in messages %}
@@ -17,32 +17,51 @@
     {% endfor %}
 
     {% if connected %}
-        <div class="alert alert-success py-2">Токен уже сохранён{% if ownerId %} (owner {{ ownerId }}){% endif %}.</div>
+        <div class="alert alert-success py-2">
+            User-токен сохранён
+            {% if ownerId %} · кросспост {{ ownerId }}{% endif %}
+            {% if syncOwnerId %} · sync {{ syncOwnerId }}{% endif %}.
+        </div>
     {% endif %}
+
+    <div class="alert alert-info py-2">
+        Ошибка «базовый домен» бывает, когда redirect указывает на <code>oauth.vk.com</code>.
+        Нужен <strong>твой</strong> URL и тот же домен в кабинете id.vk.ru.
+    </div>
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <p class="mb-2">Права <code>wall</code> VK выдаёт только приложению типа <strong>Standalone</strong> и только через:</p>
-            <p class="mb-3"><code>{{ blankUri }}</code></p>
+            <h2 class="h6">Настройки в id.vk.ru</h2>
             <ol class="mb-3">
-                <li>В кабинете VK: тип приложения <strong>Standalone</strong> (не Website).</li>
-                <li>Открой авторизацию → «Разрешить».</li>
-                <li>Попадёшь на пустую страницу; в адресной строке будет <code>#access_token=…</code>.</li>
-                <li>Скопируй <strong>весь URL</strong> из адресной строки и вставь ниже.</li>
+                <li>Открой приложение → настройки / доверенные redirect URI.</li>
+                <li>Базовый домен: для локалки <code>localhost</code>, для прода — домен сайта.</li>
+                <li>Trusted redirect URI <strong>точно</strong>:<br>
+                    <code class="user-select-all">{{ redirectUri }}</code>
+                </li>
+                <li><code>APP_SITE_URL</code> в .env должен совпадать со схемой/хостом (сейчас из него собран URI выше).</li>
             </ol>
-            <a class="btn btn-primary" href="{{ authorizeUrl }}" target="_blank" rel="noopener">Открыть авторизацию VK</a>
+            <p class="mb-2">Scope: <code>{{ scopes }}</code></p>
+            <a class="btn btn-primary" href="{{ authorizeUrl }}">Войти через VK ID</a>
+            <p class="form-text mt-2 mb-0">После разрешения VK вернёт на callback — токен сохранится сам (оставайся залогинен в админке).</p>
         </div>
     </div>
 
-    <form method="post" action="{{ path('admin_oauth_vk_token') }}" class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <label class="form-label" for="token_payload">URL с blank.html или сам access_token</label>
-            <textarea class="form-control font-monospace mb-3" id="token_payload" name="token_payload" rows="4" required placeholder="https://oauth.vk.com/blank.html#access_token=vk1.a.…&expires_in=0&user_id=…"></textarea>
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token('vk_oauth_token') }}">
-            <button type="submit" class="btn btn-success">Сохранить токен</button>
-            <a class="btn btn-link" href="{{ path('admin') }}">Отмена</a>
+            <h2 class="h6">Запасной путь — импорт стены без API</h2>
+            <p class="mb-0">Экспорт данных VK → corpus/import. Кросспост текста в сообщество — через <code>VK_COMMUNITY_TOKEN</code>, без user-токена.</p>
         </div>
-    </form>
+    </div>
+
+    <details class="card border-0 shadow-sm">
+        <summary class="card-body py-3" style="cursor:pointer">Вставить URL или токен вручную</summary>
+        <form method="post" action="{{ path('admin_oauth_vk_token') }}" class="card-body border-top">
+            <label class="form-label" for="token_payload">Callback URL с code= или access_token</label>
+            <textarea class="form-control font-monospace mb-3" id="token_payload" name="token_payload" rows="3" required></textarea>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('vk_oauth_token') }}">
+            <button type="submit" class="btn btn-outline-success btn-sm">Сохранить</button>
+        </form>
+    </details>
 </main>
 </body>
 </html>

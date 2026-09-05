@@ -453,6 +453,33 @@ class ChronicleEntryRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Entries ready for Telegram channel crosspost.
+     *
+     * @return list<ChronicleEntry>
+     */
+    public function findDueForTelegramCrosspost(int $limit = 20): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.tgCrosspostRequested = :requested')
+            ->andWhere('e.isAdminOnly = false')
+            ->andWhere('e.tgMessageId IS NULL')
+            ->andWhere('e.publishedAt IS NOT NULL')
+            ->andWhere('(e.tgCrosspostError IS NULL OR e.tgCrosspostError != :pending)')
+            ->andWhere(
+                '(e.status = :published AND e.publishedAt <= :now) OR (e.status = :scheduled)'
+            )
+            ->setParameter('requested', true)
+            ->setParameter('published', ChronicleStatus::Published)
+            ->setParameter('scheduled', ChronicleStatus::Scheduled)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->setParameter('pending', \App\Service\TelegramChannelCredentials::PENDING_MARKER)
+            ->orderBy('e.publishedAt', 'ASC')
+            ->setMaxResults(max(1, $limit))
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findOneByVkSourceKey(string $sourceKey): ?ChronicleEntry
     {
         $entry = $this->findOneBy(['sourceKey' => $sourceKey]);

@@ -45,14 +45,17 @@ ADMIN_PASSWORD=...   # только для app:seed, потом сменить �
 
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHAT_ID=...
+TELEGRAM_CHANNEL_ID=...   # канал для кросспоста хроники (@name или -100…)
 
-# VK кросспост (callback https://arturlun.ru/oauth/vk/callback)
+# VK кросспост в сообщество
 VK_APP_ID=...
 VK_APP_SECRET=...   # или VK_SECRET_KEY
 VK_SERVICE_TOKEN=...
-VK_OWNER_ID=...     # числовой id (см. ниже); после OAuth показывается на экране успеха
+VK_COMMUNITY_TOKEN=...   # ключ сообщества (Управление → Работа с API)
+VK_OWNER_ID=-...         # сообщество: цель кросспоста (минус или короткое имя)
+VK_SYNC_OWNER_ID=...     # личная стена → хроника (user id без минуса)
 VK_CROSSPOST_ENABLED=1
-# VK_USER_ACCESS_TOKEN не обязателен вручную — см. «Подключить VK»
+# User-токен для фото/sync — «Подключить VK» в админке (не обязателен для текста в группу)
 
 MAILER_DSN=smtp://info@arturlun.ru:ПАРОЛЬ@mail.netangels.ru:587
 MAILER_FROM=info@arturlun.ru
@@ -70,21 +73,39 @@ OM_PLAYER_API_BASE=https://music.arturlun.ru/api/v1
 ASSETS_VERSION=20260723a
 ```
 
-**Откуда взять `VK_USER_ACCESS_TOKEN` и `VK_OWNER_ID`**
+**VK: сообщество (основной сценарий)**
 
-Scope `wall` у VK работает **только** для приложения типа **Standalone** и `redirect_uri=https://oauth.vk.com/blank.html`.  
-Кастомный `https://arturlun.ru/oauth/vk/callback` + Website → чаще всего `{"error":"invalid_request","error_description":"Security Error"}`.
+1. Создай сообщество. Управление → Работа с API → ключ с правом **Стена** → `VK_COMMUNITY_TOKEN`.
+2. `VK_OWNER_ID=-<group_id>` (минус обязателен), `VK_CROSSPOST_ENABLED=1`.
+3. Чтобы тянуть **личную** стену в хронику — отдельно `VK_SYNC_OWNER_ID=<user_id>` (без минуса) + user-токен.
+4. Текст на стену группы уходит community-токеном (`from_group=1`).
+5. Для **фото**, правок и импорта стены нужен **user-токен** админа группы / владельца стены:
+**User-токен (после смерти Standalone)**
 
-1. В кабинете VK создай / переключи приложение на **Standalone**.
-2. В `.env`: `VK_APP_ID`, `VK_APP_SECRET` (или `VK_SECRET_KEY`), `VK_CROSSPOST_ENABLED=1`.
-3. Админка → редактор → **«Подключить VK»** (или `/admin/oauth/vk/start`).
-4. «Открыть авторизацию VK» → Разрешить → на `blank.html` скопируй **весь URL** из адресной строки (`#access_token=…`).
-5. Вставь URL в форму на сайте → Сохранить.
-6. На экране успеха будет `user_id` — пропиши `VK_OWNER_ID=…` в `.env`, затем `cache:clear --env=prod`.
+Новые приложения создаются только через [id.vk.ru](https://id.vk.ru/about/business/go). Implicit Flow (`response_type=token` + `wall`) даёт Security Error.
 
-Токен лежит в `var/vk/user_access_token` (в `.env` дублировать не обязательно).
+Рабочий путь: `/admin/oauth/vk/start` → VK ID PKCE → callback на `{APP_SITE_URL}/admin/oauth/vk/callback`.
 
-`VK_SERVICE_TOKEN` для личной стены **не** заменяет user token.
+В id.vk.ru для приложения укажи:
+- базовый домен (`localhost` или `arturlun.ru`);
+- Trusted redirect URI **точно** как `APP_SITE_URL` + `/admin/oauth/vk/callback` (пример локально: `http://localhost:8085/admin/oauth/vk/callback`).
+
+Важно: токен VK ID (`vk2.a.*`) на `api.vk.com` иногда отвечает **1051** — тогда live sync стены недоступен. Запасной путь: экспорт данных VK → corpus/import. Кросспост **текста** в сообщество работает на `VK_COMMUNITY_TOKEN` без user-токена.
+
+В `.env`: `VK_OWNER_ID=-group` (кросспост), `VK_SYNC_OWNER_ID=user_id` (импорт личной стены).
+
+
+Личная стена через API обычно недоступна без исключительного права от поддержки VK — не целевой режим.
+
+**Telegram-канал**
+
+1. Бот — админ канала. `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHANNEL_ID` (`@channel` или `-100…`).
+2. Чат заявок (`TELEGRAM_CHAT_ID`) — отдельно, не смешивать.
+3. В редакторе хроники — галочка «Опубликовать в Telegram-канал».
+
+**VK → хроника (sync)**
+
+Нужны: `VK_CROSSPOST_ENABLED=1`, `VK_SYNC_OWNER_ID` (личный user id) или `VK_OWNER_ID`, user-токен, cron `app:chronicle:sync-vk-wall`, серия `vk-wall` из catalog (опционально). Smoke: `php bin/console app:chronicle:sync-vk-wall --count=20`.
 
 Cron — готовый файл: [`deploy/crontab`](../deploy/crontab).
 
@@ -96,12 +117,11 @@ crontab /home/c502022/arturlun.ru/om-brand/deploy/crontab
 | Расписание | Команда | Зачем |
 |------------|---------|--------|
 | каждые 5 мин | `app:chronicle:publish-scheduled` | отложенные посты → published + email/Web Push |
-| каждые 15 мин | `app:chronicle:crosspost-vk` | ретраи VK для записей с галочкой «В VK» (не заменяет publish-scheduled) |
-| каждые 15 мин | `app:chronicle:sync-vk-wall` | новые посты со стены VK → в хронику |
+| каждые 15 мин | `app:chronicle:crosspost-vk` | ретраи VK по галочке |
+| каждые 15 мин | `app:chronicle:sync-vk-wall` | новые посты со стены VK → хроника |
+| каждые 15 мин | `app:chronicle:crosspost-telegram` | ретраи Telegram-канала по галочке |
 
 Логи: `var/log/cron-*.log`. `app:chronicle:notify` — только вручную (повторная рассылка / smoke).
-
-После деплоя: в админке редактора → «Подключить VK» (scopes wall,photos,offline).
 
 ---
 

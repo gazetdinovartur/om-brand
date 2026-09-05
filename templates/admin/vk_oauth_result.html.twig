@@ -11,7 +11,7 @@
     {% if ok %}
         <div class="alert alert-success">{{ message }}</div>
         {% if userId %}
-            <p class="text-muted small mb-3">user_id: {{ userId }} — при необходимости добавьте <code>VK_OWNER_ID={{ userId }}</code> в .env</p>
+            <p class="text-muted small mb-3">user_id: {{ userId }} — для импорта личной стены: <code>VK_SYNC_OWNER_ID={{ userId }}</code> в .env (кросспост в сообщество — отдельно <code>VK_OWNER_ID=-…</code>)</p>
         {% endif %}
     {% else %}
         <div class="alert alert-danger">{{ message }}</div>

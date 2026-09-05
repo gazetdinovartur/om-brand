@@ -1,0 +1,16 @@
+{% set tg = chronicle_tg_status(entry) %}
+{% if tg.kind not in ['none', 'disabled'] or not compact|default(false) %}
+    <span
+        class="chronicle-vk-badge{% if compact|default(false) %} chronicle-vk-badge--compact{% endif %}"
+        data-kind="{{ tg.kind }}"
+        {% if tg_status_attr|default(false) %}data-tg-status{% endif %}
+        {% if tg.hint %}title="{{ tg.hint|e('html_attr') }}"{% endif %}
+    >
+        <span class="chronicle-vk-badge__icon" aria-hidden="true">TG</span>
+        {% if tg.channelUrl %}
+            <a class="chronicle-vk-badge__link" href="{{ tg.channelUrl }}" target="_blank" rel="noopener">{{ tg.label }}</a>
+        {% else %}
+            <span class="chronicle-vk-badge__label">{{ tg.label }}</span>
+        {% endif %}
+    </span>
+{% endif %}

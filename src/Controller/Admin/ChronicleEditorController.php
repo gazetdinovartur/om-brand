@@ -8,9 +8,11 @@ use App\Repository\ChronicleEraRepository;
 use App\Repository\ChronicleSeriesRepository;
 use App\Repository\ChronicleTagRepository;
 use App\Service\ChronicleEntryService;
+use App\Service\ChronicleEntryTelegramActions;
 use App\Service\ChronicleEntryVkActions;
 use App\Service\ChroniclePublisher;
 use App\Service\ChronicleUploadStorage;
+use App\Service\TelegramChannelCredentials;
 use App\Service\VkCredentials;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,8 +36,10 @@ final class ChronicleEditorController extends AbstractController
         private readonly ChronicleUploadStorage $uploads,
         private readonly ChroniclePublisher $publisher,
         private readonly ChronicleEntryVkActions $vkActions,
+        private readonly ChronicleEntryTelegramActions $telegramActions,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly VkCredentials $vkCredentials,
+        private readonly TelegramChannelCredentials $telegramChannel,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -68,9 +72,14 @@ final class ChronicleEditorController extends AbstractController
                 ? $this->urlGenerator->generate('web_chronicle_show', ['slug' => $entry->getSlug()])
                 : null,
             'shortUrl' => $this->urlGenerator->generate('web_chronicle_short', ['hash' => $entry->getShortHash()]),
-            'vk_connected' => $this->vkCredentials->hasUserToken(),
+            'vk_connected' => $this->vkCredentials->isConnected(),
             'vk_owner_id' => $this->vkCredentials->ownerId(),
             'vk_crosspost_enabled' => $this->vkCredentials->isEnabled(),
+            'vk_has_user_token' => $this->vkCredentials->hasUserToken(),
+            'vk_has_community_token' => $this->vkCredentials->hasCommunityToken(),
+            'vk_is_community' => $this->vkCredentials->isCommunityTarget(),
+            'tg_channel_enabled' => $this->telegramChannel->isEnabled(),
+            'tg_channel_connected' => $this->telegramChannel->canCrosspost(),
         ]);
     }
 
@@ -132,6 +141,7 @@ final class ChronicleEditorController extends AbstractController
         $this->entryService->applyPayload($entry, $payload);
         $this->uploads->optimizeEntryImages($entry);
         $this->vkActions->applyFromPayload($entry, $payload);
+        $this->telegramActions->applyFromPayload($entry, $payload);
 
         return new JsonResponse([
             'ok' => true,
@@ -164,6 +174,7 @@ final class ChronicleEditorController extends AbstractController
 
         $this->uploads->optimizeEntryImages($entry);
         $this->vkActions->applyFromPayload($entry, $payload);
+        $this->telegramActions->applyFromPayload($entry, $payload);
 
         return new JsonResponse([
             'ok' => true,
