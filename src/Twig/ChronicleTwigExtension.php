@@ -2,6 +2,7 @@
 
 namespace App\Twig;
 
+use App\AppTimezone;
 use App\Entity\ChronicleEntry;
 use App\Service\ChronicleDisplayDeduper;
 use App\Service\ChronicleMarkdownRenderer;
@@ -30,6 +31,7 @@ final class ChronicleTwigExtension extends AbstractExtension
         return [
             new TwigFilter('chronicle_markdown', $this->markdown->toHtml(...), ['is_safe' => ['html']]),
             new TwigFilter('chronicle_date', $this->formatDate(...)),
+            new TwigFilter('chronicle_datetime', $this->formatDateTimeIso(...)),
         ];
     }
 
@@ -74,6 +76,7 @@ final class ChronicleTwigExtension extends AbstractExtension
             return '';
         }
 
+        $date = AppTimezone::localize($date);
         $pattern = 'short' === $style ? 'd MMM y' : 'd MMMM y';
 
         if (class_exists(\IntlDateFormatter::class)) {
@@ -81,7 +84,7 @@ final class ChronicleTwigExtension extends AbstractExtension
                 'ru_RU',
                 \IntlDateFormatter::NONE,
                 \IntlDateFormatter::NONE,
-                $date->getTimezone()->getName(),
+                AppTimezone::NAME,
                 \IntlDateFormatter::GREGORIAN,
                 $pattern,
             );
@@ -98,6 +101,15 @@ final class ChronicleTwigExtension extends AbstractExtension
             : (self::RU_MONTHS_GENITIVE[$month] ?? '');
 
         return trim(sprintf('%d %s %s', $day, $monthName, $year));
+    }
+
+    public function formatDateTimeIso(?\DateTimeInterface $date): string
+    {
+        if (null === $date) {
+            return '';
+        }
+
+        return AppTimezone::localize($date)->format('c');
     }
 
     public function getFunctions(): array

@@ -5,6 +5,7 @@ namespace App\Seo;
 use App\Content\HouseContent;
 use App\Content\LandingContent;
 use App\Content\LegalContent;
+use App\AppTimezone;
 use App\Entity\CaseStudy;
 use App\Entity\ChronicleEntry;
 use App\Entity\ChronicleEra;
@@ -502,8 +503,8 @@ final class SeoMetadataFactory
             '@id' => $url.'#article',
             'headline' => $entry->getTitle(),
             'description' => $entry->resolveSeoDescription(),
-            'datePublished' => ($entry->getPublishedAt() ?? $entry->getCreatedAt())->format('c'),
-            'dateModified' => $entry->getUpdatedAt()->format('c'),
+            'datePublished' => AppTimezone::localize($entry->getPublishedAt() ?? $entry->getCreatedAt())->format('c'),
+            'dateModified' => AppTimezone::localize($entry->getUpdatedAt())->format('c'),
             'author' => [
                 '@type' => 'Person',
                 'name' => $personName,

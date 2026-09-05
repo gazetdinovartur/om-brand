@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\AppTimezone;
 use App\Entity\ChronicleBlock;
 use App\Entity\ChronicleBlockImage;
 use App\Entity\ChronicleEntry;
@@ -78,7 +79,7 @@ final class ChronicleVkWallSync
             $entry->setSortOrder($nextSort);
             $nextSort -= 10;
             $date = isset($post['date']) ? (int) $post['date'] : time();
-            $publishedAt = (new \DateTimeImmutable())->setTimestamp($date);
+            $publishedAt = (new \DateTimeImmutable('@'.$date))->setTimezone(AppTimezone::zone());
             $entry->setPublishedAt($publishedAt);
             // Avoid false "обновлено" badge: import time must not look like an edit.
             $entry->setUpdatedAt($publishedAt);

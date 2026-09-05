@@ -62,7 +62,7 @@
 
         {% if entry.publishedAt %}
             <footer class="chronicle-posted">
-                <time class="chronicle-posted__date" datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('full') }}</time>
+                <time class="chronicle-posted__date" datetime="{{ entry.publishedAt|chronicle_datetime }}">{{ entry.publishedAt|chronicle_date('full') }}</time>
             </footer>
         {% endif %}
 

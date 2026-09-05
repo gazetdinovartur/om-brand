@@ -18,7 +18,7 @@
                         <span class="chronicle-search-modal__hit-title">{{ entry.title }}</span>
                         <span class="chronicle-search-modal__hit-meta">
                             {% if entry.publishedAt %}
-                                <time datetime="{{ entry.publishedAt|date('c') }}">{{ entry.publishedAt|chronicle_date('short') }}</time>
+                                <time datetime="{{ entry.publishedAt|chronicle_datetime }}">{{ entry.publishedAt|chronicle_date('short') }}</time>
                             {% endif %}
                             {% if entry.series %}
                                 <span>· {{ entry.series.title }}</span>
