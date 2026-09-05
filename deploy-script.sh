@@ -41,7 +41,7 @@ usage() {
   3. cp .env.example .env — заполнить prod-переменные (только .env, без .env.local)
   4. git clone / загрузка кода на сервер
 
-Маршруты после деплоя: / (дом), /dev--null, /contact, /cases, /chronicle, /admin
+Маршруты после деплоя: / (дом), /dev, /contact, /cases, /chronicle, /admin
 Тексты дома: src/Content/HouseContent.php (без sync).
 Блоки лендинга: LandingContent.php → --sync-content при необходимости.
 Лайки после импорта VK: php bin/console app:chronicle:seed-likes --env=prod
