@@ -10,6 +10,7 @@ parameters:
     app.uploads_directory: '%kernel.project_dir%/public/uploads'
     app.private_uploads_directory: '%kernel.project_dir%/var/private/uploads'
     env(TELEGRAM_BOT_TOKEN): ''
+    env(TELEGRAM_BOT_USERNAME): ''
     env(TELEGRAM_CHAT_ID): ''
     env(TELEGRAM_CHANNEL_ID): ''
     env(TELEGRAM_CHANNEL_ENABLED): '0'
@@ -37,12 +38,19 @@ parameters:
     env(VAPID_PUBLIC_KEY): ''
     env(VAPID_PRIVATE_KEY): ''
     env(VAPID_SUBJECT): ''
+    env(WEBAUTHN_RP_ID): 'localhost'
+    env(WEBAUTHN_RP_NAME): 'Артур · админка'
+    env(WEBAUTHN_ALLOWED_ORIGIN): 'http://localhost:8085'
     app.site_url: ''
     app.sbp_payment_url_template: ''
     app.om_player_script_url: 'https://music.arturlun.ru/build/player/om-player.iife.js'
     app.om_player_api_base: 'https://music.arturlun.ru/api/v1'
     app.content_instagram_path: ''
     app.content_google_photos_path: ''
+    app.webauthn_rp_id: 'localhost'
+    app.webauthn_rp_name: 'Артур · админка'
+    app.webauthn_allowed_origin: 'http://localhost:8085'
+    app.telegram_bot_username: ''
 
 services:
     _defaults:
@@ -80,6 +88,10 @@ services:
             $projectDir: '%kernel.project_dir%'
 
     App\Command\ImportChronicleCorpusCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Command\ImportLibraryBookCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
 

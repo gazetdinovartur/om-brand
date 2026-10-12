@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>Ключи доступа · админка</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ asset('css/admin-custom.css') }}" rel="stylesheet">
+    <style>
+        .passkey-page { max-width: 58rem; }
+        .passkey-card { border: 1px solid rgba(31, 26, 20, .1); border-radius: 1rem; }
+        .passkey-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: start; }
+        .passkey-meta { color: #6c6257; font-size: .82rem; }
+        @media (max-width: 640px) {
+            .passkey-item { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <main class="passkey-page container py-4 py-lg-5">
+        <a class="d-inline-block mb-4 text-decoration-none" href="{{ path('admin') }}">← В админку</a>
+
+        <div class="mb-4">
+            <h1 class="h2 mb-2">Ключи доступа</h1>
+            <p class="text-secondary mb-0">Вход через Face ID, Touch ID или PIN устройства. Пароль остаётся резервным способом входа.</p>
+        </div>
+
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ label == 'danger' ? 'danger' : 'success' }}" role="status">{{ message }}</div>
+            {% endfor %}
+        {% endfor %}
+
+        <section
+            class="passkey-card bg-white p-3 p-lg-4 mb-4"
+            data-passkey-register
+            data-options-url="{{ path('webauthn.controller.creation.request.admin') }}"
+            data-result-url="{{ path('webauthn.controller.creation.response.admin') }}"
+        >
+            <h2 class="h5">Добавить ключ</h2>
+            <p class="text-secondary">Создавайте ключ на устройстве, с которого будете входить. Для надёжности добавьте второй ключ на другом устройстве.</p>
+            <button type="button" class="btn btn-primary" data-passkey-register-button>Добавить ключ доступа</button>
+            <p class="small mt-3 mb-0" data-passkey-status role="status" aria-live="polite"></p>
+        </section>
+
+        <section aria-labelledby="passkey-list-title">
+            <h2 class="h5 mb-3" id="passkey-list-title">Сохранённые ключи</h2>
+            {% if credentials is empty %}
+                <p class="text-secondary">Ключей пока нет.</p>
+            {% else %}
+                <div class="d-grid gap-3">
+                    {% for credential in credentials %}
+                        <article class="passkey-card passkey-item bg-white p-3">
+                            <div>
+                                <form class="d-flex gap-2 mb-2" method="post" action="{{ path('admin_passkey_rename', {id: credential.id}) }}">
+                                    <input
+                                        class="form-control"
+                                        type="text"
+                                        name="label"
+                                        value="{{ credential.label }}"
+                                        maxlength="120"
+                                        aria-label="Название ключа"
+                                    >
+                                    <input type="hidden" name="_token" value="{{ csrf_token('passkey_rename_' ~ credential.id) }}">
+                                    <button class="btn btn-outline-secondary" type="submit">Сохранить</button>
+                                </form>
+                                <p class="passkey-meta mb-0">
+                                    Добавлен {{ credential.createdAt|date('d.m.Y H:i') }}
+                                    {% if credential.lastUsedAt %}
+                                        · использован {{ credential.lastUsedAt|date('d.m.Y H:i') }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <form method="post" action="{{ path('admin_passkey_delete', {id: credential.id}) }}" onsubmit="return confirm('Удалить этот ключ доступа?')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('passkey_delete_' ~ credential.id) }}">
+                                <button class="btn btn-outline-danger" type="submit">Удалить</button>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <script src="{{ asset('js/passkey.js') }}" defer></script>
+</body>
+</html>

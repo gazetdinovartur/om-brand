@@ -24,6 +24,7 @@ User-agent: *
 Allow: /
 
 Disallow: /admin/
+Disallow: /library
 Disallow: /oplata/
 
 Sitemap: {$sitemapUrl}

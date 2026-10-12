@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\AdminUserRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -25,6 +26,14 @@ class AdminUser implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private string $password = '';
+
+    #[ORM\Column(length: 36, unique: true)]
+    private string $webauthnUserHandle;
+
+    public function __construct()
+    {
+        $this->webauthnUserHandle = Uuid::v7()->toRfc4122();
+    }
 
     public function getId(): ?int
     {
@@ -75,6 +84,11 @@ class AdminUser implements UserInterface, PasswordAuthenticatedUserInterface
         $this->password = $password;
 
         return $this;
+    }
+
+    public function getWebauthnUserHandle(): string
+    {
+        return $this->webauthnUserHandle;
     }
 
     public function eraseCredentials(): void

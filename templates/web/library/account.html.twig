@@ -1,0 +1,110 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}Своё место · библиотека{% endblock %}
+
+{% block body %}
+<section class="library-page library-page--account" aria-labelledby="library-account-title">
+    <div class="container library-shell">
+        <nav class="case-crumb" aria-label="Навигация">
+            <a href="{{ path('web_library') }}">Библиотека</a>
+            <span class="case-crumb__sep" aria-hidden="true">/</span>
+            <span class="case-crumb__current" aria-current="page">Своё место</span>
+        </nav>
+
+        <header class="library-head library-head--account">
+            <h1 id="library-account-title">Своё место</h1>
+            <p class="library-head__lead">
+                {% if siteUser.displayName and siteUser.displayName != siteUser.email%}
+                    <span class="library-head__name">{{ siteUser.displayName }}</span>
+                {% endif %}
+                {% if siteUser.displayName and siteUser.displayName != siteUser.email and (siteUser.email or siteUser.telegramUsername) %}
+                    <span class="library-head__sep" aria-hidden="true">·</span>
+                {% endif %}
+                {% if siteUser.email %}{{ siteUser.email }}{% endif %}
+                {% if siteUser.email and siteUser.telegramUsername %}
+                    <span class="library-head__sep" aria-hidden="true">·</span>
+                {% endif %}
+                {% if siteUser.telegramUsername %}@{{ siteUser.telegramUsername }}{% endif %}
+            </p>
+        </header>
+
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="site-alert site-alert--{{ label == 'danger' ? 'error' : 'success' }}" role="status">{{ message }}</div>
+            {% endfor %}
+        {% endfor %}
+
+        <section class="library-account" aria-labelledby="library-keys-title">
+            <div class="library-account__intro">
+                <h2 id="library-keys-title">Ключи доступа</h2>
+                <p>
+                    Face ID, Touch ID или PIN — чтобы входить без кода и Telegram.
+                    Для надёжности добавьте второй ключ на другом устройстве.
+                </p>
+            </div>
+
+            <div
+                class="library-account__add"
+                data-passkey-register
+                data-options-url="{{ path('webauthn.controller.creation.request.site') }}"
+                data-result-url="{{ path('webauthn.controller.creation.response.site') }}"
+            >
+                <button type="button" class="btn btn-primary" data-passkey-register-button>
+                    Добавить ключ на этом устройстве
+                </button>
+                <p class="library-account__status" data-passkey-status role="status" aria-live="polite"></p>
+            </div>
+
+            {% if credentials is empty %}
+                <p class="library-account__empty">Ключей пока нет — добавьте первый, когда будете на своём устройстве.</p>
+            {% else %}
+                <ul class="library-account__list">
+                    {% for credential in credentials %}
+                        <li class="library-account__key">
+                            <form method="post" class="library-account__rename">
+                                <input type="hidden" name="action" value="rename">
+                                <input type="hidden" name="credential_id" value="{{ credential.id }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('site_passkey_rename_' ~ credential.id) }}">
+                                <label class="visually-hidden" for="passkey-label-{{ credential.id }}">Название ключа</label>
+                                <input
+                                    id="passkey-label-{{ credential.id }}"
+                                    type="text"
+                                    name="label"
+                                    value="{{ credential.label }}"
+                                    maxlength="120"
+                                    required
+                                >
+                                <button type="submit" class="btn btn-outline">Сохранить</button>
+                            </form>
+                            <div class="library-account__key-meta">
+                                <p>
+                                    Добавлен {{ credential.createdAt|date('d.m.Y H:i') }}
+                                    {% if credential.lastUsedAt %}
+                                        · использован {{ credential.lastUsedAt|date('d.m.Y H:i') }}
+                                    {% endif %}
+                                </p>
+                                <form method="post" onsubmit="return confirm('Удалить этот ключ доступа?')">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="credential_id" value="{{ credential.id }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('site_passkey_delete_' ~ credential.id) }}">
+                                    <button type="submit" class="library-account__delete">Удалить</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        <footer class="library-account__footer">
+            <a href="{{ path('web_library') }}">← К полке</a>
+            <a href="{{ path('web_library_logout') }}">Выйти</a>
+        </footer>
+    </div>
+</section>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('js/passkey.js') }}" defer></script>
+{% endblock %}

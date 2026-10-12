@@ -2,11 +2,19 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
+    role_hierarchy:
+        ROLE_ADMIN: ROLE_USER
+
     providers:
         app_admin_provider:
             entity:
                 class: App\Entity\AdminUser
                 property: email
+        app_site_user_provider:
+            id: App\Repository\SiteUserRepository
+        app_users:
+            chain:
+                providers: [app_admin_provider, app_site_user_provider]
 
     firewalls:
         dev:
@@ -25,6 +33,14 @@ security:
                 check_path: admin_login
                 default_target_path: admin
                 enable_csrf: true
+            webauthn:
+                authentication:
+                    enabled: true
+                    profile: admin
+                    routes:
+                        options_path: /admin/passkey/login/options
+                        result_path: /admin/passkey/login
+                registration: false
             logout:
                 path: admin_logout
                 target: admin_login
@@ -32,9 +48,28 @@ security:
             pattern: ^/
             context: app
             lazy: true
-            provider: app_admin_provider
+            provider: app_users
+            entry_point: App\Security\LibraryLoginEntryPoint
+            custom_authenticators:
+                - App\Security\SiteUserAuthenticator
+            webauthn:
+                authentication:
+                    enabled: true
+                    profile: site
+                    routes:
+                        options_path: /library/passkey/login/options
+                        result_path: /library/passkey/login
+                registration: false
+            logout:
+                path: web_library_logout
+                target: web_home
 
     access_control:
         - { path: ^/admin/login, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/passkey/login, roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/oauth/vk, roles: ROLE_ADMIN }
+        - { path: ^/library/login, roles: PUBLIC_ACCESS }
+        - { path: ^/library/passkey/login, roles: PUBLIC_ACCESS }
+        - { path: ^/library/logout, roles: PUBLIC_ACCESS }
+        - { path: ^/library, roles: [ROLE_USER, ROLE_ADMIN] }

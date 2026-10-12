@@ -37,6 +37,10 @@ APP_DEBUG=0
 APP_SECRET=<случайная_строка_32+>
 APP_SITE_URL=https://arturlun.ru
 DEFAULT_URI=https://arturlun.ru
+WEBAUTHN_RP_ID=arturlun.ru
+WEBAUTHN_RP_NAME="Артур · админка"
+WEBAUTHN_ALLOWED_ORIGIN=https://arturlun.ru
+TELEGRAM_BOT_USERNAME=YourBotName
 
 DATABASE_URL="mysql://USER:PASS@localhost:3306/DBNAME?serverVersion=8.0&charset=utf8mb4"
 

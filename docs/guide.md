@@ -18,7 +18,12 @@
 | `/p/{hash}` | Короткая ссылка записи |
 | `/politika-konfidencialnosti` | Политика |
 | `/oplata/{token}` | Оплата (noindex) |
+| `/library` | Библиотека (вход обязателен, noindex) |
+| `/library/login` | Вход: Telegram, код на email, passkey |
+| `/library/account` | Аккаунт читателя и ключи доступа |
+| `/library/{book}/read/{chapter}` | Читалка: оглавление, прогресс и закладки |
 | `/admin` | Админка |
+| `/admin/passkeys` | Ключи доступа администратора |
 | `/robots.txt`, `/sitemap.xml` | SEO |
 
 Оболочки: `house` (внутренние страницы) и `landing` (`/dev` — полная шапка/футер).
@@ -73,6 +78,7 @@ docker compose exec php php bin/console app:chronicle:seed-likes
 ```bash
 docker compose exec php php bin/console app:content:sync        # тексты лендинга из кода → БД
 docker compose exec php php bin/console app:chronicle:seed-likes # счётчики лайков из импорта
+docker compose exec php php bin/console app:library:import --dry-run /path/to/book.txt.zip
 docker compose exec php php bin/console app:verify:inquiry      # проверка формы
 docker compose exec php php bin/console cache:clear
 docker compose logs -f php
@@ -94,7 +100,12 @@ docker compose logs -f php
 | `APP_ENV` | prod | `prod` на сервере |
 | `APP_DEBUG` | prod | `0` на сервере |
 | `ASSETS_VERSION` | prod | Query `?v=` для css/js — bump при фронт-релизе |
-| `TELEGRAM_BOT_TOKEN` | нет | Бот: заявки + кросспост в канал |
+| `WEBAUTHN_RP_ID` | passkey | Домен без схемы: `arturlun.ru` |
+| `WEBAUTHN_RP_NAME` | passkey | Подпись сайта в системном диалоге |
+| `WEBAUTHN_ALLOWED_ORIGIN` | passkey | Точный HTTPS origin: `https://arturlun.ru` |
+| `TELEGRAM_BOT_TOKEN` | нет | Бот: заявки, кросспост, Login Widget |
+| `TELEGRAM_BOT_USERNAME` | library | Username бота без `@` для входа в библиотеку |
+| `MAILER_DSN` / `MAILER_FROM` | library | Код входа на email (тот же mailer) |
 | `TELEGRAM_CHAT_ID` | нет | Chat ID для уведомлений о заявках |
 | `TELEGRAM_CHANNEL_ID` | нет | Канал для кросспоста хроники (`@name` / `-100…`) |
 | `VK_CROSSPOST_ENABLED` | нет | `1` — кросспост/sync VK |
@@ -388,8 +399,40 @@ URL: `/admin` · меню «Навигация» · Throttling: 5 попыток
 | Заявки | Обращения + скачать вложение |
 | Оплаты | Ссылки `/oplata/{token}` |
 | Админы | Доступ в панель |
+| Библиотека | Полка и читалка (читатели через `/library`) |
+| Ключи доступа | Админский passkey (`/admin/passkeys`) |
 
 Тексты лендинга/дома в админке **не правятся** — на дашборде подсказка путей к `LandingContent.php` / `HouseContent.php`.
+
+### Библиотека и вход читателя
+
+На карте дома и в меню — «Библиотека». Гость сразу видит экран входа в библиотеку.
+
+Способы входа:
+
+1. **Telegram Login Widget** — нужен `TELEGRAM_BOT_TOKEN` + `TELEGRAM_BOT_USERNAME`; в BotFather задайте домен сайта.
+2. **Код на email** — тот же `MAILER_DSN` / `MAILER_FROM`; письмо в фирменном шаблоне.
+3. **Passkey** — после первого входа в `/library/account` добавить ключ на устройство.
+
+Прогресс и закладки принадлежат `SiteUser` (универсальный пользователь сайта). Админ тоже может читать: для него создаётся связанный `SiteUser` по email. Настройки шрифта/темы — локально на устройстве. Позиция чтения — смысловой блок, не пиксели.
+
+Админский passkey (`/admin/passkeys`) отдельно от читательского.
+
+```env
+WEBAUTHN_RP_ID=arturlun.ru
+WEBAUTHN_RP_NAME="Артур · админка"
+WEBAUTHN_ALLOWED_ORIGIN=https://arturlun.ru
+TELEGRAM_BOT_USERNAME=YourBotName
+```
+
+Импорт книги:
+
+```bash
+php bin/console app:library:import '/path/to/book.txt.zip' \
+  --dry-run --title='Название' --slug=book-slug
+```
+
+Без `--dry-run` пишет в БД. Идемпотентен по slug.
 
 ### Кейсы (форма)
 
@@ -529,6 +572,10 @@ APP_ENV=prod
 APP_DEBUG=0
 APP_SECRET=<случайная_строка>
 APP_SITE_URL=https://arturlun.ru
+WEBAUTHN_RP_ID=arturlun.ru
+WEBAUTHN_RP_NAME="Артур · админка"
+WEBAUTHN_ALLOWED_ORIGIN=https://arturlun.ru
+TELEGRAM_BOT_USERNAME=YourBotName
 
 DATABASE_URL="mysql://USER:PASS@localhost:3306/DBNAME?serverVersion=8.0&charset=utf8mb4"
 
@@ -547,6 +594,8 @@ MAILER_FROM=info@arturlun.ru
 ```bash
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:seed --env=prod              # первый раз
+# после отдельной проверки --dry-run:
+php bin/console app:library:import '/path/to/book.txt.zip' --title='Название' --slug=book-slug --env=prod
 php bin/console app:chronicle:seed-likes --env=prod  # после миграции лайков / импорта VK
 php bin/console cache:clear --env=prod
 php bin/console cache:warmup --env=prod
@@ -576,6 +625,12 @@ chmod -R 775 public/uploads/
 - [ ] `/contact` — форма связи
 - [ ] `/cases`, `/cases/{slug}` — хаб и история
 - [ ] `/admin/login` — вход; меню «Навигация»; настройки без «Создать»
+- [ ] Вход по passkey на телефоне и компьютере; пароль остаётся запасным способом
+- [ ] `/library` у гостя открывает экран входа; после Telegram/email/passkey — полка
+- [ ] На карте дома комната «Библиотека» вместо кейсов
+- [ ] Читалка: оглавление, ночная тема, прогресс и закладки
+- [ ] После входа с другого устройства открывается сохранённый смысловой блок
+- [ ] `/library/account` — добавление второго passkey
 - [ ] Кейсы: DnD порядка в списке, форма с вкладками
 - [ ] Форма отправляется, заявка в админке
 - [ ] Telegram/email уведомление (если настроено)
@@ -680,10 +735,25 @@ analysis/         зеркала эпох
 - Вложения заявок — только через админку
 - CSP и security headers на публичных страницах
 - Секреты только в `.env` (файл не в git)
+- Passkey требует проверки пользователя и доступен только для настроенного HTTPS origin
+- Библиотека: `ROLE_USER` или `ROLE_ADMIN`, CSRF для изменений, `no-store` и `noindex`
 
 ---
 
-## 12. Changelog (2026-07-22)
+## 12. Changelog
+
+### 2026-10-12
+
+- Библиотека на карте дома и в меню; гость входит через Telegram, email-код или passkey
+- `SiteUser` — универсальный пользователь сайта; прогресс/закладки привязаны к нему
+- Админский passkey отдельно в `/admin/passkeys`
+- Импорт книги: `app:library:import` (сначала `--dry-run`)
+
+### 2026-09-27
+
+- Приватная библиотека и админский passkey (база для публичного входа читателя)
+
+### 2026-07-22
 
 - Сайт как экосистема: дом `/`, лендинг `/dev`, связь `/contact`
 - Контент дома — `HouseContent.php`; блоки лендинга убраны из меню админки

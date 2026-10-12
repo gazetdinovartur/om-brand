@@ -30,20 +30,12 @@ final class HomeController extends AbstractController
                 $external = false;
             }
 
-            $active = true;
-            $invite = $room['invite'];
-            if ('cases' === $room['id'] && !HouseContent::CASES_PUBLIC_ENABLED) {
-                $active = false;
-                $invite = 'Скоро здесь будут кейсы';
-                $href = null;
-            }
-
             $rooms[] = [
                 ...$room,
                 'href' => $href,
                 'external' => $external,
-                'active' => $active,
-                'invite' => $invite,
+                'active' => true,
+                'invite' => $room['invite'],
             ];
         }
 

@@ -1,0 +1,160 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}{{ chapter.title }} · {{ book.title }}{% endblock %}
+
+{% block body %}
+<article
+    class="reader"
+    data-reader
+    data-reader-chapter="{{ chapter.slug }}"
+    data-reader-progress-url="{{ path('web_library_progress', {bookSlug: book.slug}) }}"
+    data-reader-progress-token="{{ progressCsrfToken }}"
+    data-reader-bookmark-url="{{ path('web_library_bookmark', {bookSlug: book.slug}) }}"
+    data-reader-bookmark-token="{{ bookmarkCsrfToken }}"
+>
+    <div class="container reader-shell">
+        <nav class="case-crumb reader-crumb" aria-label="Навигация">
+            <a href="{{ path('web_library') }}">Библиотека</a>
+            <span class="case-crumb__sep" aria-hidden="true">/</span>
+            <span class="case-crumb__current" aria-current="page">{{ book.title }}</span>
+        </nav>
+
+        <header class="reader-head">
+            <p class="reader-head__book">{{ book.author }} · {{ book.title }}</p>
+            <h1>{{ chapter.title }}</h1>
+        </header>
+
+        <div class="reader-toolbar" aria-label="Настройки чтения">
+            <div class="reader-toolbar__progress">
+                <span>Прочитано</span>
+                <strong data-reader-progress>{{ readingProgress ? readingProgress.progressPercent|round : 0 }}%</strong>
+            </div>
+            <div class="reader-toolbar__actions">
+                <button
+                    type="button"
+                    class="reader-tool"
+                    data-reader-bookmark
+                    aria-pressed="false"
+                    disabled
+                >Закладка</button>
+                <div class="reader-font-controls" role="group" aria-label="Размер текста">
+                    <button type="button" class="reader-tool reader-tool--compact" data-reader-font="decrease" aria-label="Уменьшить текст">А−</button>
+                    <button type="button" class="reader-tool reader-tool--compact" data-reader-font="increase" aria-label="Увеличить текст">А+</button>
+                </div>
+                <button type="button" class="reader-tool" data-reader-theme aria-pressed="false">Ночной режим</button>
+            </div>
+        </div>
+
+        <details class="reader-navigation" id="reader-navigation">
+            <summary>Оглавление и закладки</summary>
+            <div class="reader-navigation__content">
+                <nav class="reader-toc" aria-label="Оглавление книги">
+                    <p class="reader-navigation__label">Оглавление</p>
+                    <ol>
+                        {% for item in book.chapters %}
+                            <li>
+                                <a
+                                    href="{{ path('web_library_read', {bookSlug: book.slug, chapterSlug: item.slug}) }}"
+                                    {% if item.id == chapter.id %}aria-current="page"{% endif %}
+                                >{{ item.title }}</a>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </nav>
+
+                <section class="reader-bookmarks" aria-labelledby="reader-bookmarks-title">
+                    <p class="reader-navigation__label" id="reader-bookmarks-title">Закладки</p>
+                    <p class="reader-bookmarks__empty" data-reader-bookmarks-empty{% if bookmarks is not empty %} hidden{% endif %}>Закладок пока нет.</p>
+                    <ol data-reader-bookmarks-list>
+                        {% for bookmark in bookmarks %}
+                            <li
+                                data-reader-bookmark-item
+                                data-bookmark-id="{{ bookmark.id }}"
+                                data-chapter="{{ bookmark.chapter.slug }}"
+                                data-block="{{ bookmark.blockId }}"
+                            >
+                                <a href="{{ path('web_library_read', {
+                                    bookSlug: book.slug,
+                                    chapterSlug: bookmark.chapter.slug,
+                                    _fragment: bookmark.blockId
+                                }) }}">
+                                    <span>{{ bookmark.chapter.title }}</span>
+                                    <small>{{ bookmark.excerpt }}</small>
+                                </a>
+                                <button
+                                    type="button"
+                                    data-reader-bookmark-remove
+                                    data-bookmark-id="{{ bookmark.id }}"
+                                    aria-label="Удалить закладку"
+                                >×</button>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+            </div>
+        </details>
+
+        <div class="reader-text" data-reader-content>
+            {% for block in chapter.blocks %}
+                {% set isBookmarked = bookmarkedBlockIds[block.id]|default(false) %}
+                {% if block.type == 'heading' %}
+                    <h2
+                        id="{{ block.id }}"
+                        class="reader-block reader-block--heading{{ isBookmarked ? ' is-bookmarked' : '' }}"
+                        data-reader-block
+                        data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
+                    >{{ block.text|library_inline(block.id) }}</h2>
+                {% else %}
+                    <p
+                        id="{{ block.id }}"
+                        class="reader-block reader-block--paragraph{{ isBookmarked ? ' is-bookmarked' : '' }}"
+                        data-reader-block
+                        data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
+                    >{{ block.text|library_inline(block.id) }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if footnotes is not empty %}
+            <section class="reader-footnotes" aria-labelledby="reader-footnotes-title">
+                <h2 id="reader-footnotes-title">Примечания</h2>
+                <ol>
+                    {% for footnote in footnotes %}
+                        <li id="note-{{ footnote.number }}" value="{{ footnote.number }}">
+                            <p>{{ footnote.text }}</p>
+                            {% if footnote.referenceId %}
+                                <a href="#{{ footnote.referenceId }}" aria-label="Вернуться к месту примечания {{ footnote.number }}">↩</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            </section>
+        {% endif %}
+
+        <nav class="reader-chapter-nav" aria-label="Переход между главами">
+            {% if previousChapter %}
+                <a class="reader-chapter-nav__prev" href="{{ path('web_library_read', {
+                    bookSlug: book.slug,
+                    chapterSlug: previousChapter.slug
+                }) }}">
+                    <span>Предыдущая</span>
+                    <strong>{{ previousChapter.title }}</strong>
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+            {% if nextChapter %}
+                <a class="reader-chapter-nav__next" href="{{ path('web_library_read', {
+                    bookSlug: book.slug,
+                    chapterSlug: nextChapter.slug
+                }) }}">
+                    <span>Следующая</span>
+                    <strong>{{ nextChapter.title }}</strong>
+                </a>
+            {% endif %}
+        </nav>
+
+        <p class="reader-save-status" data-reader-save-status role="status" aria-live="polite"></p>
+    </div>
+</article>
+{% endblock %}

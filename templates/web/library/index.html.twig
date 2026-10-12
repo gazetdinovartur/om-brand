@@ -1,0 +1,55 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}Библиотека{% endblock %}
+
+{% block body %}
+<section class="library-page" aria-labelledby="library-title">
+    <div class="container library-shell">
+        <header class="library-head">
+            <h1 id="library-title">Библиотека</h1>
+            <p class="library-gate__lead">
+                Прогресс и закладки сохраняются между устройствами.
+                <a href="{{ path('web_library_account') }}">Своё место</a>
+                ·
+                <a href="{{ path('web_library_logout') }}">Выйти</a>
+            </p>
+        </header>
+
+        {% if items is empty %}
+            <p class="library-empty">В библиотеке пока нет книг.</p>
+        {% else %}
+            <div class="library-list">
+                {% for item in items %}
+                    <article class="library-book">
+                        <div class="library-book__main">
+                            <p class="library-book__author">{{ item.book.author }}</p>
+                            <h2 class="library-book__title">{{ item.book.title }}</h2>
+                            <div class="library-book__progress">
+                                <progress
+                                    max="100"
+                                    value="{{ item.progressPercent }}"
+                                    aria-label="Прочитано {{ item.progressPercent|round }} процентов"
+                                ></progress>
+                                <span>
+                                    {% if item.progress %}
+                                        {{ item.progressPercent|round }}% · {{ item.progress.chapter.title }}
+                                    {% else %}
+                                        Не начато
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if item.bookmarkCount > 0 %}
+                                <p class="library-book__meta">Закладок: {{ item.bookmarkCount }}</p>
+                            {% endif %}
+                        </div>
+
+                        <a class="btn btn-primary library-book__action" href="{{ path('web_library_continue', {bookSlug: item.book.slug}) }}">
+                            {{ item.progress ? 'Продолжить чтение' : 'Начать чтение' }}
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

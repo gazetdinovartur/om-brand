@@ -51,6 +51,14 @@ final class SeoMetadataFactory
         $ogImageUrl = $this->resolveOgImageUrl($settings, $baseUrl);
 
         return match ($route) {
+            'web_library', 'web_library_continue', 'web_library_read', 'web_library_login', 'web_library_account' => new SeoMetadata(
+                title: 'Библиотека',
+                description: 'Закрытая библиотека: вход, чтобы читать и сохранять прогресс.',
+                canonicalUrl: rtrim($baseUrl, '/').$request->getPathInfo(),
+                robots: 'noindex, nofollow, noarchive',
+                ogType: 'website',
+                ogImageUrl: null,
+            ),
             'web_payment_show' => new SeoMetadata(
                 title: sprintf('Оплата · %s', $paymentTitle ?? 'счёт'),
                 description: 'Страница оплаты. Ссылка персональная и не предназначена для поисковых систем.',

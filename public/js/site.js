@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initChronicleFeed();
     initPageBack();
     initChronicleFiltersPersist();
+    initLibraryReader();
 
     const updateFabVisibility = () => {
         if (!(fab instanceof HTMLElement) || document.body.classList.contains('site-body--nav-open')) {
@@ -2484,4 +2485,369 @@ function initPageBack() {
             }
         });
     });
+}
+
+const READER_PREFERENCES_KEY = 'om.reader.preferences.v1';
+
+function initLibraryReader() {
+    const reader = document.querySelector('[data-reader]');
+    if (!(reader instanceof HTMLElement)) {
+        return;
+    }
+
+    const blocks = Array.from(reader.querySelectorAll('[data-reader-block]')).filter(
+        (block) => block instanceof HTMLElement,
+    );
+    if (blocks.length === 0) {
+        return;
+    }
+
+    const progressUrl = reader.dataset.readerProgressUrl || '';
+    const progressToken = reader.dataset.readerProgressToken || '';
+    const bookmarkUrl = reader.dataset.readerBookmarkUrl || '';
+    const bookmarkToken = reader.dataset.readerBookmarkToken || '';
+    const chapter = reader.dataset.readerChapter || '';
+    const progressLabel = reader.querySelector('[data-reader-progress]');
+    const bookmarkButton = reader.querySelector('[data-reader-bookmark]');
+    const saveStatus = reader.querySelector('[data-reader-save-status]');
+    const bookmarksList = reader.querySelector('[data-reader-bookmarks-list]');
+    const bookmarksEmpty = reader.querySelector('[data-reader-bookmarks-empty]');
+    let activeBlock = blocks[0];
+    let saveTimer = 0;
+    let statusTimer = 0;
+    let lastSavedBlock = '';
+    let restoringPosition = false;
+
+    const setStatus = (message, keep = false) => {
+        if (!(saveStatus instanceof HTMLElement)) {
+            return;
+        }
+        window.clearTimeout(statusTimer);
+        saveStatus.textContent = message;
+        if (!keep && message) {
+            statusTimer = window.setTimeout(() => {
+                saveStatus.textContent = '';
+            }, 1800);
+        }
+    };
+
+    const updateBookmarkButton = () => {
+        if (!(bookmarkButton instanceof HTMLButtonElement)) {
+            return;
+        }
+        const bookmarked = activeBlock.dataset.bookmarked === '1';
+        bookmarkButton.disabled = false;
+        bookmarkButton.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
+        bookmarkButton.textContent = bookmarked ? 'Убрать закладку' : 'Закладка';
+    };
+
+    const selectActiveBlock = (block) => {
+        if (!(block instanceof HTMLElement) || block === activeBlock) {
+            return;
+        }
+        activeBlock = block;
+        updateBookmarkButton();
+        scheduleProgressSave();
+    };
+
+    const saveProgress = async ({ keepalive = false, quiet = false } = {}) => {
+        const blockId = activeBlock.id;
+        if (!blockId || !progressUrl || !progressToken || blockId === lastSavedBlock) {
+            return;
+        }
+
+        try {
+            const response = await fetch(progressUrl, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                keepalive,
+                body: JSON.stringify({
+                    _token: progressToken,
+                    chapter,
+                    block: blockId,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data?.ok) {
+                throw new Error(data?.message || 'save failed');
+            }
+            lastSavedBlock = blockId;
+            if (progressLabel instanceof HTMLElement && typeof data.progressPercent === 'number') {
+                progressLabel.textContent = `${Math.round(data.progressPercent)}%`;
+            }
+            if (!quiet) {
+                setStatus('Место сохранено');
+            }
+        } catch {
+            if (!quiet) {
+                setStatus('Не удалось сохранить место чтения', true);
+            }
+        }
+    };
+
+    const scheduleProgressSave = () => {
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(() => {
+            void saveProgress();
+        }, 1300);
+    };
+
+    const currentFromViewport = () => {
+        if (restoringPosition) {
+            return;
+        }
+        const targetY = window.innerHeight * 0.3;
+        let closest = blocks[0];
+        let closestDistance = Number.POSITIVE_INFINITY;
+        blocks.forEach((block) => {
+            const rect = block.getBoundingClientRect();
+            if (rect.bottom < 0 || rect.top > window.innerHeight) {
+                return;
+            }
+            const distance = Math.abs(rect.top - targetY);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closest = block;
+            }
+        });
+        selectActiveBlock(closest);
+    };
+
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+            () => {
+                currentFromViewport();
+            },
+            { rootMargin: '-18% 0px -58% 0px', threshold: [0, 0.25, 0.75] },
+        );
+        blocks.forEach((block) => observer.observe(block));
+    } else {
+        window.addEventListener('scroll', currentFromViewport, { passive: true });
+    }
+
+    const fragmentBlock = location.hash ? reader.querySelector(location.hash) : null;
+    if (fragmentBlock instanceof HTMLElement && fragmentBlock.hasAttribute('data-reader-block')) {
+        restoringPosition = true;
+        activeBlock = fragmentBlock;
+        lastSavedBlock = fragmentBlock.id;
+        fragmentBlock.scrollIntoView({ block: 'start', inline: 'nearest' });
+        window.setTimeout(() => {
+            restoringPosition = false;
+        }, 800);
+    }
+    updateBookmarkButton();
+    if (!restoringPosition) {
+        scheduleProgressSave();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            window.clearTimeout(saveTimer);
+            void saveProgress({ keepalive: true, quiet: true });
+        }
+    });
+
+    const postBookmark = async (payload) => {
+        const response = await fetch(bookmarkUrl, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                _token: bookmarkToken,
+                ...payload,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data?.ok) {
+            throw new Error(data?.message || 'bookmark failed');
+        }
+        return data;
+    };
+
+    const syncBookmarksEmptyState = () => {
+        if (!(bookmarksEmpty instanceof HTMLElement) || !(bookmarksList instanceof HTMLOListElement)) {
+            return;
+        }
+        bookmarksEmpty.hidden = bookmarksList.querySelector('[data-reader-bookmark-item]') !== null;
+    };
+
+    const removeBookmarkItem = (blockId, bookmarkId = '') => {
+        if (!(bookmarksList instanceof HTMLOListElement)) {
+            return;
+        }
+        const selector = bookmarkId
+            ? `[data-reader-bookmark-item][data-bookmark-id="${CSS.escape(String(bookmarkId))}"]`
+            : `[data-reader-bookmark-item][data-chapter="${CSS.escape(chapter)}"][data-block="${CSS.escape(blockId)}"]`;
+        bookmarksList.querySelector(selector)?.remove();
+        syncBookmarksEmptyState();
+    };
+
+    const appendBookmarkItem = (data) => {
+        if (!(bookmarksList instanceof HTMLOListElement) || !data.bookmarkId || !data.block) {
+            return;
+        }
+        removeBookmarkItem(data.block);
+
+        const item = document.createElement('li');
+        item.dataset.readerBookmarkItem = '';
+        item.dataset.bookmarkId = String(data.bookmarkId);
+        item.dataset.chapter = chapter;
+        item.dataset.block = data.block;
+
+        const link = document.createElement('a');
+        link.href = `#${encodeURIComponent(data.block)}`;
+        const chapterLabel = document.createElement('span');
+        chapterLabel.textContent = reader.querySelector('.reader-head h1')?.textContent?.trim() || 'Текущее место';
+        const excerpt = document.createElement('small');
+        excerpt.textContent = data.excerpt || '';
+        link.append(chapterLabel, excerpt);
+
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.dataset.readerBookmarkRemove = '';
+        removeButton.dataset.bookmarkId = String(data.bookmarkId);
+        removeButton.setAttribute('aria-label', 'Удалить закладку');
+        removeButton.textContent = '×';
+
+        item.append(link, removeButton);
+        bookmarksList.prepend(item);
+        syncBookmarksEmptyState();
+    };
+
+    if (bookmarkButton instanceof HTMLButtonElement && bookmarkUrl && bookmarkToken) {
+        bookmarkButton.addEventListener('click', async () => {
+            bookmarkButton.disabled = true;
+            try {
+                const data = await postBookmark({
+                    chapter,
+                    block: activeBlock.id,
+                });
+                activeBlock.dataset.bookmarked = data.bookmarked ? '1' : '0';
+                activeBlock.classList.toggle('is-bookmarked', Boolean(data.bookmarked));
+                if (data.bookmarked) {
+                    appendBookmarkItem(data);
+                    setStatus('Закладка добавлена');
+                } else {
+                    removeBookmarkItem(activeBlock.id);
+                    setStatus('Закладка удалена');
+                }
+            } catch {
+                setStatus('Не удалось изменить закладку', true);
+            } finally {
+                bookmarkButton.disabled = false;
+                updateBookmarkButton();
+            }
+        });
+    }
+
+    if (bookmarksList instanceof HTMLOListElement) {
+        bookmarksList.addEventListener('click', async (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const button = target.closest('[data-reader-bookmark-remove]');
+            if (!(button instanceof HTMLButtonElement)) {
+                return;
+            }
+            const item = button.closest('[data-reader-bookmark-item]');
+            const bookmarkId = button.dataset.bookmarkId || '';
+            if (!bookmarkId || !(item instanceof HTMLElement)) {
+                return;
+            }
+            button.disabled = true;
+            try {
+                await postBookmark({ action: 'remove', bookmarkId: Number(bookmarkId) });
+                const blockId = item.dataset.block || '';
+                if (item.dataset.chapter === chapter && blockId) {
+                    const block = reader.querySelector(`#${CSS.escape(blockId)}`);
+                    if (block instanceof HTMLElement) {
+                        block.dataset.bookmarked = '0';
+                        block.classList.remove('is-bookmarked');
+                    }
+                }
+                item.remove();
+                syncBookmarksEmptyState();
+                updateBookmarkButton();
+                setStatus('Закладка удалена');
+            } catch {
+                button.disabled = false;
+                setStatus('Не удалось удалить закладку', true);
+            }
+        });
+    }
+
+    initReaderPreferences(reader);
+}
+
+function initReaderPreferences(reader) {
+    const fontDecrease = reader.querySelector('[data-reader-font="decrease"]');
+    const fontIncrease = reader.querySelector('[data-reader-font="increase"]');
+    const themeButton = reader.querySelector('[data-reader-theme]');
+    const sizes = ['small', 'default', 'large'];
+    let preferences = { size: 'default', theme: 'light' };
+
+    try {
+        preferences = { ...preferences, ...(JSON.parse(localStorage.getItem(READER_PREFERENCES_KEY) || '{}') || {}) };
+    } catch {
+        // Keep safe defaults when storage is unavailable or corrupt.
+    }
+    if (!sizes.includes(preferences.size)) {
+        preferences.size = 'default';
+    }
+    if (!['light', 'dark'].includes(preferences.theme)) {
+        preferences.theme = 'light';
+    }
+
+    const persist = () => {
+        try {
+            localStorage.setItem(READER_PREFERENCES_KEY, JSON.stringify(preferences));
+        } catch {
+            // Reading controls still work for the current page.
+        }
+    };
+
+    const render = () => {
+        reader.dataset.readerSize = preferences.size;
+        reader.dataset.readerTheme = preferences.theme;
+        const index = sizes.indexOf(preferences.size);
+        if (fontDecrease instanceof HTMLButtonElement) {
+            fontDecrease.disabled = index === 0;
+        }
+        if (fontIncrease instanceof HTMLButtonElement) {
+            fontIncrease.disabled = index === sizes.length - 1;
+        }
+        if (themeButton instanceof HTMLButtonElement) {
+            const dark = preferences.theme === 'dark';
+            themeButton.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            themeButton.textContent = dark ? 'Дневной режим' : 'Ночной режим';
+        }
+    };
+
+    fontDecrease?.addEventListener('click', () => {
+        const index = Math.max(0, sizes.indexOf(preferences.size) - 1);
+        preferences.size = sizes[index];
+        persist();
+        render();
+    });
+    fontIncrease?.addEventListener('click', () => {
+        const index = Math.min(sizes.length - 1, sizes.indexOf(preferences.size) + 1);
+        preferences.size = sizes[index];
+        persist();
+        render();
+    });
+    themeButton?.addEventListener('click', () => {
+        preferences.theme = preferences.theme === 'dark' ? 'light' : 'dark';
+        persist();
+        render();
+    });
+
+    render();
 }

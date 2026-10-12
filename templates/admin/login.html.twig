@@ -25,7 +25,7 @@
 
             <label>
                 Email
-                <input type="email" name="_username" value="{{ last_username }}" required autofocus autocomplete="username">
+                <input type="email" name="_username" value="{{ last_username }}" required autofocus autocomplete="username webauthn">
             </label>
             <label>
                 Пароль
@@ -33,11 +33,24 @@
             </label>
 
             <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+            <input type="hidden" name="_target_path" value="{{ target_path }}">
 
             <button type="submit" class="btn btn-primary btn-block">Войти</button>
+
+            <div class="admin-login__passkey"
+                 data-passkey-login
+                 data-options-url="{{ path('webauthn.controller.security.admin.request.options') }}"
+                 data-result-url="{{ path('webauthn.controller.security.admin.request.result') }}"
+                 data-redirect-url="{{ target_path }}"
+                 data-conditional="1">
+                <span class="admin-login__divider">или</span>
+                <button type="button" class="btn btn-outline btn-block" data-passkey-login-button>Войти с ключом доступа</button>
+                <p class="admin-login__passkey-status" data-passkey-status role="status" aria-live="polite"></p>
+            </div>
 
             <a class="admin-login__back" href="{{ path('web_home') }}">← На сайт</a>
         </form>
     </main>
+    <script src="{{ asset('js/passkey.js') }}" defer></script>
 </body>
 </html>

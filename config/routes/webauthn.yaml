@@ -1,0 +1,3 @@
+webauthn_controllers:
+    resource: .
+    type: webauthn

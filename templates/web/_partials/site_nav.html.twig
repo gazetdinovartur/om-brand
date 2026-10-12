@@ -7,6 +7,7 @@
                 data-chronicle-hub-link
                 data-chronicle-hub-base="{{ item.href }}"
             {% endif %}
+            {% if item.href == path('web_library') and app.request.attributes.get('_route') starts with 'web_library' %}aria-current="page"{% endif %}
         >{{ item.label }}</a>
     {% endfor %}
 </nav>

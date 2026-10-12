@@ -69,6 +69,7 @@ final class HouseContent
     {
         return [
             ['route' => 'web_dev_landing', 'label' => 'Разработка'],
+            ['route' => 'web_library', 'label' => 'Библиотека'],
             // ['route' => 'web_cases', 'label' => 'Кейсы'], // TODO: раскомментировать вместе с CASES_PUBLIC_ENABLED
             ['route' => 'web_chronicle', 'label' => 'Хроника', 'persistFilters' => true],
             ['route' => 'web_contact', 'label' => 'Связь'],
@@ -97,11 +98,18 @@ final class HouseContent
                 'route' => 'web_dev_landing',
             ],
             [
-                'id' => 'cases',
-                'label' => 'Кейсы',
-                'invite' => 'Примеры моих работ в сферах web dev, ux, ia',
-                'route' => 'web_cases',
+                'id' => 'library',
+                'label' => 'Библиотека',
+                'invite' => 'Закрытая полка: войди, чтобы читать с любого устройства и не терять место',
+                'route' => 'web_library',
             ],
+            // Кейсы временно убраны с карты; код и админка остаются.
+            // [
+            //     'id' => 'cases',
+            //     'label' => 'Кейсы',
+            //     'invite' => 'Примеры моих работ в сферах web dev, ux, ia',
+            //     'route' => 'web_cases',
+            // ],
             [
                 'id' => 'chronicle',
                 'label' => 'Хроника',

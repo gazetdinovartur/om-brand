@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>Вход · библиотека</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap&subset=cyrillic,cyrillic-ext,latin" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}" rel="stylesheet">
+</head>
+<body class="site-body site-body--library-login">
+    <div class="solstice-glow" aria-hidden="true"></div>
+
+    <main class="library-login">
+        <div class="library-login__panel">
+            <header class="library-login__head">
+                <h1 id="library-login-title">Вход</h1>
+                <p class="library-login__lead">Библиотека · место чтения и закладки сохраняются между устройствами</p>
+            </header>
+
+            {% if errorMessage %}
+                <div class="site-alert site-alert--error" role="alert">{{ errorMessage }}</div>
+            {% endif %}
+            {% if statusMessage %}
+                <div class="site-alert site-alert--success" role="status">{{ statusMessage }}</div>
+            {% endif %}
+
+            <div class="library-login__methods">
+                {% if telegramLoginEnabled %}
+                    <section class="library-login__method" aria-labelledby="library-login-telegram">
+                        <h2 id="library-login-telegram" class="visually-hidden">Telegram</h2>
+                        <div class="library-login__telegram">
+                            <script
+                                async
+                                src="https://telegram.org/js/telegram-widget.js?22"
+                                data-telegram-login="{{ telegramBotUsername }}"
+                                data-size="large"
+                                data-radius="8"
+                                data-onauth="onTelegramLibraryAuth(user)"
+                                data-request-access="write"
+                            ></script>
+                        </div>
+                        <form method="post" hidden data-telegram-login-form>
+                            <input type="hidden" name="action" value="telegram">
+                            <input type="hidden" name="_target_path" value="{{ targetPath }}">
+                            <input type="hidden" name="id" data-tg-field="id">
+                            <input type="hidden" name="first_name" data-tg-field="first_name">
+                            <input type="hidden" name="last_name" data-tg-field="last_name">
+                            <input type="hidden" name="username" data-tg-field="username">
+                            <input type="hidden" name="photo_url" data-tg-field="photo_url">
+                            <input type="hidden" name="auth_date" data-tg-field="auth_date">
+                            <input type="hidden" name="hash" data-tg-field="hash">
+                        </form>
+                    </section>
+                    {% if emailLoginEnabled %}
+                        <p class="library-login__divider" aria-hidden="true"><span>или</span></p>
+                    {% endif %}
+                {% endif %}
+
+                {% if emailLoginEnabled %}
+                    <section class="library-login__method" aria-labelledby="library-login-email">
+                        {% if step == 'email_code' %}
+                            <h2 id="library-login-email" class="library-login__method-title">Код из письма</h2>
+                            <p class="library-login__hint">
+                                Отправили на <strong>{{ email }}</strong>. Действует 15 минут.
+                            </p>
+                            <form method="post" class="library-login__form">
+                                <input type="hidden" name="action" value="email_verify">
+                                <input type="hidden" name="_target_path" value="{{ targetPath }}">
+                                <input type="hidden" name="email" value="{{ email }}">
+                                <label>
+                                    Код
+                                    <input
+                                        type="text"
+                                        name="code"
+                                        inputmode="numeric"
+                                        pattern="[0-9]{6}"
+                                        maxlength="6"
+                                        autocomplete="one-time-code"
+                                        required
+                                        autofocus
+                                    >
+                                </label>
+                                <button type="submit" class="btn btn-primary btn-block">Войти</button>
+                            </form>
+                            <form method="post" class="library-login__secondary-form">
+                                <input type="hidden" name="action" value="email_request">
+                                <input type="hidden" name="_target_path" value="{{ targetPath }}">
+                                <input type="hidden" name="email" value="{{ email }}">
+                                <button type="submit" class="btn btn-outline btn-block">Отправить код ещё раз</button>
+                            </form>
+                        {% else %}
+                            <h2 id="library-login-email" class="visually-hidden">Код на email</h2>
+                            <form method="post" class="library-login__form">
+                                <input type="hidden" name="action" value="email_request">
+                                <input type="hidden" name="_target_path" value="{{ targetPath }}">
+                                <label>
+                                    Email
+                                    <input type="email" name="email" value="{{ email }}" autocomplete="email" required{% if not telegramLoginEnabled %} autofocus{% endif %}>
+                                </label>
+                                <button type="submit" class="btn btn-primary btn-block">Получить код</button>
+                            </form>
+                        {% endif %}
+                    </section>
+                {% endif %}
+
+                {% if emailLoginEnabled or telegramLoginEnabled %}
+                    <p class="library-login__divider" aria-hidden="true"><span>или</span></p>
+                {% endif %}
+
+                <section
+                    class="library-login__method"
+                    aria-labelledby="library-login-passkey"
+                    data-passkey-login
+                    data-options-url="{{ passkeyOptionsUrl }}"
+                    data-result-url="{{ passkeyResultUrl }}"
+                    data-redirect-url="{{ targetPath }}"
+                    data-conditional="1"
+                >
+                    <h2 id="library-login-passkey" class="visually-hidden">Ключ доступа</h2>
+                    <button type="button" class="btn btn-outline btn-block" data-passkey-login-button>
+                        Войти с ключом доступа
+                    </button>
+                    <p class="library-login__status" data-passkey-status role="status" aria-live="polite"></p>
+                </section>
+
+                {% if not emailLoginEnabled and not telegramLoginEnabled %}
+                    <p class="library-login__hint">
+                        Сейчас доступен только вход с ключом доступа.
+                    </p>
+                {% endif %}
+            </div>
+
+            <a class="library-login__back" href="{{ path('web_home') }}">← На сайт</a>
+        </div>
+    </main>
+
+    <script src="{{ asset('js/passkey.js') }}" defer></script>
+    <script>
+        window.onTelegramLibraryAuth = function (user) {
+            const form = document.querySelector('[data-telegram-login-form]');
+            if (!(form instanceof HTMLFormElement)) {
+                return;
+            }
+            Object.keys(user || {}).forEach((key) => {
+                const input = form.querySelector('[data-tg-field="' + key + '"]');
+                if (input instanceof HTMLInputElement) {
+                    input.value = user[key] == null ? '' : String(user[key]);
+                }
+            });
+            form.submit();
+        };
+    </script>
+</body>
+</html>

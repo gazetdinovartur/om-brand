@@ -1,0 +1,54 @@
+webauthn:
+    credential_repository: App\Repository\WebauthnCredentialRepository
+    user_repository: App\Repository\WebauthnUserEntityRepository
+    allowed_origins:
+        - '%env(default:app.webauthn_allowed_origin:WEBAUTHN_ALLOWED_ORIGIN)%'
+
+    creation_profiles:
+        admin:
+            rp:
+                id: '%env(default:app.webauthn_rp_id:WEBAUTHN_RP_ID)%'
+                name: '%env(default:app.webauthn_rp_name:WEBAUTHN_RP_NAME)%'
+            authenticator_selection_criteria:
+                authenticator_attachment: platform
+                user_verification: required
+                resident_key: required
+                require_resident_key: true
+            attestation_conveyance: none
+        site:
+            rp:
+                id: '%env(default:app.webauthn_rp_id:WEBAUTHN_RP_ID)%'
+                name: '%env(default:app.webauthn_rp_name:WEBAUTHN_RP_NAME)%'
+            authenticator_selection_criteria:
+                authenticator_attachment: platform
+                user_verification: required
+                resident_key: required
+                require_resident_key: true
+            attestation_conveyance: none
+
+    request_profiles:
+        admin:
+            rp_id: '%env(default:app.webauthn_rp_id:WEBAUTHN_RP_ID)%'
+            user_verification: required
+        site:
+            rp_id: '%env(default:app.webauthn_rp_id:WEBAUTHN_RP_ID)%'
+            user_verification: required
+
+    controllers:
+        enabled: true
+        creation:
+            admin:
+                profile: admin
+                user_entity_guesser: Webauthn\Bundle\Security\Guesser\CurrentUserEntityGuesser
+                options_path: /admin/passkeys/register/options
+                result_path: /admin/passkeys/register
+            site:
+                profile: site
+                user_entity_guesser: Webauthn\Bundle\Security\Guesser\CurrentUserEntityGuesser
+                options_path: /library/passkeys/register/options
+                result_path: /library/passkeys/register
+
+    passkey_endpoints:
+        enabled: true
+        enroll: web_library_account
+        manage: web_library_account
