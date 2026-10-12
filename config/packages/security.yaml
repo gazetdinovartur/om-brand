@@ -25,6 +25,8 @@ security:
             context: app
             lazy: true
             provider: app_admin_provider
+            entry_point: App\Security\AdminLoginEntryPoint
+            access_denied_handler: App\Security\AdminAccessDeniedHandler
             login_throttling:
                 max_attempts: 5
                 interval: '15 minutes'

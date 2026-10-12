@@ -19,6 +19,9 @@
                 <p class="admin-login__intro">Админка · Артур</p>
             </div>
 
+            {% for message in app.flashes('warning') %}
+                <div class="site-alert site-alert--error" role="status">{{ message }}</div>
+            {% endfor %}
             {% if error %}
                 <div class="site-alert site-alert--error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
             {% endif %}

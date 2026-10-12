@@ -13,7 +13,8 @@ final class PasskeyAccessTest extends WebTestCase
         $client = static::createClient();
         $client->request('GET', '/admin/passkeys');
 
-        self::assertResponseRedirects('/admin/login');
+        self::assertResponseRedirects();
+        self::assertStringContainsString('/admin/login', (string) $client->getResponse()->headers->get('Location'));
     }
 
     public function testLibraryPasskeyOptionsEndpointIsPublic(): void

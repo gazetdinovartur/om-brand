@@ -14,7 +14,8 @@ final class SecurityController extends AbstractController
     public function login(Request $request, AuthenticationUtils $authenticationUtils): Response
     {
         $targetPath = $this->safeTargetPath($request->query->getString('_target_path'));
-        if ($this->getUser()) {
+        // Shared context may still hold a library SiteUser — only admins skip the form.
+        if ($this->isGranted('ROLE_ADMIN')) {
             return null !== $targetPath
                 ? $this->redirect($targetPath)
                 : $this->redirectToRoute('admin');
