@@ -34,8 +34,8 @@ final class SecurityHeaderSubscriber implements EventSubscriberInterface
         $headers->set(
             'Content-Security-Policy',
             "default-src 'self'; "
-            // Telegram Login Widget: script + oauth iframe on /library/login
-            ."script-src 'self' 'unsafe-inline' https://music.arturlun.ru https://telegram.org; "
+            // Telegram Login Widget: script + oauth iframe; widget uses eval()
+            ."script-src 'self' 'unsafe-inline' 'unsafe-eval' https://music.arturlun.ru https://telegram.org; "
             ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             ."img-src 'self' data: blob: https://i.ytimg.com https://img.youtube.com https://t.me https://telegram.org; "
             ."font-src 'self' https://fonts.gstatic.com; "
