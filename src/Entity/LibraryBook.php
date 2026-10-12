@@ -214,6 +214,11 @@ class LibraryBook
         return false === $chapter ? null : $chapter;
     }
 
+    public function getChapterCount(): int
+    {
+        return $this->chapters->count();
+    }
+
     public function __toString(): string
     {
         return $this->title;

@@ -1,0 +1,92 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}{{ page_title }}{% endblock %}
+
+{% block main %}
+    <div class="library-import">
+        <a class="library-import__back" href="{{ index_url }}">← К списку книг</a>
+
+        <header class="library-import__head">
+            {% if mode == 'replace' and book %}
+                <p class="library-import__lead">
+                    Обновляем <strong>{{ book.title }}</strong> · {{ book.author }}.
+                    Slug <code>{{ book.slug }}</code> не меняется. Прогресс и закладки сохранятся,
+                    если slug глав в файле совпали.
+                </p>
+            {% else %}
+                <p class="library-import__lead">
+                    TXT, MD, FB2, EPUB или ZIP с txt/md/fb2 (UTF-8 / Windows-1251).
+                    Название и автор обычно читаются из файла — поля ниже только если нужно поправить.
+                </p>
+            {% endif %}
+        </header>
+
+        {{ form_start(form, {
+            attr: {
+                class: 'library-import__form',
+                enctype: 'multipart/form-data',
+                novalidate: 'novalidate'
+            }
+        }) }}
+
+            <section class="library-import__card" aria-labelledby="library-import-file">
+                <h3 id="library-import-file" class="library-import__card-title">Файл</h3>
+                <div class="library-import__field">
+                    {{ form_label(form.file) }}
+                    {{ form_widget(form.file) }}
+                    {{ form_help(form.file) }}
+                    {{ form_errors(form.file) }}
+                </div>
+            </section>
+
+            <section class="library-import__card" aria-labelledby="library-import-meta">
+                <h3 id="library-import-meta" class="library-import__card-title">Если нужно поправить</h3>
+                <div class="library-import__grid">
+                    <div class="library-import__field">
+                        {{ form_label(form.title) }}
+                        {{ form_widget(form.title) }}
+                        {{ form_help(form.title) }}
+                        {{ form_errors(form.title) }}
+                    </div>
+                    <div class="library-import__field">
+                        {{ form_label(form.author) }}
+                        {{ form_widget(form.author) }}
+                        {{ form_help(form.author) }}
+                        {{ form_errors(form.author) }}
+                    </div>
+                </div>
+                <div class="library-import__field">
+                    {{ form_label(form.slug) }}
+                    {{ form_widget(form.slug) }}
+                    {{ form_help(form.slug) }}
+                    {{ form_errors(form.slug) }}
+                </div>
+            </section>
+
+            {% if mode != 'replace' %}
+                <section class="library-import__card library-import__card--soft" aria-labelledby="library-import-replace">
+                    <h3 id="library-import-replace" class="visually-hidden">Замена</h3>
+                    <div class="library-import__check">
+                        {{ form_widget(form.replace) }}
+                        {{ form_label(form.replace) }}
+                    </div>
+                    {{ form_errors(form.replace) }}
+                    <p class="library-import__hint">
+                        Без галочки повторный slug даст ошибку — так случайно не перетрёте книгу.
+                    </p>
+                </section>
+            {% else %}
+                <div class="d-none">{{ form_row(form.replace) }}</div>
+            {% endif %}
+
+            <div class="library-import__actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if mode == 'replace' %}Заменить файл{% else %}Импортировать{% endif %}
+                </button>
+                <a class="btn btn-outline-secondary" href="{{ index_url }}">Отмена</a>
+            </div>
+
+            {{ form_rest(form) }}
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

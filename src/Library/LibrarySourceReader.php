@@ -8,7 +8,13 @@ final class LibrarySourceReader
 {
     private const MAX_SOURCE_BYTES = 10_000_000;
 
-    public function read(string $path): LibrarySource
+    /** @var list<string> */
+    private const DIRECT_EXTENSIONS = ['txt', 'md', 'markdown', 'fb2', 'epub'];
+
+    /** @var list<string> */
+    private const ZIP_INNER_EXTENSIONS = ['txt', 'md', 'markdown', 'fb2'];
+
+    public function read(string $path, ?string $sourceName = null): LibrarySource
     {
         if (!is_file($path) || !is_readable($path)) {
             throw new \InvalidArgumentException(sprintf('Файл недоступен: %s', $path));
@@ -16,11 +22,13 @@ final class LibrarySourceReader
 
         $extension = strtolower(pathinfo($path, \PATHINFO_EXTENSION));
         if ('zip' === $extension) {
-            return $this->readZip($path);
+            return $this->readZip($path, $sourceName);
         }
 
-        if ('txt' !== $extension) {
-            throw new \InvalidArgumentException('Поддерживаются только TXT и ZIP с одним TXT-файлом.');
+        if (!\in_array($extension, self::DIRECT_EXTENSIONS, true)) {
+            throw new \InvalidArgumentException(
+                'Поддерживаются TXT, MD, FB2, EPUB и ZIP с txt/md/fb2 внутри.',
+            );
         }
 
         $bytes = file_get_contents($path);
@@ -29,14 +37,21 @@ final class LibrarySourceReader
         }
         $this->assertSafeSize(strlen($bytes));
 
+        $format = $this->normalizeFormat($extension);
+        // FB2/EPUB keep raw bytes: XML encoding is handled inside the format parser.
+        $payload = \in_array($format, [LibrarySource::FORMAT_FB2, LibrarySource::FORMAT_EPUB], true)
+            ? $bytes
+            : $this->decode($bytes);
+
         return new LibrarySource(
-            $this->decode($bytes),
+            $payload,
             hash('sha256', $bytes),
-            basename($path),
+            $this->resolveSourceName($sourceName, basename($path)),
+            $format,
         );
     }
 
-    private function readZip(string $path): LibrarySource
+    private function readZip(string $path, ?string $sourceName): LibrarySource
     {
         if (!class_exists(\ZipArchive::class)) {
             throw new \RuntimeException('Для импорта ZIP требуется расширение PHP zip.');
@@ -56,16 +71,22 @@ final class LibrarySourceReader
                     continue;
                 }
                 $name = (string) ($stat['name'] ?? '');
-                if (!str_ends_with(strtolower($name), '.txt')) {
+                $innerExt = strtolower(pathinfo($name, \PATHINFO_EXTENSION));
+                if (!\in_array($innerExt, self::ZIP_INNER_EXTENSIONS, true)) {
                     continue;
                 }
                 $size = (int) ($stat['size'] ?? 0);
                 $this->assertSafeSize($size);
-                $candidates[] = ['index' => $index, 'name' => $name, 'size' => $size];
+                $candidates[] = [
+                    'index' => $index,
+                    'name' => $name,
+                    'size' => $size,
+                    'format' => $this->normalizeFormat($innerExt),
+                ];
             }
 
             if ([] === $candidates) {
-                throw new \RuntimeException('В ZIP не найден TXT-файл.');
+                throw new \RuntimeException('В ZIP не найден файл TXT, MD или FB2.');
             }
 
             usort(
@@ -75,17 +96,40 @@ final class LibrarySourceReader
             $selected = $candidates[0];
             $bytes = $zip->getFromIndex((int) $selected['index']);
             if (false === $bytes) {
-                throw new \RuntimeException('Не удалось прочитать TXT из ZIP.');
+                throw new \RuntimeException('Не удалось прочитать файл из ZIP.');
             }
         } finally {
             $zip->close();
         }
 
+        $format = (string) $selected['format'];
+        $payload = LibrarySource::FORMAT_FB2 === $format
+            ? $bytes
+            : $this->decode($bytes);
+
         return new LibrarySource(
-            $this->decode($bytes),
+            $payload,
             hash('sha256', $bytes),
-            (string) $selected['name'],
+            $this->resolveSourceName($sourceName, (string) $selected['name']),
+            $format,
         );
+    }
+
+    private function resolveSourceName(?string $preferred, string $fallback): string
+    {
+        $preferred = null !== $preferred ? trim($preferred) : '';
+
+        return '' !== $preferred ? basename($preferred) : $fallback;
+    }
+
+    private function normalizeFormat(string $extension): string
+    {
+        return match ($extension) {
+            'md', 'markdown' => LibrarySource::FORMAT_MD,
+            'fb2' => LibrarySource::FORMAT_FB2,
+            'epub' => LibrarySource::FORMAT_EPUB,
+            default => LibrarySource::FORMAT_TXT,
+        };
     }
 
     private function decode(string $bytes): string
@@ -108,10 +152,10 @@ final class LibrarySourceReader
     private function assertSafeSize(int $size): void
     {
         if ($size <= 0) {
-            throw new \RuntimeException('Текстовый файл пуст.');
+            throw new \RuntimeException('Файл пуст.');
         }
         if ($size > self::MAX_SOURCE_BYTES) {
-            throw new \RuntimeException('Текстовый файл превышает безопасный лимит 10 МБ.');
+            throw new \RuntimeException('Файл превышает безопасный лимит 10 МБ.');
         }
     }
 }

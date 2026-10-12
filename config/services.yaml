@@ -99,6 +99,10 @@ services:
         arguments:
             $uploadsDirectory: '%app.private_uploads_directory%'
 
+    App\Service\LibraryImportUploadStorage:
+        arguments:
+            $privateUploadsDirectory: '%app.private_uploads_directory%'
+
     App\Service\PaymentSbpUrlFactory:
         arguments:
             $envTemplate: '%env(default:app.sbp_payment_url_template:SBP_PAYMENT_URL_TEMPLATE)%'
