@@ -103,8 +103,8 @@ docker compose logs -f php
 | `WEBAUTHN_RP_ID` | passkey | Домен без схемы: `arturlun.ru` |
 | `WEBAUTHN_RP_NAME` | passkey | Подпись сайта в системном диалоге |
 | `WEBAUTHN_ALLOWED_ORIGIN` | passkey | Точный HTTPS origin: `https://arturlun.ru` |
-| `TELEGRAM_BOT_TOKEN` | нет | Бот: заявки, кросспост, Login Widget |
-| `TELEGRAM_BOT_USERNAME` | library | Username бота без `@` для входа в библиотеку |
+| `TELEGRAM_BOT_TOKEN` | нет | Бот: заявки, кросспост |
+| `TELEGRAM_OIDC_CLIENT_ID` / `TELEGRAM_OIDC_CLIENT_SECRET` | library | OAuth 2.0 Login (BotFather → Login Widget) |
 | `MAILER_DSN` / `MAILER_FROM` | library | Код входа на email (тот же mailer) |
 | `TELEGRAM_CHAT_ID` | нет | Chat ID для уведомлений о заявках |
 | `TELEGRAM_CHANNEL_ID` | нет | Канал для кросспоста хроники (`@name` / `-100…`) |
@@ -410,7 +410,7 @@ URL: `/admin` · меню «Навигация» · Throttling: 5 попыток
 
 Способы входа:
 
-1. **Telegram Login Widget** — нужен `TELEGRAM_BOT_TOKEN` + `TELEGRAM_BOT_USERNAME`; в BotFather задайте домен сайта.
+1. **Telegram OAuth 2.0** — `TELEGRAM_OIDC_CLIENT_ID` + `TELEGRAM_OIDC_CLIENT_SECRET` из BotFather (Login Widget). Allowed URLs: origin из `DEFAULT_URI`, redirect URI `{DEFAULT_URI}/library/login/telegram/callback`. На localhost кнопка не показывается.
 2. **Код на email** — тот же `MAILER_DSN` / `MAILER_FROM`; письмо в фирменном шаблоне.
 3. **Passkey** — после первого входа в `/library/account` добавить ключ на устройство.
 
@@ -422,7 +422,9 @@ URL: `/admin` · меню «Навигация» · Throttling: 5 попыток
 WEBAUTHN_RP_ID=arturlun.ru
 WEBAUTHN_RP_NAME="Артур · админка"
 WEBAUTHN_ALLOWED_ORIGIN=https://arturlun.ru
-TELEGRAM_BOT_USERNAME=YourBotName
+TELEGRAM_OIDC_CLIENT_ID=...
+TELEGRAM_OIDC_CLIENT_SECRET=...
+DEFAULT_URI=https://arturlun.ru
 ```
 
 **Загрузка книг (админка):** меню «Библиотека» → «Загрузить книгу». Если slug уже занят — нужна галочка «Заменить». Удаление книги и скрытие с полки в v1 нет. Исходник после импорта не хранится.
@@ -579,7 +581,9 @@ APP_SITE_URL=https://arturlun.ru
 WEBAUTHN_RP_ID=arturlun.ru
 WEBAUTHN_RP_NAME="Артур · админка"
 WEBAUTHN_ALLOWED_ORIGIN=https://arturlun.ru
-TELEGRAM_BOT_USERNAME=YourBotName
+TELEGRAM_OIDC_CLIENT_ID=...
+TELEGRAM_OIDC_CLIENT_SECRET=...
+DEFAULT_URI=https://arturlun.ru
 
 DATABASE_URL="mysql://USER:PASS@localhost:3306/DBNAME?serverVersion=8.0&charset=utf8mb4"
 

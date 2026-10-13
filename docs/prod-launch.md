@@ -40,7 +40,10 @@ DEFAULT_URI=https://arturlun.ru
 WEBAUTHN_RP_ID=arturlun.ru
 WEBAUTHN_RP_NAME="Артур · админка"
 WEBAUTHN_ALLOWED_ORIGIN=https://arturlun.ru
-TELEGRAM_BOT_USERNAME=YourBotName
+TELEGRAM_OIDC_CLIENT_ID=...
+TELEGRAM_OIDC_CLIENT_SECRET=...
+# BotFather → Login Widget: Allowed URL https://arturlun.ru
+# Redirect URI: https://arturlun.ru/library/login/telegram/callback
 
 DATABASE_URL="mysql://USER:PASS@localhost:3306/DBNAME?serverVersion=8.0&charset=utf8mb4"
 

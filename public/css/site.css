@@ -5968,6 +5968,37 @@ body.is-lightbox-open {
     font-weight: 600;
 }
 
+.library-login__hint--tight {
+    font-size: 0.78rem;
+}
+
+.library-login__method--passkey-secondary {
+    margin-top: 0.35rem;
+    justify-items: center;
+    text-align: center;
+}
+
+.library-login__passkey-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--primary-dark);
+    font: inherit;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    cursor: pointer;
+}
+
+.library-login__passkey-link:hover {
+    color: var(--text);
+}
+
+.library-login__passkey-link:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
 .library-login__form,
 .library-login__secondary-form {
     display: grid;
@@ -5997,10 +6028,14 @@ body.is-lightbox-open {
     border-color: rgba(200, 120, 40, 0.45);
 }
 
-.library-login__telegram {
-    display: flex;
-    justify-content: center;
-    min-height: 2.5rem;
+.library-login__telegram-btn {
+    text-decoration: none;
+    text-align: center;
+}
+
+.library-login__method[hidden],
+.library-login__divider[hidden] {
+    display: none !important;
 }
 
 .library-login__divider {

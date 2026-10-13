@@ -34,14 +34,14 @@ final class SecurityHeaderSubscriber implements EventSubscriberInterface
         $headers->set(
             'Content-Security-Policy',
             "default-src 'self'; "
-            // Telegram Login Widget: script + oauth iframe; widget uses eval()
-            ."script-src 'self' 'unsafe-inline' 'unsafe-eval' https://music.arturlun.ru https://telegram.org; "
+            // Telegram Login — server-side OAuth redirect; no widget script/iframe
+            ."script-src 'self' 'unsafe-inline' https://music.arturlun.ru; "
             ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             ."img-src 'self' data: blob: https://i.ytimg.com https://img.youtube.com https://t.me https://telegram.org; "
             ."font-src 'self' https://fonts.gstatic.com; "
             ."media-src 'self' https://music.arturlun.ru blob:; "
-            ."frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://rutube.ru https://oauth.telegram.org https://telegram.org; "
-            ."connect-src 'self' https://music.arturlun.ru https://telegram.org https://oauth.telegram.org; "
+            ."frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://rutube.ru; "
+            ."connect-src 'self' https://music.arturlun.ru; "
             ."base-uri 'self'; "
             ."form-action 'self'",
         );

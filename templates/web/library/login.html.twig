@@ -27,40 +27,27 @@
                 <div class="site-alert site-alert--success" role="status">{{ statusMessage }}</div>
             {% endif %}
 
-            <div class="library-login__methods">
+            {% set hasPrimaryLogin = telegramLoginEnabled or emailLoginEnabled %}
+
+            <div class="library-login__methods" data-library-login-methods>
                 {% if telegramLoginEnabled %}
-                    <section class="library-login__method" aria-labelledby="library-login-telegram">
+                    <section
+                        class="library-login__method"
+                        aria-labelledby="library-login-telegram"
+                        data-login-method="telegram"
+                    >
                         <h2 id="library-login-telegram" class="visually-hidden">Telegram</h2>
-                        <div class="library-login__telegram">
-                            <script
-                                async
-                                src="https://telegram.org/js/telegram-widget.js?22"
-                                data-telegram-login="{{ telegramBotUsername }}"
-                                data-size="large"
-                                data-radius="8"
-                                data-onauth="onTelegramLibraryAuth(user)"
-                                data-request-access="write"
-                            ></script>
-                        </div>
-                        <form method="post" hidden data-telegram-login-form>
-                            <input type="hidden" name="action" value="telegram">
-                            <input type="hidden" name="_target_path" value="{{ targetPath }}">
-                            <input type="hidden" name="id" data-tg-field="id">
-                            <input type="hidden" name="first_name" data-tg-field="first_name">
-                            <input type="hidden" name="last_name" data-tg-field="last_name">
-                            <input type="hidden" name="username" data-tg-field="username">
-                            <input type="hidden" name="photo_url" data-tg-field="photo_url">
-                            <input type="hidden" name="auth_date" data-tg-field="auth_date">
-                            <input type="hidden" name="hash" data-tg-field="hash">
-                        </form>
+                        <a class="btn btn-primary btn-block library-login__telegram-btn" href="{{ telegramStartUrl }}">
+                            Войти через Telegram
+                        </a>
                     </section>
                     {% if emailLoginEnabled %}
-                        <p class="library-login__divider" aria-hidden="true"><span>или</span></p>
+                        <p class="library-login__divider" aria-hidden="true" data-login-divider="telegram-email"><span>или</span></p>
                     {% endif %}
                 {% endif %}
 
                 {% if emailLoginEnabled %}
-                    <section class="library-login__method" aria-labelledby="library-login-email">
+                    <section class="library-login__method" aria-labelledby="library-login-email" data-login-method="email">
                         {% if step == 'email_code' %}
                             <h2 id="library-login-email" class="library-login__method-title">Код из письма</h2>
                             <p class="library-login__hint">
@@ -98,7 +85,14 @@
                                 <input type="hidden" name="_target_path" value="{{ targetPath }}">
                                 <label>
                                     Email
-                                    <input type="email" name="email" value="{{ email }}" autocomplete="email" required{% if not telegramLoginEnabled %} autofocus{% endif %}>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value="{{ email }}"
+                                        autocomplete="username webauthn"
+                                        required
+                                        autofocus
+                                    >
                                 </label>
                                 <button type="submit" class="btn btn-primary btn-block">Получить код</button>
                             </form>
@@ -106,31 +100,35 @@
                     </section>
                 {% endif %}
 
-                {% if emailLoginEnabled or telegramLoginEnabled %}
-                    <p class="library-login__divider" aria-hidden="true"><span>или</span></p>
-                {% endif %}
-
                 <section
-                    class="library-login__method"
+                    class="library-login__method library-login__method--passkey{% if hasPrimaryLogin %} library-login__method--passkey-secondary{% endif %}"
                     aria-labelledby="library-login-passkey"
+                    data-login-method="passkey"
                     data-passkey-login
                     data-options-url="{{ passkeyOptionsUrl }}"
                     data-result-url="{{ passkeyResultUrl }}"
                     data-redirect-url="{{ targetPath }}"
                     data-conditional="1"
+                    hidden
                 >
                     <h2 id="library-login-passkey" class="visually-hidden">Ключ доступа</h2>
-                    <button type="button" class="btn btn-outline btn-block" data-passkey-login-button>
-                        Войти с ключом доступа
-                    </button>
+                    {% if hasPrimaryLogin %}
+                        <button type="button" class="library-login__passkey-link" data-passkey-login-button>
+                            Войти с ключом доступа
+                        </button>
+                        <p class="library-login__hint library-login__hint--tight">
+                            Если ключ уже добавлен в аккаунте на этом устройстве.
+                        </p>
+                    {% else %}
+                        <button type="button" class="btn btn-outline btn-block" data-passkey-login-button>
+                            Войти с ключом доступа
+                        </button>
+                        <p class="library-login__hint">
+                            Ключ появляется после первого входа через email или Telegram.
+                        </p>
+                    {% endif %}
                     <p class="library-login__status" data-passkey-status role="status" aria-live="polite"></p>
                 </section>
-
-                {% if not emailLoginEnabled and not telegramLoginEnabled %}
-                    <p class="library-login__hint">
-                        Сейчас доступен только вход с ключом доступа.
-                    </p>
-                {% endif %}
             </div>
 
             <a class="library-login__back" href="{{ path('web_home') }}">← На сайт</a>
@@ -138,20 +136,5 @@
     </main>
 
     <script src="{{ asset('js/passkey.js') }}" defer></script>
-    <script>
-        window.onTelegramLibraryAuth = function (user) {
-            const form = document.querySelector('[data-telegram-login-form]');
-            if (!(form instanceof HTMLFormElement)) {
-                return;
-            }
-            Object.keys(user || {}).forEach((key) => {
-                const input = form.querySelector('[data-tg-field="' + key + '"]');
-                if (input instanceof HTMLInputElement) {
-                    input.value = user[key] == null ? '' : String(user[key]);
-                }
-            });
-            form.submit();
-        };
-    </script>
 </body>
 </html>

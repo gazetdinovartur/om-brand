@@ -11,6 +11,8 @@ parameters:
     app.private_uploads_directory: '%kernel.project_dir%/var/private/uploads'
     env(TELEGRAM_BOT_TOKEN): ''
     env(TELEGRAM_BOT_USERNAME): ''
+    env(TELEGRAM_OIDC_CLIENT_ID): ''
+    env(TELEGRAM_OIDC_CLIENT_SECRET): ''
     env(TELEGRAM_CHAT_ID): ''
     env(TELEGRAM_CHANNEL_ID): ''
     env(TELEGRAM_CHANNEL_ENABLED): '0'
@@ -51,6 +53,8 @@ parameters:
     app.webauthn_rp_name: 'Артур · админка'
     app.webauthn_allowed_origin: 'http://localhost:8085'
     app.telegram_bot_username: ''
+    app.telegram_oidc_client_id: ''
+    app.telegram_oidc_client_secret: ''
 
 services:
     _defaults:

@@ -8,16 +8,16 @@ use App\Entity\AdminUser;
 use App\Entity\SiteUser;
 use App\Entity\WebauthnCredential;
 use App\Repository\WebauthnCredentialRepository;
+use App\Security\SiteUserAuthenticator;
 use App\Service\SiteEmailLoginService;
 use App\Service\SiteUserResolver;
-use App\Service\TelegramLoginVerifier;
+use App\Service\TelegramOAuthClient;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Security\SiteUserAuthenticator;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -26,15 +26,13 @@ final class LibraryAuthController extends AbstractController
 {
     public function __construct(
         private readonly SiteEmailLoginService $emailLogin,
-        private readonly TelegramLoginVerifier $telegramLogin,
+        private readonly TelegramOAuthClient $telegramOAuth,
         private readonly SiteUserResolver $siteUsers,
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
         private readonly WebauthnCredentialRepository $credentials,
         #[Autowire(service: 'limiter.library_login')]
         private readonly RateLimiterFactory $loginLimiter,
-        #[Autowire('%env(default:app.telegram_bot_username:TELEGRAM_BOT_USERNAME)%')]
-        private readonly string $telegramBotUsername = '',
     ) {
     }
 
@@ -49,7 +47,12 @@ final class LibraryAuthController extends AbstractController
         $email = '';
         $step = 'choose';
         $statusMessage = null;
-        $errorMessage = null;
+        $errorMessage = match ($request->query->getString('error')) {
+            'telegram_unavailable' => 'Вход через Telegram сейчас недоступен.',
+            'telegram_denied' => 'Вход через Telegram отменён.',
+            'telegram_failed' => 'Не удалось войти через Telegram. Попробуйте ещё раз.',
+            default => null,
+        };
 
         if ($request->isMethod('POST')) {
             $limiter = $this->loginLimiter->create($request->getClientIp() ?? 'anon');
@@ -76,25 +79,6 @@ final class LibraryAuthController extends AbstractController
                     }
                     $step = 'email_code';
                     $errorMessage = $result['message'];
-                } elseif ('telegram' === $action) {
-                    $payload = [
-                        'id' => $request->request->get('id'),
-                        'first_name' => $request->request->get('first_name'),
-                        'last_name' => $request->request->get('last_name'),
-                        'username' => $request->request->get('username'),
-                        'photo_url' => $request->request->get('photo_url'),
-                        'auth_date' => $request->request->get('auth_date'),
-                        'hash' => $request->request->get('hash'),
-                    ];
-                    $verified = $this->telegramLogin->verify($payload);
-                    if ($verified['ok']) {
-                        $user = $this->siteUsers->findOrCreateByTelegram($verified['user']);
-                        $user->markLoggedIn();
-                        $this->entityManager->flush();
-
-                        return $this->loginSiteUser($user, $targetPath);
-                    }
-                    $errorMessage = $verified['message'];
                 }
             }
         }
@@ -106,8 +90,10 @@ final class LibraryAuthController extends AbstractController
             'statusMessage' => $statusMessage,
             'errorMessage' => $errorMessage,
             'emailLoginEnabled' => $this->emailLogin->isMailConfigured(),
-            'telegramLoginEnabled' => $this->telegramLogin->isConfigured() && '' !== trim($this->telegramBotUsername),
-            'telegramBotUsername' => ltrim(trim($this->telegramBotUsername), '@'),
+            'telegramLoginEnabled' => $this->telegramOAuth->isAllowedOnHost($request->getHost()),
+            'telegramStartUrl' => $this->generateUrl('web_library_login_telegram', [
+                '_target_path' => $targetPath,
+            ]),
             'passkeyOptionsUrl' => $this->generateUrl('webauthn.controller.security.main.request.options'),
             'passkeyResultUrl' => $this->generateUrl('webauthn.controller.security.main.request.result'),
         ]);
@@ -116,6 +102,69 @@ final class LibraryAuthController extends AbstractController
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
 
         return $response;
+    }
+
+    #[Route('/library/login/telegram', name: 'web_library_login_telegram', methods: ['GET'])]
+    public function telegramStart(Request $request): Response
+    {
+        if ($this->getUser() instanceof SiteUser || $this->getUser() instanceof AdminUser) {
+            return $this->redirect($this->safeTarget($request) ?? $this->generateUrl('web_library'));
+        }
+
+        if (!$this->telegramOAuth->isAllowedOnHost($request->getHost())) {
+            return $this->redirectToRoute('web_library_login', ['error' => 'telegram_unavailable']);
+        }
+
+        $limiter = $this->loginLimiter->create($request->getClientIp() ?? 'anon');
+        if (!$limiter->consume(1)->isAccepted()) {
+            return $this->redirectToRoute('web_library_login', ['error' => 'telegram_failed']);
+        }
+
+        $targetPath = $this->safeTarget($request) ?? $this->generateUrl('web_library');
+        $session = $request->getSession();
+        $authorizeUrl = $this->telegramOAuth->beginAuthorization($session, $targetPath);
+
+        return $this->redirect($authorizeUrl);
+    }
+
+    #[Route('/library/login/telegram/callback', name: 'web_library_login_telegram_callback', methods: ['GET'])]
+    public function telegramCallback(Request $request): Response
+    {
+        if ($this->getUser() instanceof SiteUser || $this->getUser() instanceof AdminUser) {
+            return $this->redirect($this->generateUrl('web_library'));
+        }
+
+        if (!$this->telegramOAuth->isAllowedOnHost($request->getHost())) {
+            return $this->redirectToRoute('web_library_login', ['error' => 'telegram_unavailable']);
+        }
+
+        if ('' !== $request->query->getString('error')) {
+            return $this->redirectToRoute('web_library_login', ['error' => 'telegram_denied']);
+        }
+
+        $limiter = $this->loginLimiter->create($request->getClientIp() ?? 'anon');
+        if (!$limiter->consume(1)->isAccepted()) {
+            return $this->redirectToRoute('web_library_login', ['error' => 'telegram_failed']);
+        }
+
+        $result = $this->telegramOAuth->completeAuthorization(
+            $request->getSession(),
+            $request->query->getString('code'),
+            $request->query->getString('state'),
+        );
+
+        if (!$result['ok']) {
+            return $this->redirectToRoute('web_library_login', ['error' => 'telegram_failed']);
+        }
+
+        $user = $this->siteUsers->findOrCreateByTelegram($result['user']);
+        $user->markLoggedIn();
+        $this->entityManager->flush();
+
+        $targetPath = $this->safeTargetPath((string) ($result['targetPath'] ?? ''))
+            ?? $this->generateUrl('web_library');
+
+        return $this->loginSiteUser($user, $targetPath);
     }
 
     #[Route('/library/logout', name: 'web_library_logout', methods: ['GET'])]

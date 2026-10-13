@@ -129,10 +129,10 @@
             return;
         }
         if (!supportsPasskeys()) {
-            button.hidden = true;
-            setStatus(root, 'Этот браузер не поддерживает ключи доступа.');
+            root.hidden = true;
             return;
         }
+        root.hidden = false;
 
         const authenticate = async (conditional = false) => {
             const controller = new AbortController();
