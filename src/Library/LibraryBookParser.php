@@ -11,6 +11,7 @@ final class LibraryBookParser
         private readonly MarkdownBookParser $markdown = new MarkdownBookParser(),
         private readonly Fb2BookParser $fb2 = new Fb2BookParser(),
         private readonly EpubBookParser $epub = new EpubBookParser(),
+        private readonly PdfBookParser $pdf = new PdfBookParser(),
     ) {
     }
 
@@ -23,6 +24,7 @@ final class LibraryBookParser
             LibrarySource::FORMAT_MD => $this->markdown->parse($source, $titleOverride, $authorOverride),
             LibrarySource::FORMAT_FB2 => $this->fb2->parse($source, $titleOverride, $authorOverride),
             LibrarySource::FORMAT_EPUB => $this->epub->parse($source, $titleOverride, $authorOverride),
+            LibrarySource::FORMAT_PDF => $this->pdf->parse($source, $titleOverride, $authorOverride),
             default => $this->plainText->parse($source, $titleOverride, $authorOverride),
         };
     }

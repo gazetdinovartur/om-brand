@@ -44,6 +44,7 @@ TELEGRAM_OIDC_CLIENT_ID=...
 TELEGRAM_OIDC_CLIENT_SECRET=...
 # BotFather → Login Widget: Allowed URL https://arturlun.ru
 # Redirect URI: https://arturlun.ru/library/login/telegram/callback
+# Library reader: после деплоя — doctrine:migrations:migrate (quotes/notes/PDF fields)
 
 DATABASE_URL="mysql://USER:PASS@localhost:3306/DBNAME?serverVersion=8.0&charset=utf8mb4"
 

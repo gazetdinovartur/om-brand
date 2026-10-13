@@ -1,5 +1,6 @@
 {% extends 'web/layout.html.twig' %}
 
+{% set accountTab = accountTab|default('reading') %}
 {% block title %}Своё место · библиотека{% endblock %}
 
 {% block body %}
@@ -14,7 +15,7 @@
         <header class="library-head library-head--account">
             <h1 id="library-account-title">Своё место</h1>
             <p class="library-head__lead">
-                {% if siteUser.displayName and siteUser.displayName != siteUser.email%}
+                {% if siteUser.displayName and siteUser.displayName != siteUser.email %}
                     <span class="library-head__name">{{ siteUser.displayName }}</span>
                 {% endif %}
                 {% if siteUser.displayName and siteUser.displayName != siteUser.email and (siteUser.email or siteUser.telegramUsername) %}
@@ -34,67 +35,182 @@
             {% endfor %}
         {% endfor %}
 
-        <section class="library-account" aria-labelledby="library-keys-title">
-            <div class="library-account__intro">
-                <h2 id="library-keys-title">Ключи доступа</h2>
-                <p>
-                    Face ID, Touch ID или PIN — чтобы входить без кода и Telegram.
-                    Для надёжности добавьте второй ключ на другом устройстве.
-                </p>
-            </div>
+        <nav class="library-tabs" aria-label="Разделы своего места">
+            <a
+                class="library-tabs__link{% if accountTab == 'reading' %} is-active{% endif %}"
+                href="{{ path('web_library_account', {tab: 'reading'}) }}"
+                {% if accountTab == 'reading' %}aria-current="page"{% endif %}
+            >Чтение</a>
+            <a
+                class="library-tabs__link{% if accountTab == 'keys' %} is-active{% endif %}"
+                href="{{ path('web_library_account', {tab: 'keys'}) }}"
+                {% if accountTab == 'keys' %}aria-current="page"{% endif %}
+            >Ключи доступа</a>
+        </nav>
 
-            <div
-                class="library-account__add"
-                data-passkey-register
-                data-options-url="{{ path('webauthn.controller.creation.request.site') }}"
-                data-result-url="{{ path('webauthn.controller.creation.response.site') }}"
-            >
-                <button type="button" class="btn btn-primary" data-passkey-register-button>
-                    Добавить ключ на этом устройстве
-                </button>
-                <p class="library-account__status" data-passkey-status role="status" aria-live="polite"></p>
-            </div>
+        {% if accountTab == 'reading' %}
+            {% set openMarksPanel = recentBookmarks is not empty ? 'bookmarks' : (recentQuotes is not empty ? 'quotes' : (recentNotes is not empty ? 'notes' : 'bookmarks')) %}
+            <section class="library-account library-account--marks" aria-labelledby="library-marks-title">
+                <h2 id="library-marks-title" class="visually-hidden">Закладки, цитаты и заметки</h2>
 
-            {% if credentials is empty %}
-                <p class="library-account__empty">Ключей пока нет — добавьте первый, когда будете на своём устройстве.</p>
-            {% else %}
-                <ul class="library-account__list">
-                    {% for credential in credentials %}
-                        <li class="library-account__key">
-                            <form method="post" class="library-account__rename">
-                                <input type="hidden" name="action" value="rename">
-                                <input type="hidden" name="credential_id" value="{{ credential.id }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('site_passkey_rename_' ~ credential.id) }}">
-                                <label class="visually-hidden" for="passkey-label-{{ credential.id }}">Название ключа</label>
-                                <input
-                                    id="passkey-label-{{ credential.id }}"
-                                    type="text"
-                                    name="label"
-                                    value="{{ credential.label }}"
-                                    maxlength="120"
-                                    required
-                                >
-                                <button type="submit" class="btn btn-outline">Сохранить</button>
-                            </form>
-                            <div class="library-account__key-meta">
-                                <p>
-                                    Добавлен {{ credential.createdAt|date('d.m.Y H:i') }}
-                                    {% if credential.lastUsedAt %}
-                                        · использован {{ credential.lastUsedAt|date('d.m.Y H:i') }}
-                                    {% endif %}
-                                </p>
-                                <form method="post" onsubmit="return confirm('Удалить этот ключ доступа?')">
-                                    <input type="hidden" name="action" value="delete">
+                <div class="library-account__marks">
+                    <details class="library-account__panel" {% if openMarksPanel == 'bookmarks' %}open{% endif %}>
+                        <summary class="library-account__panel-summary">
+                            <span class="library-account__panel-label">Закладки</span>
+                            <span class="library-account__panel-meta">
+                                <span class="library-account__panel-count">{{ recentBookmarks|length }}</span>
+                                <span class="library-account__panel-icon" aria-hidden="true"></span>
+                            </span>
+                        </summary>
+                        <div class="library-account__panel-body">
+                            {% if recentBookmarks is empty %}
+                                <p class="library-account__panel-empty">Пока пусто.</p>
+                            {% else %}
+                                <ul class="library-account__mark-list">
+                                    {% for bookmark in recentBookmarks %}
+                                        <li class="library-account__mark-item">
+                                            <p class="library-account__mark-body">{{ bookmark.excerpt }}</p>
+                                            <a
+                                                class="library-account__mark-place"
+                                                href="{{ path('web_library_read', {
+                                                    bookSlug: bookmark.book.slug,
+                                                    chapterSlug: bookmark.chapter.slug,
+                                                    _fragment: bookmark.blockId
+                                                }) }}"
+                                            >{{ bookmark.book.title }}</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    </details>
+
+                    <details class="library-account__panel" {% if openMarksPanel == 'quotes' %}open{% endif %}>
+                        <summary class="library-account__panel-summary">
+                            <span class="library-account__panel-label">Цитаты</span>
+                            <span class="library-account__panel-meta">
+                                <span class="library-account__panel-count">{{ recentQuotes|length }}</span>
+                                <span class="library-account__panel-icon" aria-hidden="true"></span>
+                            </span>
+                        </summary>
+                        <div class="library-account__panel-body">
+                            {% if recentQuotes is empty %}
+                                <p class="library-account__panel-empty">Пока пусто.</p>
+                            {% else %}
+                                <ul class="library-account__mark-list">
+                                    {% for quote in recentQuotes %}
+                                        <li class="library-account__mark-item">
+                                            <blockquote class="library-account__mark-body">{{ quote.excerpt }}</blockquote>
+                                            <a
+                                                class="library-account__mark-place"
+                                                href="{{ path('web_library_read', {
+                                                    bookSlug: quote.book.slug,
+                                                    chapterSlug: quote.chapter.slug,
+                                                    _fragment: quote.blockId
+                                                }) }}"
+                                            >{{ quote.book.title }}</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    </details>
+
+                    <details class="library-account__panel" {% if openMarksPanel == 'notes' %}open{% endif %}>
+                        <summary class="library-account__panel-summary">
+                            <span class="library-account__panel-label">Заметки</span>
+                            <span class="library-account__panel-meta">
+                                <span class="library-account__panel-count">{{ recentNotes|length }}</span>
+                                <span class="library-account__panel-icon" aria-hidden="true"></span>
+                            </span>
+                        </summary>
+                        <div class="library-account__panel-body">
+                            {% if recentNotes is empty %}
+                                <p class="library-account__panel-empty">Пока пусто.</p>
+                            {% else %}
+                                <ul class="library-account__mark-list">
+                                    {% for note in recentNotes %}
+                                        <li class="library-account__mark-item">
+                                            <p class="library-account__mark-body">{{ note.body }}</p>
+                                            <a
+                                                class="library-account__mark-place"
+                                                href="{{ path('web_library_read', {
+                                                    bookSlug: note.book.slug,
+                                                    chapterSlug: note.chapter.slug,
+                                                    _fragment: note.blockId
+                                                }) }}"
+                                            >{{ note.book.title }}</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    </details>
+                </div>
+            </section>
+        {% else %}
+            <section class="library-account" aria-labelledby="library-keys-title">
+                <div class="library-account__intro">
+                    <h2 id="library-keys-title" class="visually-hidden">Ключи доступа</h2>
+                    <p>
+                        Face ID, Touch ID или PIN — чтобы входить без кода и Telegram.
+                        Для надёжности добавьте второй ключ на другом устройстве.
+                    </p>
+                </div>
+
+                <div
+                    class="library-account__add"
+                    data-passkey-register
+                    data-options-url="{{ path('webauthn.controller.creation.request.site') }}"
+                    data-result-url="{{ path('webauthn.controller.creation.response.site') }}"
+                >
+                    <button type="button" class="btn btn-primary" data-passkey-register-button>
+                        Добавить ключ на этом устройстве
+                    </button>
+                    <p class="library-account__status" data-passkey-status role="status" aria-live="polite"></p>
+                </div>
+
+                {% if credentials is empty %}
+                    <p class="library-account__empty">Ключей пока нет — добавьте первый, когда будете на своём устройстве.</p>
+                {% else %}
+                    <ul class="library-account__list">
+                        {% for credential in credentials %}
+                            <li class="library-account__key">
+                                <form method="post" class="library-account__rename">
+                                    <input type="hidden" name="action" value="rename">
                                     <input type="hidden" name="credential_id" value="{{ credential.id }}">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('site_passkey_delete_' ~ credential.id) }}">
-                                    <button type="submit" class="library-account__delete">Удалить</button>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('site_passkey_rename_' ~ credential.id) }}">
+                                    <label class="visually-hidden" for="passkey-label-{{ credential.id }}">Название ключа</label>
+                                    <input
+                                        id="passkey-label-{{ credential.id }}"
+                                        type="text"
+                                        name="label"
+                                        value="{{ credential.label }}"
+                                        maxlength="120"
+                                        required
+                                    >
+                                    <button type="submit" class="btn btn-outline">Сохранить</button>
                                 </form>
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </section>
+                                <div class="library-account__key-meta">
+                                    <p>
+                                        Добавлен {{ credential.createdAt|date('d.m.Y H:i') }}
+                                        {% if credential.lastUsedAt %}
+                                            · использован {{ credential.lastUsedAt|date('d.m.Y H:i') }}
+                                        {% endif %}
+                                    </p>
+                                    <form method="post" onsubmit="return confirm('Удалить этот ключ доступа?')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="credential_id" value="{{ credential.id }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('site_passkey_delete_' ~ credential.id) }}">
+                                        <button type="submit" class="library-account__delete">Удалить</button>
+                                    </form>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </section>
+        {% endif %}
 
         <footer class="library-account__footer">
             <a href="{{ path('web_library') }}">← К полке</a>
@@ -106,5 +222,7 @@
 
 {% block javascripts %}
     {{ parent() }}
-    <script src="{{ asset('js/passkey.js') }}" defer></script>
+    {% if accountTab == 'keys' %}
+        <script src="{{ asset('js/passkey.js') }}" defer></script>
+    {% endif %}
 {% endblock %}

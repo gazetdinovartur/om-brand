@@ -22,11 +22,13 @@
     </script>
     {% block head %}{% endblock %}
 </head>
-<body class="site-body site-body--{{ siteShell|default('house') }}{% if app.request.attributes.get('_route') == 'web_home' %} site-body--home-screen{% endif %}">
+{% set currentRoute = app.request.attributes.get('_route') %}
+{% set isReaderPage = currentRoute == 'web_library_read' %}
+<body class="site-body site-body--{{ siteShell|default('house') }}{% if currentRoute == 'web_home' %} site-body--home-screen{% endif %}{% if isReaderPage %} site-body--reader{% endif %}">
     <div class="solstice-glow" aria-hidden="true"></div>
 
-    {% if app.request.attributes.get('_route') != 'web_home' %}
-        <header class="site-header">
+    {% if currentRoute != 'web_home' %}
+        <header class="site-header{% if isReaderPage %} site-header--reader{% endif %}">
             <div class="container site-header__inner">
                 <a class="site-brand{% if siteShell|default('house') != 'landing' %} site-brand--avatar-only{% endif %}" href="{{ path('web_home') }}"{% if siteShell|default('house') != 'landing' %} aria-label="{{ siteName }} — на главную"{% endif %}>
                     {% if settings.avatarPath %}
@@ -44,12 +46,12 @@
                 </a>
                 {% include 'web/_partials/site_nav.html.twig' %}
             </div>
+            {% block reader_chrome %}{% endblock %}
         </header>
 
         {% include 'web/_partials/mobile_nav.html.twig' %}
     {% endif %}
 
-    {% set currentRoute = app.request.attributes.get('_route') %}
     {% if currentRoute not in ['web_home', 'web_dev_landing', 'web_contact'] %}
         {% for label, messages in app.flashes %}
             {% for message in messages %}

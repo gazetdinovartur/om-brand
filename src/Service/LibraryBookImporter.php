@@ -23,6 +23,7 @@ final class LibraryBookImporter
         private readonly LibrarySourceReader $sourceReader,
         private readonly LibraryBookParser $parser,
         private readonly SluggerInterface $slugger,
+        private readonly LibrarySourceArchive $sourceArchive,
     ) {
     }
 
@@ -89,7 +90,14 @@ final class LibraryBookImporter
             ->setLanguage('ru')
             ->setSourceChecksum($parsed->checksum)
             ->setTotalCharacters($parsed->totalCharacters)
-            ->setFootnotes($parsed->footnotes);
+            ->setFootnotes($parsed->footnotes)
+            ->setRenderMode($parsed->renderMode);
+
+        if ($parsed->keepSourceFile) {
+            $book->setSourcePath($this->sourceArchive->storeBookSource($path, $preview->slug, 'pdf'));
+        } else {
+            $book->setSourcePath(null);
+        }
 
         $existingBySlug = [];
         foreach ($book->getChapters() as $chapter) {

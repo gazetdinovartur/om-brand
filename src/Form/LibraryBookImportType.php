@@ -24,7 +24,7 @@ final class LibraryBookImportType extends AbstractType
             'label' => 'Файл книги',
             'mapped' => false,
             'required' => true,
-            'help' => 'До 20 МБ. TXT, MD, FB2, EPUB или ZIP с txt/md/fb2.',
+            'help' => 'До 20 МБ. TXT, MD, FB2, EPUB, PDF или ZIP с txt/md/fb2.',
             'attr' => ['class' => 'form-control'],
             'label_attr' => ['class' => 'form-label'],
             'help_attr' => ['class' => 'form-text'],
@@ -44,6 +44,7 @@ final class LibraryBookImportType extends AbstractType
                             'application/octet-stream',
                         ],
                         'epub' => ['application/epub+zip', 'application/zip', 'application/octet-stream'],
+                        'pdf' => ['application/pdf', 'application/octet-stream'],
                         'zip' => [
                             'application/zip',
                             'application/x-zip',
@@ -51,8 +52,8 @@ final class LibraryBookImportType extends AbstractType
                             'application/octet-stream',
                         ],
                     ],
-                    extensionsMessage: 'Поддерживаются TXT, MD, FB2, EPUB и ZIP с txt/md/fb2.',
-                    mimeTypesMessage: 'Поддерживаются TXT, MD, FB2, EPUB и ZIP с txt/md/fb2.',
+                    extensionsMessage: 'Поддерживаются TXT, MD, FB2, EPUB, PDF и ZIP с txt/md/fb2.',
+                    mimeTypesMessage: 'Поддерживаются TXT, MD, FB2, EPUB, PDF и ZIP с txt/md/fb2.',
                 ),
             ],
         ]);

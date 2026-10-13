@@ -42,6 +42,16 @@ final class ReadingBookmarkRepository extends ServiceEntityRepository
         ]);
     }
 
+    /** @return list<ReadingBookmark> */
+    public function findRecentForUser(SiteUser $user, int $limit = 40): array
+    {
+        return $this->findBy(
+            ['siteUser' => $user],
+            ['createdAt' => 'DESC'],
+            $limit,
+        );
+    }
+
     /**
      * @param list<LibraryBook> $books
      *

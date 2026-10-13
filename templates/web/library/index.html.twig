@@ -8,7 +8,9 @@
         <header class="library-head">
             <h1 id="library-title">Библиотека</h1>
             <p class="library-gate__lead">
-                Прогресс и закладки сохраняются между устройствами.
+                Личная полка: прогресс, закладки, цитаты и заметки синхронизируются между устройствами.
+                Можно листать страницами или лентой, читать офлайн и входить по Telegram, email или ключу доступа
+                <br>
                 <a href="{{ path('web_library_account') }}">Своё место</a>
                 ·
                 <a href="{{ path('web_library_logout') }}">Выйти</a>
@@ -38,8 +40,12 @@
                                     {% endif %}
                                 </span>
                             </div>
-                            {% if item.bookmarkCount > 0 %}
-                                <p class="library-book__meta">Закладок: {{ item.bookmarkCount }}</p>
+                            {% if item.bookmarkCount > 0 or item.quoteCount > 0 or item.noteCount > 0 %}
+                                <p class="library-book__meta">
+                                    {% if item.bookmarkCount > 0 %}Закладок: {{ item.bookmarkCount }}{% endif %}
+                                    {% if item.quoteCount > 0 %}{% if item.bookmarkCount > 0 %} · {% endif %}Цитат: {{ item.quoteCount }}{% endif %}
+                                    {% if item.noteCount > 0 %}{% if item.bookmarkCount > 0 or item.quoteCount > 0 %} · {% endif %}Заметок: {{ item.noteCount }}{% endif %}
+                                </p>
                             {% endif %}
                         </div>
 

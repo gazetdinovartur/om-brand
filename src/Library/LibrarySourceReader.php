@@ -9,7 +9,7 @@ final class LibrarySourceReader
     private const MAX_SOURCE_BYTES = 10_000_000;
 
     /** @var list<string> */
-    private const DIRECT_EXTENSIONS = ['txt', 'md', 'markdown', 'fb2', 'epub'];
+    private const DIRECT_EXTENSIONS = ['txt', 'md', 'markdown', 'fb2', 'epub', 'pdf'];
 
     /** @var list<string> */
     private const ZIP_INNER_EXTENSIONS = ['txt', 'md', 'markdown', 'fb2'];
@@ -27,7 +27,7 @@ final class LibrarySourceReader
 
         if (!\in_array($extension, self::DIRECT_EXTENSIONS, true)) {
             throw new \InvalidArgumentException(
-                'Поддерживаются TXT, MD, FB2, EPUB и ZIP с txt/md/fb2 внутри.',
+                'Поддерживаются TXT, MD, FB2, EPUB, PDF и ZIP с txt/md/fb2 внутри.',
             );
         }
 
@@ -38,8 +38,8 @@ final class LibrarySourceReader
         $this->assertSafeSize(strlen($bytes));
 
         $format = $this->normalizeFormat($extension);
-        // FB2/EPUB keep raw bytes: XML encoding is handled inside the format parser.
-        $payload = \in_array($format, [LibrarySource::FORMAT_FB2, LibrarySource::FORMAT_EPUB], true)
+        // FB2/EPUB/PDF keep raw bytes: encoding is handled inside the format parser.
+        $payload = \in_array($format, [LibrarySource::FORMAT_FB2, LibrarySource::FORMAT_EPUB, LibrarySource::FORMAT_PDF], true)
             ? $bytes
             : $this->decode($bytes);
 
@@ -128,6 +128,7 @@ final class LibrarySourceReader
             'md', 'markdown' => LibrarySource::FORMAT_MD,
             'fb2' => LibrarySource::FORMAT_FB2,
             'epub' => LibrarySource::FORMAT_EPUB,
+            'pdf' => LibrarySource::FORMAT_PDF,
             default => LibrarySource::FORMAT_TXT,
         };
     }

@@ -29,10 +29,18 @@ final class PasskeyConfigurationTest extends KernelTestCase
             '/library/passkeys/register/options',
             $routes->get('webauthn.controller.creation.request.site')?->getPath(),
         );
+        self::assertSame(
+            '/admin/passkeys/register/options',
+            $routes->get('webauthn.controller.creation.request.admin')?->getPath(),
+        );
         self::assertInstanceOf(
             WebauthnCredentialRepository::class,
             $container->get(CredentialRecordRepositoryInterface::class),
         );
+
+        $config = (string) file_get_contents(dirname(__DIR__, 2).'/config/packages/webauthn.yaml');
+        self::assertStringContainsString('App\\Security\\Webauthn\\AdminUserEntityGuesser', $config);
+        self::assertStringContainsString('App\\Security\\Webauthn\\SiteUserEntityGuesser', $config);
     }
 
     public function testPasswordFallbackAndPasskeyAccessRulesRemainTogether(): void

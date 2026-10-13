@@ -17,6 +17,9 @@ final readonly class ParsedLibraryBook
         public array $chapters,
         public array $footnotes,
         public int $totalCharacters,
+        public string $renderMode = 'html',
+        public bool $keepSourceFile = false,
+        public int $pdfPageCount = 0,
     ) {
     }
 }

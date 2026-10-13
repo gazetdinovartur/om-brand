@@ -14,7 +14,7 @@ final class LibraryImportUploadStorage
     private const MAX_SIZE = 20 * 1024 * 1024;
 
     /** @var list<string> */
-    private const ALLOWED_EXTENSIONS = ['txt', 'zip', 'fb2', 'epub', 'md', 'markdown'];
+    private const ALLOWED_EXTENSIONS = ['txt', 'zip', 'fb2', 'epub', 'md', 'markdown', 'pdf'];
 
     public function __construct(
         #[Autowire('%app.private_uploads_directory%')]
@@ -36,7 +36,7 @@ final class LibraryImportUploadStorage
             $extension = 'md';
         }
         if (!\in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
-            throw new FileException('Поддерживаются TXT, MD, FB2, EPUB и ZIP с txt/md/fb2.');
+            throw new FileException('Поддерживаются TXT, MD, FB2, EPUB, PDF и ZIP с txt/md/fb2.');
         }
 
         $targetDir = rtrim($this->privateUploadsDirectory, '/').'/library-import';

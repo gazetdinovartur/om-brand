@@ -38,6 +38,14 @@ class LibraryBook
     #[ORM\Column]
     private int $totalCharacters = 0;
 
+    /** html = parsed text reader; pdf_fallback = original PDF viewer */
+    #[ORM\Column(length: 32)]
+    private string $renderMode = 'html';
+
+    /** Relative path under private uploads for fallback PDF source. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $sourcePath = null;
+
     /** @var array<string, string> */
     #[ORM\Column(type: Types::JSON)]
     private array $footnotes = [];
@@ -145,6 +153,36 @@ class LibraryBook
     public function setTotalCharacters(int $totalCharacters): static
     {
         $this->totalCharacters = max(0, $totalCharacters);
+
+        return $this;
+    }
+
+    public function getRenderMode(): string
+    {
+        return $this->renderMode;
+    }
+
+    public function setRenderMode(string $renderMode): static
+    {
+        $this->renderMode = trim($renderMode) ?: 'html';
+
+        return $this;
+    }
+
+    public function isPdfFallback(): bool
+    {
+        return 'pdf_fallback' === $this->renderMode;
+    }
+
+    public function getSourcePath(): ?string
+    {
+        return $this->sourcePath;
+    }
+
+    public function setSourcePath(?string $sourcePath): static
+    {
+        $sourcePath = null === $sourcePath ? null : trim($sourcePath);
+        $this->sourcePath = '' === $sourcePath ? null : $sourcePath;
 
         return $this;
     }

@@ -17,8 +17,9 @@ webauthn:
             attestation_conveyance: none
         site:
             rp:
+                # Same RP ID (one origin) — isolation is via distinct userHandle / user.name.
                 id: '%env(default:app.webauthn_rp_id:WEBAUTHN_RP_ID)%'
-                name: '%env(default:app.webauthn_rp_name:WEBAUTHN_RP_NAME)%'
+                name: 'Артур · библиотека'
             authenticator_selection_criteria:
                 authenticator_attachment: platform
                 user_verification: required
@@ -39,12 +40,12 @@ webauthn:
         creation:
             admin:
                 profile: admin
-                user_entity_guesser: Webauthn\Bundle\Security\Guesser\CurrentUserEntityGuesser
+                user_entity_guesser: App\Security\Webauthn\AdminUserEntityGuesser
                 options_path: /admin/passkeys/register/options
                 result_path: /admin/passkeys/register
             site:
                 profile: site
-                user_entity_guesser: Webauthn\Bundle\Security\Guesser\CurrentUserEntityGuesser
+                user_entity_guesser: App\Security\Webauthn\SiteUserEntityGuesser
                 options_path: /library/passkeys/register/options
                 result_path: /library/passkeys/register
 

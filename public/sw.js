@@ -1,4 +1,45 @@
-/* Web Push service worker — new chronicle posts */
+/* Service worker: Web Push (chronicle) + library offline packs */
+const LIBRARY_OFFLINE_CACHE = 'om-library-offline-v1';
+
+self.addEventListener('install', (event) => {
+    event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+    if (event.request.method !== 'GET') {
+        return;
+    }
+    if (!url.pathname.match(/^\/library\/[^/]+\/offline-pack$/)) {
+        return;
+    }
+
+    event.respondWith((async () => {
+        try {
+            const network = await fetch(event.request);
+            if (network.ok) {
+                const cache = await caches.open(LIBRARY_OFFLINE_CACHE);
+                await cache.put(event.request, network.clone());
+            }
+            return network;
+        } catch {
+            const cache = await caches.open(LIBRARY_OFFLINE_CACHE);
+            const cached = await cache.match(event.request);
+            if (cached) {
+                return cached;
+            }
+            return new Response(JSON.stringify({ ok: false, message: 'offline' }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+    })());
+});
+
 self.addEventListener('push', (event) => {
     let data = { title: 'Новая запись', body: '', url: '/' };
     try {

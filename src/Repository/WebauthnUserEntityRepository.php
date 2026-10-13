@@ -19,26 +19,43 @@ final readonly class WebauthnUserEntityRepository implements PublicKeyCredential
 
     public function findOneByUsername(string $username): ?PublicKeyCredentialUserEntity
     {
-        $siteUser = $this->siteUsers->findOneByPublicId($username)
-            ?? $this->siteUsers->findOneByEmail($username);
+        // SiteUser::getUserIdentifier() is publicId (UUID). Prefer that so an admin email
+        // never resolves to the linked SiteUser created by SiteUserResolver.
+        $siteUser = $this->siteUsers->findOneByPublicId($username);
         if ($siteUser instanceof SiteUser) {
-            return $this->fromSiteUser($siteUser);
+            return $this->createFromSiteUser($siteUser);
         }
 
-        return $this->fromAdmin($this->admins->findOneBy(['email' => $username]));
+        $admin = $this->admins->findOneBy(['email' => $username]);
+        if ($admin instanceof AdminUser) {
+            return $this->createFromAdmin($admin);
+        }
+
+        // Email login options / legacy lookups: only when no AdminUser owns that email.
+        $siteUser = $this->siteUsers->findOneByEmail($username);
+        if ($siteUser instanceof SiteUser) {
+            return $this->createFromSiteUser($siteUser);
+        }
+
+        return null;
     }
 
     public function findOneByUserHandle(string $userHandle): ?PublicKeyCredentialUserEntity
     {
         $siteUser = $this->siteUsers->findOneByWebauthnUserHandle($userHandle);
         if ($siteUser instanceof SiteUser) {
-            return $this->fromSiteUser($siteUser);
+            return $this->createFromSiteUser($siteUser);
         }
 
-        return $this->fromAdmin($this->admins->findOneBy(['webauthnUserHandle' => $userHandle]));
+        $admin = $this->admins->findOneBy(['webauthnUserHandle' => $userHandle]);
+        if ($admin instanceof AdminUser) {
+            return $this->createFromAdmin($admin);
+        }
+
+        return null;
     }
 
-    private function fromSiteUser(SiteUser $user): PublicKeyCredentialUserEntity
+    public function createFromSiteUser(SiteUser $user): PublicKeyCredentialUserEntity
     {
         $display = $user->getDisplayName();
         if ('' === $display) {
@@ -52,12 +69,8 @@ final readonly class WebauthnUserEntityRepository implements PublicKeyCredential
         );
     }
 
-    private function fromAdmin(?AdminUser $admin): ?PublicKeyCredentialUserEntity
+    public function createFromAdmin(AdminUser $admin): PublicKeyCredentialUserEntity
     {
-        if (!$admin instanceof AdminUser) {
-            return null;
-        }
-
         return new PublicKeyCredentialUserEntity(
             $admin->getUserIdentifier(),
             $admin->getWebauthnUserHandle(),

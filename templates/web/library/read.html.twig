@@ -2,15 +2,89 @@
 
 {% block title %}{{ chapter.title }} · {{ book.title }}{% endblock %}
 
+{% block reader_chrome %}
+    <div
+        class="reader-toolbar reader-toolbar--chrome"
+        data-reader-chrome
+        aria-label="Панель чтения"
+    >
+        <div class="container reader-toolbar__inner">
+            <button
+                type="button"
+                class="site-nav-toggle reader-tool reader-tool--icon"
+                aria-expanded="false"
+                aria-controls="mobile-nav"
+                data-nav-toggle
+            >
+                <span class="site-nav-toggle__icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Меню</span>
+            </button>
+
+            <div class="reader-toolbar__progress">
+                <strong data-reader-progress>{{ readingProgress ? readingProgress.progressPercent|round : 0 }}%</strong>
+                <span class="reader-toolbar__page" data-reader-page-label hidden></span>
+            </div>
+
+            <div class="reader-toolbar__actions">
+                <button type="button" class="reader-tool reader-tool--icon reader-tool--page" data-reader-page="prev" aria-label="Предыдущий экран" hidden>
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="reader-tool reader-tool--icon reader-tool--page" data-reader-page="next" aria-label="Следующий экран" hidden>
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+                <button type="button" class="reader-tool reader-tool--icon" data-reader-bookmark aria-pressed="false" aria-label="Закладка" disabled>
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v17l-6-3.5L6 21V4z"/></svg>
+                </button>
+                <button type="button" class="reader-tool reader-tool--icon" data-reader-quote aria-label="Цитата" disabled>
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M7.2 18c-1.9 0-3.4-1.6-3.4-3.6 0-2.5 1.8-4.7 4.4-6.1l.8 1.3c-1.7.9-2.7 2.1-2.7 3.5 0 .5.1.9.4 1.2.7-.4 1.5-.3 2.1.2.7.6.9 1.6.5 2.4-.4.8-1.2 1.1-2.1 1.1zm9.5 0c-1.9 0-3.4-1.6-3.4-3.6 0-2.5 1.8-4.7 4.4-6.1l.8 1.3c-1.7.9-2.7 2.1-2.7 3.5 0 .5.1.9.4 1.2.7-.4 1.5-.3 2.1.2.7.6.9 1.6.5 2.4-.4.8-1.2 1.1-2.1 1.1z"/></svg>
+                </button>
+                <button type="button" class="reader-tool reader-tool--icon" data-reader-note aria-label="Заметка" disabled>
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0 0-3L17.5 5.5a2.1 2.1 0 0 0-3 0L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>
+                </button>
+                <a class="reader-tool reader-tool--icon" href="#reader-navigation" aria-label="Оглавление">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h10"/></svg>
+                </a>
+                <div class="reader-font-controls" role="group" aria-label="Размер текста">
+                    <button type="button" class="reader-tool reader-tool--compact" data-reader-font="decrease" aria-label="Уменьшить текст">А−</button>
+                    <button type="button" class="reader-tool reader-tool--compact" data-reader-font="increase" aria-label="Увеличить текст">А+</button>
+                </div>
+                <button type="button" class="reader-tool reader-tool--icon" data-reader-theme aria-pressed="false" aria-label="Ночной режим">
+                    <svg data-icon-moon viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+                    <svg data-icon-sun hidden viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                </button>
+                <button type="button" class="reader-tool reader-tool--icon" data-reader-flow aria-pressed="true" aria-label="Режим: страницы">
+                    <svg data-icon-pages viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="16" rx="1"/><rect x="13" y="4" width="7" height="16" rx="1"/></svg>
+                    <svg data-icon-scroll hidden viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                </button>
+                <button type="button" class="reader-tool reader-tool--icon" data-reader-offline aria-pressed="false" aria-label="Сохранить офлайн">
+                    <svg data-icon-offline viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+                    <svg data-icon-offline-on hidden viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/><path d="M16.5 7.5l1.5 1.5 3-3"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
 {% block body %}
 <article
     class="reader"
     data-reader
+    data-reader-book="{{ book.slug }}"
     data-reader-chapter="{{ chapter.slug }}"
     data-reader-progress-url="{{ path('web_library_progress', {bookSlug: book.slug}) }}"
     data-reader-progress-token="{{ progressCsrfToken }}"
     data-reader-bookmark-url="{{ path('web_library_bookmark', {bookSlug: book.slug}) }}"
     data-reader-bookmark-token="{{ bookmarkCsrfToken }}"
+    data-reader-quote-url="{{ path('web_library_quote', {bookSlug: book.slug}) }}"
+    data-reader-quote-token="{{ quoteCsrfToken }}"
+    data-reader-note-url="{{ path('web_library_note', {bookSlug: book.slug}) }}"
+    data-reader-note-token="{{ noteCsrfToken }}"
+    data-reader-offline-url="{{ path('web_library_offline_pack', {bookSlug: book.slug}) }}"
+    data-reader-render-mode="{{ book.renderMode }}"
+    data-reader-open-at="{{ openAtEnd|default(false) ? 'end' : 'start' }}"
+    {% if book.isPdfFallback and book.sourcePath %}
+        data-reader-pdf-url="{{ path('web_library_pdf', {bookSlug: book.slug}) }}"
+    {% endif %}
 >
     <div class="container reader-shell">
         <nav class="case-crumb reader-crumb" aria-label="Навигация">
@@ -22,31 +96,13 @@
         <header class="reader-head">
             <p class="reader-head__book">{{ book.author }} · {{ book.title }}</p>
             <h1>{{ chapter.title }}</h1>
+            {% if book.isPdfFallback %}
+                <p class="reader-head__hint">Текст из PDF извлёкся плохо — открыт просмотр оригинала.</p>
+            {% endif %}
         </header>
 
-        <div class="reader-toolbar" aria-label="Настройки чтения">
-            <div class="reader-toolbar__progress">
-                <span>Прочитано</span>
-                <strong data-reader-progress>{{ readingProgress ? readingProgress.progressPercent|round : 0 }}%</strong>
-            </div>
-            <div class="reader-toolbar__actions">
-                <button
-                    type="button"
-                    class="reader-tool"
-                    data-reader-bookmark
-                    aria-pressed="false"
-                    disabled
-                >Закладка</button>
-                <div class="reader-font-controls" role="group" aria-label="Размер текста">
-                    <button type="button" class="reader-tool reader-tool--compact" data-reader-font="decrease" aria-label="Уменьшить текст">А−</button>
-                    <button type="button" class="reader-tool reader-tool--compact" data-reader-font="increase" aria-label="Увеличить текст">А+</button>
-                </div>
-                <button type="button" class="reader-tool" data-reader-theme aria-pressed="false">Ночной режим</button>
-            </div>
-        </div>
-
         <details class="reader-navigation" id="reader-navigation">
-            <summary>Оглавление и закладки</summary>
+            <summary>Оглавление и пометки</summary>
             <div class="reader-navigation__content">
                 <nav class="reader-toc" aria-label="Оглавление книги">
                     <p class="reader-navigation__label">Оглавление</p>
@@ -64,23 +120,25 @@
 
                 <section class="reader-bookmarks" aria-labelledby="reader-bookmarks-title">
                     <p class="reader-navigation__label" id="reader-bookmarks-title">Закладки</p>
-                    <p class="reader-bookmarks__empty" data-reader-bookmarks-empty{% if bookmarks is not empty %} hidden{% endif %}>Закладок пока нет.</p>
+                    <p class="reader-bookmarks__empty" data-reader-bookmarks-empty{% if bookmarks is not empty %} hidden{% endif %}>Пока нет</p>
                     <ol data-reader-bookmarks-list>
                         {% for bookmark in bookmarks %}
                             <li
+                                class="reader-nav-item"
                                 data-reader-bookmark-item
                                 data-bookmark-id="{{ bookmark.id }}"
                                 data-chapter="{{ bookmark.chapter.slug }}"
                                 data-block="{{ bookmark.blockId }}"
                             >
-                                <a href="{{ path('web_library_read', {
-                                    bookSlug: book.slug,
-                                    chapterSlug: bookmark.chapter.slug,
-                                    _fragment: bookmark.blockId
-                                }) }}">
-                                    <span>{{ bookmark.chapter.title }}</span>
-                                    <small>{{ bookmark.excerpt }}</small>
-                                </a>
+                                <p class="reader-nav-item__body">{{ bookmark.excerpt }}</p>
+                                <a
+                                    class="reader-nav-item__place"
+                                    href="{{ path('web_library_read', {
+                                        bookSlug: book.slug,
+                                        chapterSlug: bookmark.chapter.slug,
+                                        _fragment: bookmark.blockId
+                                    }) }}"
+                                >{{ bookmark.chapter.title }}</a>
                                 <button
                                     type="button"
                                     data-reader-bookmark-remove
@@ -91,29 +149,149 @@
                         {% endfor %}
                     </ol>
                 </section>
+
+                <section class="reader-quotes" aria-labelledby="reader-quotes-title">
+                    <p class="reader-navigation__label" id="reader-quotes-title">Цитаты</p>
+                    <p class="reader-bookmarks__empty" data-reader-quotes-empty{% if quotes is not empty %} hidden{% endif %}>Пока нет</p>
+                    <ol data-reader-quotes-list>
+                        {% for quote in quotes %}
+                            <li
+                                class="reader-nav-item"
+                                data-reader-quote-item
+                                data-quote-id="{{ quote.id }}"
+                                data-chapter="{{ quote.chapter.slug }}"
+                                data-block="{{ quote.blockId }}"
+                            >
+                                <blockquote class="reader-nav-item__body">{{ quote.excerpt }}</blockquote>
+                                <a
+                                    class="reader-nav-item__place"
+                                    href="{{ path('web_library_read', {
+                                        bookSlug: book.slug,
+                                        chapterSlug: quote.chapter.slug,
+                                        _fragment: quote.blockId
+                                    }) }}"
+                                >{{ quote.chapter.title }}</a>
+                                <button
+                                    type="button"
+                                    data-reader-quote-remove
+                                    data-quote-id="{{ quote.id }}"
+                                    aria-label="Удалить цитату"
+                                >×</button>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+
+                <section class="reader-notes" aria-labelledby="reader-notes-title">
+                    <p class="reader-navigation__label" id="reader-notes-title">Заметки</p>
+                    <p class="reader-bookmarks__empty" data-reader-notes-empty{% if notes is not empty %} hidden{% endif %}>Пока нет</p>
+                    <ol data-reader-notes-list>
+                        {% for note in notes %}
+                            <li
+                                class="reader-nav-item"
+                                data-reader-note-item
+                                data-note-id="{{ note.id }}"
+                                data-chapter="{{ note.chapter.slug }}"
+                                data-block="{{ note.blockId }}"
+                            >
+                                <p class="reader-nav-item__body">{{ note.body }}</p>
+                                <a
+                                    class="reader-nav-item__place"
+                                    href="{{ path('web_library_read', {
+                                        bookSlug: book.slug,
+                                        chapterSlug: note.chapter.slug,
+                                        _fragment: note.blockId
+                                    }) }}"
+                                >{{ note.chapter.title }}</a>
+                                <button
+                                    type="button"
+                                    data-reader-note-remove
+                                    data-note-id="{{ note.id }}"
+                                    aria-label="Удалить заметку"
+                                >×</button>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </section>
             </div>
         </details>
 
-        <div class="reader-text" data-reader-content>
-            {% for block in chapter.blocks %}
-                {% set isBookmarked = bookmarkedBlockIds[block.id]|default(false) %}
-                {% if block.type == 'heading' %}
-                    <h2
-                        id="{{ block.id }}"
-                        class="reader-block reader-block--heading{{ isBookmarked ? ' is-bookmarked' : '' }}"
-                        data-reader-block
-                        data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
-                    >{{ block.text|library_inline(block.id) }}</h2>
-                {% else %}
-                    <p
-                        id="{{ block.id }}"
-                        class="reader-block reader-block--paragraph{{ isBookmarked ? ' is-bookmarked' : '' }}"
-                        data-reader-block
-                        data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
-                    >{{ block.text|library_inline(block.id) }}</p>
-                {% endif %}
-            {% endfor %}
-        </div>
+        {% if book.isPdfFallback and book.sourcePath %}
+            <div class="reader-pdf" data-reader-pdf>
+                <iframe
+                    class="reader-pdf__frame"
+                    title="PDF · {{ book.title }}"
+                    src="{{ path('web_library_pdf', {bookSlug: book.slug}) }}#page={{ pdfPage|default(1) }}"
+                ></iframe>
+            </div>
+        {% else %}
+            <div class="reader-text" data-reader-content>
+                {% for block in chapter.blocks %}
+                    {% set isBookmarked = bookmarkedBlockIds[block.id]|default(false) %}
+                    {% set isQuoted = quotedBlockIds[block.id]|default(false) %}
+                    {% set isNoted = notedBlockIds[block.id]|default(false) %}
+                    {% set blockQuotes = quotesByBlock[block.id]|default([]) %}
+                    {% set blockNotes = notesByBlock[block.id]|default([]) %}
+                    {% if block.type == 'heading' %}
+                        <h2
+                            id="{{ block.id }}"
+                            class="reader-block reader-block--heading{{ isBookmarked ? ' is-bookmarked' : '' }}{{ isQuoted ? ' is-quoted' : '' }}{{ isNoted ? ' is-noted' : '' }}"
+                            data-reader-block
+                            data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
+                            data-quoted="{{ isQuoted ? '1' : '0' }}"
+                            data-noted="{{ isNoted ? '1' : '0' }}"
+                        >{{ block.text|library_inline(block.id) }}</h2>
+                    {% else %}
+                        <p
+                            id="{{ block.id }}"
+                            class="reader-block reader-block--paragraph{{ isBookmarked ? ' is-bookmarked' : '' }}{{ isQuoted ? ' is-quoted' : '' }}{{ isNoted ? ' is-noted' : '' }}"
+                            data-reader-block
+                            data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
+                            data-quoted="{{ isQuoted ? '1' : '0' }}"
+                            data-noted="{{ isNoted ? '1' : '0' }}"
+                        >{{ block.text|library_inline(block.id) }}</p>
+                    {% endif %}
+                    <aside
+                        class="reader-marks"
+                        data-reader-marks
+                        data-block="{{ block.id }}"
+                        {% if not isBookmarked and blockQuotes is empty and blockNotes is empty %}hidden{% endif %}
+                    >
+                        {% if isBookmarked %}
+                            <div class="reader-mark reader-mark--bookmark" data-reader-mark="bookmark">
+                                <span class="reader-mark__label">Закладка</span>
+                            </div>
+                        {% endif %}
+                        {% for quote in blockQuotes %}
+                            <div class="reader-mark reader-mark--quote" data-reader-mark="quote" data-quote-id="{{ quote.id }}">
+                                <span class="reader-mark__label">Цитата</span>
+                                <p class="reader-mark__text">{{ quote.excerpt }}</p>
+                            </div>
+                        {% endfor %}
+                        {% for note in blockNotes %}
+                            <div class="reader-mark reader-mark--note" data-reader-mark="note" data-note-id="{{ note.id }}">
+                                <span class="reader-mark__label">Заметка</span>
+                                <p class="reader-mark__text">{{ note.body }}</p>
+                            </div>
+                        {% endfor %}
+                    </aside>
+                {% endfor %}
+            </div>
+
+            <div class="reader-page-edges" data-reader-page-edges hidden>
+                <button type="button" class="reader-page-edge reader-page-edge--prev" data-reader-page="prev" aria-label="Предыдущий экран"></button>
+                <button type="button" class="reader-page-edge reader-page-edge--next" data-reader-page="next" aria-label="Следующий экран"></button>
+            </div>
+
+            <nav class="reader-thumb-pager" data-reader-thumb-pager hidden aria-label="Листание большим пальцем">
+                <button type="button" class="reader-thumb-pager__btn" data-reader-page="prev" aria-label="Предыдущий экран">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="reader-thumb-pager__btn" data-reader-page="next" aria-label="Следующий экран">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </nav>
+        {% endif %}
 
         {% if footnotes is not empty %}
             <section class="reader-footnotes" aria-labelledby="reader-footnotes-title">
@@ -135,7 +313,8 @@
             {% if previousChapter %}
                 <a class="reader-chapter-nav__prev" href="{{ path('web_library_read', {
                     bookSlug: book.slug,
-                    chapterSlug: previousChapter.slug
+                    chapterSlug: previousChapter.slug,
+                    at: 'end'
                 }) }}">
                     <span>Предыдущая</span>
                     <strong>{{ previousChapter.title }}</strong>

@@ -7,6 +7,9 @@ namespace App\Controller;
 use App\Entity\AdminUser;
 use App\Entity\SiteUser;
 use App\Entity\WebauthnCredential;
+use App\Repository\ReadingBookmarkRepository;
+use App\Repository\ReadingNoteRepository;
+use App\Repository\ReadingQuoteRepository;
 use App\Repository\WebauthnCredentialRepository;
 use App\Security\SiteUserAuthenticator;
 use App\Service\SiteEmailLoginService;
@@ -31,6 +34,9 @@ final class LibraryAuthController extends AbstractController
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
         private readonly WebauthnCredentialRepository $credentials,
+        private readonly ReadingBookmarkRepository $bookmarks,
+        private readonly ReadingQuoteRepository $quotes,
+        private readonly ReadingNoteRepository $notes,
         #[Autowire(service: 'limiter.library_login')]
         private readonly RateLimiterFactory $loginLimiter,
     ) {
@@ -182,6 +188,11 @@ final class LibraryAuthController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        $accountTab = $request->query->getString('tab', 'reading');
+        if (!\in_array($accountTab, ['reading', 'keys'], true)) {
+            $accountTab = 'reading';
+        }
+
         if ($request->isMethod('POST')) {
             $credentialId = $request->request->getString('credential_id');
             $credential = $this->credentials->find($credentialId);
@@ -214,12 +225,16 @@ final class LibraryAuthController extends AbstractController
                 $this->addFlash('success', 'Ключ доступа удалён.');
             }
 
-            return $this->redirectToRoute('web_library_account');
+            return $this->redirectToRoute('web_library_account', ['tab' => 'keys']);
         }
 
         $response = $this->render('web/library/account.html.twig', [
             'siteUser' => $user,
+            'accountTab' => $accountTab,
             'credentials' => $this->credentials->findForSiteUser($user),
+            'recentBookmarks' => $this->bookmarks->findRecentForUser($user, 20),
+            'recentQuotes' => $this->quotes->findRecentForUser($user, 20),
+            'recentNotes' => $this->notes->findRecentForUser($user, 20),
         ]);
         $response->setPrivate();
         $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
