@@ -138,12 +138,10 @@ class PracticeSessionCrudController extends AbstractCrudController
 
         yield UrlField::new('roomLink', 'Комната на сайте')
             ->onlyOnIndex()
-            ->setVirtual(true)
             ->formatValue(fn (): string => $this->practiceRoomUrl());
 
         yield UrlField::new('roomLink', 'Комната на сайте')
             ->onlyOnDetail()
-            ->setVirtual(true)
             ->setHelp('Сюда заходят участники с оплаченным доступом')
             ->formatValue(fn (): string => $this->practiceRoomUrl());
 

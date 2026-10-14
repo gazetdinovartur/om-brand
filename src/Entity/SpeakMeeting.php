@@ -134,6 +134,14 @@ class SpeakMeeting
         return null;
     }
 
+    /**
+     * Relative site link for EasyAdmin UrlField (non-empty so EA does not show «Недоступно»).
+     */
+    public function getSiteMeetUrl(): string
+    {
+        return '/meet/'.$this->token;
+    }
+
     public function setSpeakEmbedUrl(?string $speakEmbedUrl): static
     {
         $this->speakEmbedUrl = null !== $speakEmbedUrl && '' !== trim($speakEmbedUrl)

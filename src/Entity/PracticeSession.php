@@ -343,6 +343,14 @@ class PracticeSession
         return null;
     }
 
+    /**
+     * Relative room URL for EasyAdmin UrlField (avoids empty «Недоступно»).
+     */
+    public function getRoomLink(): string
+    {
+        return '/practice/room';
+    }
+
     public function chatEmbedUrl(): ?string
     {
         if (null !== $this->kinescopeChatEmbedUrl) {

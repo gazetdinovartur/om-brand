@@ -70,14 +70,13 @@ class SpeakMeetingCrudController extends AbstractCrudController
             ->hideOnIndex()
             ->setRequired(false);
 
+        // Property getter returns relative path; formatValue = absolute text for copy/open.
         yield UrlField::new('siteMeetUrl', 'Ссылка для участников')
             ->onlyOnIndex()
-            ->setVirtual(true)
             ->formatValue(fn ($_, SpeakMeeting $m): string => $this->publicMeetUrl($m));
 
         yield UrlField::new('siteMeetUrl', 'Ссылка для участников')
             ->onlyOnDetail()
-            ->setVirtual(true)
             ->formatValue(fn ($_, SpeakMeeting $m): string => $this->publicMeetUrl($m));
 
         yield TextField::new('kinescopeRoomCode', 'Код комнаты Speak')
