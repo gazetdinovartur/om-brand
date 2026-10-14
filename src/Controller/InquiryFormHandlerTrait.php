@@ -82,7 +82,7 @@ trait InquiryFormHandlerTrait
                     contactType: $data['contactType'],
                     inquiryType: $data['inquiryType'],
                     message: trim($data['message'] ?? ''),
-                    attachment: $form->get('attachment')->getData(),
+                    attachment: $form->has('attachment') ? $form->get('attachment')->getData() : null,
                 );
             } catch (\Throwable $exception) {
                 if ($this->wantsJsonResponse($request)) {

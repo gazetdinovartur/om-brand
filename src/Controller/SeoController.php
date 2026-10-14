@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Content\HouseContent;
 use App\Repository\CaseStudyRepository;
 use App\Repository\ChronicleEntryRepository;
 use App\Seo\SeoMetadataFactory;
@@ -25,7 +26,10 @@ Allow: /
 
 Disallow: /admin/
 Disallow: /library
+Disallow: /account
 Disallow: /oplata/
+Disallow: /practice
+Disallow: /webhooks/
 
 Sitemap: {$sitemapUrl}
 
@@ -58,6 +62,15 @@ TXT;
             [$contactUrl, $lastmod, 'monthly', '0.7'],
             [$privacyUrl, $lastmod, 'monthly', '0.4'],
         ];
+
+        if (HouseContent::isPracticePublicEnabled()) {
+            $urls[] = [
+                $this->generateUrl('web_practice', [], UrlGeneratorInterface::ABSOLUTE_URL),
+                $lastmod,
+                'weekly',
+                '0.8',
+            ];
+        }
 
         foreach ($caseStudyRepository->findPublishedOrdered() as $case) {
             if (!$case->isDetailPublic()) {

@@ -1,0 +1,218 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block body %}
+<div class="practice-page">
+    <section class="practice-hero" aria-labelledby="practice-title">
+        <div class="container practice-container practice-hero__inner">
+            <p class="practice-hero__eyebrow">Практика</p>
+            <h1 class="practice-hero__title" id="practice-title">{{ content.title }}</h1>
+            <p class="practice-hero__lead">{{ content.heroLead }}</p>
+            <p class="practice-hero__body">{{ content.heroBody }}</p>
+            <p class="practice-hero__share">{{ content.heroShare }}</p>
+            <p class="practice-hero__cta">
+                <a class="btn practice-btn" href="#form">Участвую</a>
+            </p>
+        </div>
+    </section>
+
+    <section class="practice-section" aria-labelledby="practice-why">
+            <div class="container practice-container">
+            <h2 class="practice-section__title" id="practice-why">{{ content.whyTitle }}</h2>
+            <p class="practice-section__lead">{{ content.whyLead }}</p>
+            <p>{{ content.whyEffect }}</p>
+
+            <div class="practice-when" aria-label="{{ content.forWhomTitle }}">
+                {% for line in content.forWhom %}
+                    <p class="practice-when__line">{{ line }}</p>
+                {% endfor %}
+            </div>
+
+            <ul class="practice-roles">
+                {% for pair in content.whyRoles %}
+                    <li>
+                        <div class="practice-roles__copy">
+                            <p class="practice-roles__me">{{ pair.me }}</p>
+                            <p class="practice-roles__you">{{ pair.you }}</p>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </section>
+
+    <section class="practice-section practice-section--soft" aria-labelledby="practice-how">
+        <div class="container practice-container">
+            <h2 class="practice-section__title" id="practice-how">{{ content.howTitle }}</h2>
+            <p class="practice-section__lead">{{ content.howBody }}</p>
+            <p>{{ content.howNote }}</p>
+            <p>{{ content.howFeedback }}</p>
+        </div>
+    </section>
+
+    <section class="practice-section" aria-labelledby="practice-list">
+        <div class="container practice-container">
+            <h2 class="practice-section__title" id="practice-list">{{ content.practicesTitle }}</h2>
+            <p class="practice-section__lead">{{ content.practicesLead }}</p>
+            <ul class="practice-list">
+                {% for item in content.practices %}
+                    <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+
+            <aside class="practice-map" aria-labelledby="practice-map-title">
+                <h3 class="practice-map__title" id="practice-map-title">{{ content.mapTitle }}</h3>
+                <p>{{ content.mapBody }}</p>
+            </aside>
+        </div>
+    </section>
+
+    <section class="practice-section" id="join" aria-labelledby="practice-join">
+        <div class="container practice-container">
+            <div class="form-card practice-panel">
+                <header class="practice-panel__head">
+                    <h2 class="practice-panel__title" id="practice-join">{{ content.joinTitle }}</h2>
+                </header>
+
+                <ul class="practice-pricing">
+                    {% for item in content.pricing %}
+                        <li class="practice-pricing__item">
+                            <div class="practice-pricing__copy">
+                                <span class="practice-pricing__name">{{ item.title }}</span>
+                                <span class="practice-pricing__text">{{ item.text }}</span>
+                            </div>
+                            <span class="practice-pricing__price">{{ item.price }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="practice-pricing-note">{{ content.pricingNote }}</p>
+
+                <div class="practice-steps">
+                    <div class="practice-steps__block">
+                        <h3 class="practice-subhead">{{ content.scheduleTitle }}</h3>
+                        <p>{{ content.scheduleBody }}</p>
+                    </div>
+                    <div class="practice-steps__block">
+                        <h3 class="practice-subhead">{{ content.enterTitle }}</h3>
+                        <p>{{ content.enterBody }}</p>
+                        <p>{{ content.enterAccount }}
+                            <a href="{{ path('web_library_login') }}">Войти или зарегистрироваться</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="practice-section" aria-labelledby="practice-about">
+        <div class="container practice-container">
+            <h2 class="practice-section__title" id="practice-about">{{ content.aboutTitle }}</h2>
+            <p class="practice-section__lead">{{ content.aboutLead }}</p>
+            <ul class="practice-facts">
+                {% for fact in content.aboutFacts %}
+                    <li>{{ fact }}</li>
+                {% endfor %}
+            </ul>
+            <br>
+            <p class="practice-section__lead">{{ content.aboutLikes }}</p>
+        </div>
+    </section>
+
+    <section class="practice-section practice-section--invite" id="form" aria-labelledby="practice-invite">
+        <div class="container practice-container">
+            <h2 class="practice-section__title" id="practice-invite">{{ content.inviteTitle }}</h2>
+            <p class="practice-section__lead">{{ content.inviteBody }}</p>
+
+            <div class="form-card practice-form-card" data-inquiry-card>
+                <header class="practice-form-card__head">
+                    <h3 class="practice-form-card__title">{{ content.formTitle }}</h3>
+                    <p class="practice-form-card__lead">{{ content.formLead }}</p>
+                    {% if practiceAuthenticated|default(false) %}
+                        <p class="practice-form-card__auth-hint">
+                            Ты вошёл как
+                            <strong>{{ practiceSiteUser.displayName|default('участник') }}</strong>
+                            {% if practiceAccountHasEmail|default(false) %}
+                                · письмо придёт на <strong>{{ practiceAccountEmail }}</strong>
+                            {% else %}
+                                · для платного формата укажи email — нужен для чека
+                            {% endif %}
+                            · заявки в
+                            <a href="{{ path('web_account', {tab: 'practice'}) }}">Своём месте</a>
+                        </p>
+                    {% endif %}
+                </header>
+
+                <div class="form-card__loader" data-inquiry-loader hidden aria-live="polite">
+                    <span class="form-card__loader-spinner" aria-hidden="true"></span>
+                    <span class="form-card__loader-text">Отправляем…</span>
+                </div>
+
+                {{ form_start(form, { attr: {
+                    class: 'inquiry-form',
+                    'data-inquiry-form': '',
+                    'data-form-name': form.vars.name,
+                    novalidate: 'novalidate'
+                } }) }}
+                    <div class="form-grid">
+                        <div class="form-field">
+                            {{ form_label(form.name) }}
+                            {{ form_widget(form.name, { attr: { class: 'form-control' } }) }}
+                            {{ form_errors(form.name) }}
+                        </div>
+                        {% if form.email is defined %}
+                            <div class="form-field">
+                                {{ form_label(form.email) }}
+                                {{ form_widget(form.email, { attr: { class: 'form-control' } }) }}
+                                <p class="form-field__hint">
+                                    {% if practiceAuthenticated|default(false) %}
+                                        Нужен для чека ЮKassa и писем со ссылкой
+                                    {% else %}
+                                        Сюда придёт письмо и сюда же вход в своё место
+                                    {% endif %}
+                                </p>
+                                {{ form_errors(form.email) }}
+                            </div>
+                        {% endif %}
+                        <div class="form-field form-field--full">
+                            {{ form_label(form.format) }}
+                            {{ form_widget(form.format, { attr: { class: 'form-control' } }) }}
+                            {{ form_errors(form.format) }}
+                        </div>
+                        <div class="form-field form-field--full">
+                            <div class="form-field__head">
+                                {{ form_label(form.message) }}
+                                <span class="form-field__optional">необязательно</span>
+                            </div>
+                            {{ form_widget(form.message, { attr: { class: 'form-control' } }) }}
+                            {{ form_errors(form.message) }}
+                        </div>
+                    </div>
+                    {{ form_widget(form.inquiryType) }}
+                    {{ form_widget(form.website) }}
+                    {% if form.consent is defined %}
+                        <div class="form-field form-field--full form-consent">
+                            <label class="form-consent__label" for="{{ form.consent.vars.id }}">
+                                {{ form_widget(form.consent, { attr: { class: 'form-consent__checkbox' } }) }}
+                                <span class="form-consent__text">
+                                    Я согласен(а) на
+                                    <a href="{{ path('web_privacy') }}" target="_blank" rel="noopener">обработку персональных данных</a>
+                                </span>
+                            </label>
+                            {{ form_errors(form.consent) }}
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn practice-btn btn-block" data-inquiry-submit>Отправить заявку</button>
+                    {% include 'web/_partials/form_feedback.html.twig' %}
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include 'web/_partials/page_nav.html.twig' with {
+    backFallback: path('web_home'),
+    related: [
+        { href: path('web_library_login'), label: 'Вход на сайт' },
+        { href: path('web_contact'), label: 'Связь' },
+    ]
+} %}
+{% endblock %}

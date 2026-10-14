@@ -1,0 +1,58 @@
+{% extends 'emails/_brand_shell.html.twig' %}
+
+{% block email_title %}
+    {% if paymentUrl %}
+        Ссылка на оплату · {{ offer.title }}
+    {% else %}
+        Заявка принята · Регуляция и регулярность
+    {% endif %}
+{% endblock %}
+
+{% block email_badge %} · Практика{% endblock %}
+
+{% block email_header %}
+<tr>
+    <td style="padding:32px 32px 12px;">
+        <p style="margin:0 0 10px;font-size:12px;line-height:1.4;letter-spacing:0.12em;text-transform:uppercase;color:#9f5d18;">
+            Регуляция и регулярность
+        </p>
+        <h1 style="margin:0;font-size:26px;line-height:1.25;font-weight:600;color:#1f1a14;">
+            {% if paymentUrl %}Ссылка на оплату{% else %}Заявка принята{% endif %}
+        </h1>
+    </td>
+</tr>
+{% endblock %}
+
+{% block email_body %}
+<p style="margin:0 0 16px;color:#3a3127;">
+    Привет{{ inquiry.name ? ', '~inquiry.name : '' }}.
+</p>
+
+{% if paymentUrl %}
+<p style="margin:0 0 16px;color:#3a3127;">
+    {{ offer.title }} — <strong>{{ amountRubles|number_format(0, ',', ' ') }} ₽</strong>.
+    Оплатить можно по ссылке ниже. После оплаты откроется доступ к комнате практики в личном кабинете.
+</p>
+<p style="margin:0 0 24px;">
+    <a href="{{ paymentUrl }}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#8c2f3a;color:#fff8f6;text-decoration:none;font-weight:600;">
+        Перейти к оплате
+    </a>
+</p>
+{% else %}
+<p style="margin:0 0 16px;color:#3a3127;">
+    Первая встреча — вход свободный. Доступ к комнате практики уже открыт в твоём личном кабинете.
+</p>
+{% endif %}
+
+<p style="margin:0 0 12px;color:#3a3127;">
+    Чтобы смотреть заказы и войти в комнату практики, зайди в <strong>Своё место → Практика</strong>:
+</p>
+<p style="margin:0 0 24px;">
+    <a href="{{ loginUrl }}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#1f1a14;color:#fff8f6;text-decoration:none;font-weight:600;">
+        Войти в своё место
+    </a>
+</p>
+<p style="margin:0;font-size:14px;color:#6f6558;">
+    Вход по коду на этот email (или Telegram / passkey). Раздел: <a href="{{ accountUrl }}" style="color:#8c2f3a;">{{ accountUrl }}</a>
+</p>
+{% endblock %}

@@ -5,6 +5,7 @@ namespace App\Seo;
 use App\Content\HouseContent;
 use App\Content\LandingContent;
 use App\Content\LegalContent;
+use App\Content\PracticeContent;
 use App\AppTimezone;
 use App\Entity\CaseStudy;
 use App\Entity\ChronicleEntry;
@@ -51,9 +52,17 @@ final class SeoMetadataFactory
         $ogImageUrl = $this->resolveOgImageUrl($settings, $baseUrl);
 
         return match ($route) {
-            'web_library', 'web_library_continue', 'web_library_read', 'web_library_login', 'web_library_account' => new SeoMetadata(
+            'web_library', 'web_library_continue', 'web_library_read', 'web_library_login' => new SeoMetadata(
                 title: 'Библиотека',
                 description: 'Закрытая библиотека: вход, чтобы читать и сохранять прогресс.',
+                canonicalUrl: rtrim($baseUrl, '/').$request->getPathInfo(),
+                robots: 'noindex, nofollow, noarchive',
+                ogType: 'website',
+                ogImageUrl: null,
+            ),
+            'web_account', 'web_library_account_redirect' => new SeoMetadata(
+                title: 'Своё место',
+                description: 'Практика, чтение и ключи доступа.',
                 canonicalUrl: rtrim($baseUrl, '/').$request->getPathInfo(),
                 robots: 'noindex, nofollow, noarchive',
                 ogType: 'website',
@@ -78,6 +87,7 @@ final class SeoMetadataFactory
             'web_cases' => $this->forCasesIndex($request, $settings, $blocksBySlug),
             'web_chronicle', 'web_chronicle_era', 'web_chronicle_tag' => $this->forChronicleIndex($request, $settings, $blocksBySlug),
             'web_contact' => $this->forContact($request, $settings, $blocksBySlug),
+            'web_practice' => $this->forPractice($request, $settings, $blocksBySlug),
             'web_dev_landing' => $this->forDevLanding($request, $settings, $blocksBySlug, $personName, $ogImageUrl),
             'web_home' => $this->forHouseHome($request, $settings, $blocksBySlug, $personName, $ogImageUrl),
             default => new SeoMetadata(
@@ -160,6 +170,25 @@ final class SeoMetadataFactory
             robots: 'index, follow',
             ogType: 'website',
             ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $blocksBySlug
+     */
+    public function forPractice(Request $request, SiteSettings $settings, array $blocksBySlug): SeoMetadata
+    {
+        $baseUrl = $this->resolveBaseUrl($request);
+        $personName = $this->personName($blocksBySlug, $settings);
+
+        return new SeoMetadata(
+            title: sprintf('%s · %s', PracticeContent::pageTitle(), $personName),
+            description: PracticeContent::metaDescription(),
+            canonicalUrl: rtrim($baseUrl, '/').$this->urlGenerator->generate('web_practice'),
+            robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+            ogType: 'website',
+            ogImageUrl: $this->resolveOgImageUrl($settings, $baseUrl),
+            keywords: implode(', ', PracticeContent::metaKeywords()),
         );
     }
 

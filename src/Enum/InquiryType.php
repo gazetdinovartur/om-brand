@@ -14,6 +14,7 @@ enum InquiryType: string
     case Collaboration = 'collaboration';
     case Question = 'question';
     case Invitation = 'invitation';
+    case Practice = 'practice';
     case Other = 'other';
 
     public function label(): string
@@ -29,6 +30,7 @@ enum InquiryType: string
             self::Collaboration => 'Сотрудничество',
             self::Question => 'Вопрос',
             self::Invitation => 'Приглашение',
+            self::Practice => 'Регулярная практика',
             self::Other => 'Другое',
         };
     }
@@ -58,6 +60,14 @@ enum InquiryType: string
         ];
     }
 
+    /** Типы для формы заявки на практику. @return list<self> */
+    public static function practiceOrdered(): array
+    {
+        return [
+            self::Practice,
+        ];
+    }
+
     /** @return list<self> */
     public static function ordered(): array
     {
@@ -72,6 +82,7 @@ enum InquiryType: string
             self::Collaboration,
             self::Question,
             self::Invitation,
+            self::Practice,
             self::Other,
         ];
     }

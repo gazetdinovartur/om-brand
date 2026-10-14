@@ -84,6 +84,29 @@ class TelegramNotifier
         $this->sendMessage($text);
     }
 
+    public function notifyPaymentPaid(PaymentOffer $offer): void
+    {
+        if (!$this->isConfigured()) {
+            return;
+        }
+
+        $inquiry = $offer->getInquiry();
+        $adminHint = null !== $inquiry?->getId()
+            ? $this->inquiryAdminUrlGenerator->detailUrl($inquiry->getId())
+            : '';
+
+        $text = sprintf(
+            "✅ Оплата получена\n\nЗаявка #%s · %s\n%s — %s ₽\n\n%s",
+            (string) ($inquiry?->getId() ?? '—'),
+            $inquiry?->getName() ?? '—',
+            $offer->getTitle(),
+            number_format($offer->getAmountRubles(), 0, ',', ' '),
+            '' !== $adminHint ? '→ '.$adminHint : '',
+        );
+
+        $this->sendMessage(trim($text));
+    }
+
     private function sendMessage(string $text): bool
     {
         try {

@@ -51,5 +51,5 @@ webauthn:
 
     passkey_endpoints:
         enabled: true
-        enroll: web_library_account
-        manage: web_library_account
+        enroll: web_account
+        manage: web_account

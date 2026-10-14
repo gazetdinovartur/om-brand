@@ -1,0 +1,25 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}{{ meeting.title }} · Встреча{% endblock %}
+
+{% block body %}
+<section class="section practice-room meet-room" aria-labelledby="meet-title">
+    <div class="container practice-container">
+        <header class="practice-room__head">
+            <h1 id="meet-title">{{ meeting.title }}</h1>
+            {% if meeting.startsAt %}
+                <p class="practice-room__balance">{{ meeting.startsAt|date('d.m.Y H:i') }}</p>
+            {% endif %}
+        </header>
+
+        <div class="practice-room__speak">
+            <iframe
+                src="{{ embedUrl }}"
+                title="{{ meeting.title }}"
+                allow="camera; microphone; display-capture; fullscreen; autoplay; clipboard-write"
+                allowfullscreen
+            ></iframe>
+        </div>
+    </div>
+</section>
+{% endblock %}

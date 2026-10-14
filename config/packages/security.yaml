@@ -71,7 +71,12 @@ security:
         - { path: ^/admin/passkey/login, roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/oauth/vk, roles: ROLE_ADMIN }
+        - { path: ^/webhooks/yookassa, roles: PUBLIC_ACCESS }
+        - { path: ^/webhooks/kinescope, roles: PUBLIC_ACCESS }
+        - { path: ^/meet/, roles: PUBLIC_ACCESS }
         - { path: ^/library/login, roles: PUBLIC_ACCESS }
         - { path: ^/library/passkey/login, roles: PUBLIC_ACCESS }
         - { path: ^/library/logout, roles: PUBLIC_ACCESS }
         - { path: ^/library, roles: [ROLE_USER, ROLE_ADMIN] }
+        - { path: ^/account, roles: [ROLE_USER, ROLE_ADMIN] }
+        - { path: ^/practice/room, roles: [ROLE_USER, ROLE_ADMIN] }

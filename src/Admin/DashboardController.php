@@ -66,6 +66,8 @@ final class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Заявки');
         yield MenuItem::linkTo(InquiryCrudController::class, 'Заявки', 'fa fa-inbox');
         yield MenuItem::linkTo(PaymentOfferCrudController::class, 'Оплаты', 'fa fa-credit-card');
+        yield MenuItem::linkTo(PracticeSessionCrudController::class, 'Сессии практики', 'fa fa-video');
+        yield MenuItem::linkTo(SpeakMeetingCrudController::class, 'Встречи Speak', 'fa fa-comments');
         yield MenuItem::section('Личное');
         yield MenuItem::linkTo(LibraryBookCrudController::class, 'Библиотека', 'fa fa-book-open');
         // Прямые URL: linkToRoute у EasyAdmin оставляет /admin?routeName=… и ломает сайтный layout.

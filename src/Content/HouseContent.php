@@ -10,6 +10,23 @@ final class HouseContent
     /** Временно: главная «скоро» и пункт меню скрыты, пока не наберётся достаточно кейсов. */
     public const CASES_PUBLIC_ENABLED = false;
 
+    /**
+     * Временно: страница практики скрыта с карты и меню.
+     * Прямой URL `/practice` открыт только ROLE_ADMIN (доработка текстов/UX).
+     * Когда готово: true здесь (или PRACTICE_PUBLIC_ENABLED=1 в .env) и раскомментировать пункты ниже.
+     */
+    public const PRACTICE_PUBLIC_ENABLED = false;
+
+    public static function isPracticePublicEnabled(): bool
+    {
+        $fromEnv = $_ENV['PRACTICE_PUBLIC_ENABLED'] ?? $_SERVER['PRACTICE_PUBLIC_ENABLED'] ?? getenv('PRACTICE_PUBLIC_ENABLED');
+        if (false !== $fromEnv && null !== $fromEnv && '' !== (string) $fromEnv) {
+            return filter_var($fromEnv, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return self::PRACTICE_PUBLIC_ENABLED;
+    }
+
     public static function heroGreeting(): string
     {
         return 'Привет, меня зовут Артур';
@@ -71,6 +88,7 @@ final class HouseContent
             ['route' => 'web_dev_landing', 'label' => 'Разработка'],
             ['route' => 'web_library', 'label' => 'Библиотека'],
             // ['route' => 'web_cases', 'label' => 'Кейсы'], // TODO: раскомментировать вместе с CASES_PUBLIC_ENABLED
+            // ['route' => 'web_practice', 'label' => PracticeContent::navLabel()], // TODO: вместе с PRACTICE_PUBLIC_ENABLED
             ['route' => 'web_chronicle', 'label' => 'Хроника', 'persistFilters' => true],
             ['route' => 'web_contact', 'label' => 'Связь'],
         ];
@@ -103,6 +121,12 @@ final class HouseContent
                 'invite' => 'Полка, прогресс, закладки, цитаты и заметки — между устройствами, в том числе офлайн',
                 'route' => 'web_library',
             ],
+            [
+                'id' => 'place',
+                'label' => 'Своё место',
+                'invite' => 'Вход: чтение и ключи доступа',
+                'route' => 'web_account',
+            ],
             // Кейсы временно убраны с карты; код и админка остаются.
             // [
             //     'id' => 'cases',
@@ -116,6 +140,13 @@ final class HouseContent
                 'invite' => 'Мои тексты и фото из разных эпох',
                 'route' => 'web_chronicle',
             ],
+            // Практика временно скрыта с карты; /practice — только админ, пока PRACTICE_PUBLIC_ENABLED = false.
+            // [
+            //     'id' => 'practice',
+            //     'label' => PracticeContent::roomLabel(),
+            //     'invite' => PracticeContent::roomInvite(),
+            //     'route' => 'web_practice',
+            // ],
             [
                 'id' => 'lab',
                 'label' => 'Лаборатория',

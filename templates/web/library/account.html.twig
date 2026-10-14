@@ -1,13 +1,13 @@
 {% extends 'web/layout.html.twig' %}
 
-{% set accountTab = accountTab|default('reading') %}
-{% block title %}Своё место · библиотека{% endblock %}
+{% set accountTab = accountTab|default('practice') %}
+{% block title %}Своё место{% endblock %}
 
 {% block body %}
 <section class="library-page library-page--account" aria-labelledby="library-account-title">
     <div class="container library-shell">
         <nav class="case-crumb" aria-label="Навигация">
-            <a href="{{ path('web_library') }}">Библиотека</a>
+            <a href="{{ path('web_home') }}">Дом</a>
             <span class="case-crumb__sep" aria-hidden="true">/</span>
             <span class="case-crumb__current" aria-current="page">Своё место</span>
         </nav>
@@ -37,18 +37,113 @@
 
         <nav class="library-tabs" aria-label="Разделы своего места">
             <a
+                class="library-tabs__link{% if accountTab == 'practice' %} is-active{% endif %}"
+                href="{{ path('web_account', {tab: 'practice'}) }}"
+                {% if accountTab == 'practice' %}aria-current="page"{% endif %}
+            >Практика</a>
+            <a
                 class="library-tabs__link{% if accountTab == 'reading' %} is-active{% endif %}"
-                href="{{ path('web_library_account', {tab: 'reading'}) }}"
+                href="{{ path('web_account', {tab: 'reading'}) }}"
                 {% if accountTab == 'reading' %}aria-current="page"{% endif %}
             >Чтение</a>
             <a
                 class="library-tabs__link{% if accountTab == 'keys' %} is-active{% endif %}"
-                href="{{ path('web_library_account', {tab: 'keys'}) }}"
+                href="{{ path('web_account', {tab: 'keys'}) }}"
                 {% if accountTab == 'keys' %}aria-current="page"{% endif %}
             >Ключи доступа</a>
         </nav>
 
-        {% if accountTab == 'reading' %}
+        {% if accountTab == 'practice' %}
+            <section class="library-account library-account--practice" aria-labelledby="library-practice-title">
+                <h2 id="library-practice-title" class="library-account__section-title">Практика</h2>
+                <p class="library-account__section-lead">Заказы и доступ к комнате встреч.</p>
+
+                {% if hasPracticeRoomAccess %}
+                    <p class="library-account__practice-cta">
+                        <a class="btn btn-primary" href="{{ path('web_practice_room') }}">Войти в комнату практики</a>
+                    </p>
+                {% endif %}
+
+                {% if practiceSessionsTotal > 0 %}
+                    <p class="library-account__practice-balance">Осталось встреч: {{ practiceSessionsLeft }} из {{ practiceSessionsTotal }}</p>
+                {% endif %}
+
+                {% if practiceOffers is empty %}
+                    <p class="library-account__panel-empty">Пока нет заказов. Можно оформить участие на <a href="{{ path('web_practice') }}">странице практики</a>.</p>
+                {% else %}
+                    <ul class="library-account__offer-list">
+                        {% for offer in practiceOffers %}
+                            <li class="library-account__offer-item">
+                                <div class="library-account__offer-copy">
+                                    <p class="library-account__offer-title">{{ offer.title }}</p>
+                                    <p class="library-account__offer-meta">
+                                        {% if offer.amount == 0 %}
+                                            вход свободный
+                                        {% else %}
+                                            {{ offer.amountRubles|number_format(0, ',', ' ') }} ₽
+                                        {% endif %}
+                                        · {{ offer.status.label() }}
+                                        · {{ offer.createdAt|date('d.m.Y') }}
+                                        {% if offer.status.value == 'paid' and offer.sessionsTotal > 0 %}
+                                            · осталось {{ offer.sessionsLeft }} из {{ offer.sessionsTotal }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="library-account__offer-actions">
+                                    {% if offer.status.value == 'pending' %}
+                                        <a class="btn btn-primary" href="{{ practiceOfferUrls[offer.token] }}">Оплатить</a>
+                                        <form method="post" class="library-account__offer-form" onsubmit="return confirm('Отменить эту заявку?')">
+                                            <input type="hidden" name="action" value="cancel_offer">
+                                            <input type="hidden" name="offer_token" value="{{ offer.token }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('practice_offer_cancel_offer_' ~ offer.token) }}">
+                                            <button type="submit" class="library-account__offer-link">Отменить</button>
+                                        </form>
+                                    {% elseif offer.status.value == 'paid' %}
+                                        <a class="library-account__offer-link" href="{{ path('web_practice_room') }}">В комнату</a>
+                                    {% elseif offer.status.value in ['cancelled', 'expired'] %}
+                                        <form method="post" class="library-account__offer-form" onsubmit="return confirm('Убрать заявку из списка?')">
+                                            <input type="hidden" name="action" value="delete_offer">
+                                            <input type="hidden" name="offer_token" value="{{ offer.token }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('practice_offer_delete_offer_' ~ offer.token) }}">
+                                            <button type="submit" class="library-account__offer-link">Удалить</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if practiceRecordings is not empty %}
+                    <section class="library-account__recordings" aria-labelledby="library-practice-recordings-title">
+                        <h3 id="library-practice-recordings-title" class="library-account__subsection-title">Галерея записей</h3>
+                        <ul class="library-account__gallery">
+                            {% for session in practiceRecordings %}
+                                <li class="library-account__gallery-item">
+                                    <a class="library-account__gallery-card" href="{{ path('web_practice_room') }}">
+                                        {% if session.posterUrl %}
+                                            <img class="library-account__gallery-poster" src="{{ session.posterUrl }}" alt="" loading="lazy" width="320" height="180">
+                                        {% else %}
+                                            <span class="library-account__gallery-poster library-account__gallery-poster--empty" aria-hidden="true"></span>
+                                        {% endif %}
+                                        <span class="library-account__gallery-copy">
+                                            <span class="library-account__gallery-title">{{ session.title }}</span>
+                                            <span class="library-account__gallery-meta">
+                                                {{ session.startsAt|date('d.m.Y') }}
+                                                · {{ session.kind.label() }}
+                                                {% if session.durationSeconds %}
+                                                    · {{ (session.durationSeconds / 60)|round(0, 'floor') }} мин
+                                                {% endif %}
+                                            </span>
+                                        </span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                {% endif %}
+            </section>
+        {% elseif accountTab == 'reading' %}
             {% set openMarksPanel = recentBookmarks is not empty ? 'bookmarks' : (recentQuotes is not empty ? 'quotes' : (recentNotes is not empty ? 'notes' : 'bookmarks')) %}
             <section class="library-account library-account--marks" aria-labelledby="library-marks-title">
                 <h2 id="library-marks-title" class="visually-hidden">Закладки, цитаты и заметки</h2>
@@ -213,7 +308,8 @@
         {% endif %}
 
         <footer class="library-account__footer">
-            <a href="{{ path('web_library') }}">← К полке</a>
+            <a href="{{ path('web_home') }}">← На главную</a>
+            <a href="{{ path('web_library') }}">Библиотека</a>
             <a href="{{ path('web_library_logout') }}">Выйти</a>
         </footer>
     </div>

@@ -53,5 +53,10 @@ final class PasskeyConfigurationTest extends KernelTestCase
         self::assertStringContainsString('^/admin/passkey/login, roles: PUBLIC_ACCESS', $config);
         self::assertStringContainsString('^/library/login, roles: PUBLIC_ACCESS', $config);
         self::assertStringContainsString('^/library, roles: [ROLE_USER, ROLE_ADMIN]', $config);
+        self::assertStringContainsString('^/account, roles: [ROLE_USER, ROLE_ADMIN]', $config);
+
+        $webauthn = (string) file_get_contents(dirname(__DIR__, 2).'/config/packages/webauthn.yaml');
+        self::assertStringContainsString('enroll: web_account', $webauthn);
+        self::assertStringContainsString('manage: web_account', $webauthn);
     }
 }

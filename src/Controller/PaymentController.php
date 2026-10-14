@@ -2,37 +2,31 @@
 
 namespace App\Controller;
 
-use App\Repository\SiteSettingsRepository;
+use App\Enum\PaymentOfferStatus;
 use App\Service\PaymentOfferService;
-use App\Seo\SeoMetadataFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+/** Legacy /oplata/{token}: thin redirect to gateway URL when set. */
 final class PaymentController extends AbstractController
 {
     #[Route('/oplata/{token}', name: 'web_payment_show', methods: ['GET'])]
     public function show(
         string $token,
-        Request $request,
         PaymentOfferService $paymentOfferService,
-        SeoMetadataFactory $seoMetadataFactory,
-        SiteSettingsRepository $siteSettingsRepository,
     ): Response {
         $offer = $paymentOfferService->getValidOffer($token);
-        $settings = $siteSettingsRepository->getSettings();
 
-        return $this->render('web/payment/show.html.twig', [
-            'offer' => $offer,
-            'inquiry' => $offer->getInquiry(),
-            'seo' => $seoMetadataFactory->forRoute(
-                'web_payment_show',
-                $request,
-                $settings,
-                [],
-                $offer->getTitle(),
-            ),
-        ]);
+        if (PaymentOfferStatus::Paid === $offer->getStatus()) {
+            return $this->redirectToRoute('web_account', ['tab' => 'practice']);
+        }
+
+        $payUrl = $paymentOfferService->getPayUrl($offer);
+        if (null !== $payUrl) {
+            return $this->redirect($payUrl);
+        }
+
+        throw $this->createNotFoundException('Ссылка на оплату ещё не готова.');
     }
 }

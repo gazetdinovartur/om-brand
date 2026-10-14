@@ -17,6 +17,16 @@ parameters:
     env(TELEGRAM_CHANNEL_ID): ''
     env(TELEGRAM_CHANNEL_ENABLED): '0'
     env(SBP_PAYMENT_URL_TEMPLATE): ''
+    env(YOOKASSA_SHOP_ID): ''
+    env(YOOKASSA_SECRET_KEY): ''
+    env(KINESCOPE_WEBHOOK_USER): ''
+    env(KINESCOPE_WEBHOOK_PASSWORD): ''
+    env(KINESCOPE_API_TOKEN): ''
+    env(KINESCOPE_PARENT_ID): ''
+    env(KINESCOPE_SPEAK_OWNER_ID): ''
+    env(KINESCOPE_JWT_PRIVATE_KEY_PATH): ''
+    env(KINESCOPE_JWT_KID): ''
+    env(PRACTICE_PUBLIC_ENABLED): ''
     env(MAILER_DSN): 'null://null'
     env(MAILER_FROM): ''
     env(APP_SITE_URL): ''
@@ -110,3 +120,24 @@ services:
     App\Service\PaymentSbpUrlFactory:
         arguments:
             $envTemplate: '%env(default:app.sbp_payment_url_template:SBP_PAYMENT_URL_TEMPLATE)%'
+
+    App\Infrastructure\Yookassa\YookassaClient:
+        arguments:
+            $shopId: '%env(YOOKASSA_SHOP_ID)%'
+            $secretKey: '%env(YOOKASSA_SECRET_KEY)%'
+
+    App\Controller\WebhookController:
+        arguments:
+            $kinescopeWebhookUser: '%env(KINESCOPE_WEBHOOK_USER)%'
+            $kinescopeWebhookPassword: '%env(KINESCOPE_WEBHOOK_PASSWORD)%'
+
+    App\Infrastructure\Kinescope\KinescopeClient:
+        arguments:
+            $apiToken: '%env(KINESCOPE_API_TOKEN)%'
+            $parentId: '%env(KINESCOPE_PARENT_ID)%'
+            $speakOwnerId: '%env(KINESCOPE_SPEAK_OWNER_ID)%'
+
+    App\Infrastructure\Kinescope\KinescopeSpeakJwt:
+        arguments:
+            $privateKeyPathOrPem: '%env(KINESCOPE_JWT_PRIVATE_KEY_PATH)%'
+            $kid: '%env(KINESCOPE_JWT_KID)%'

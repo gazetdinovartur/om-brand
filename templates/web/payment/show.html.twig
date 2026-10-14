@@ -17,9 +17,9 @@
                     <p class="payment-card__status payment-card__status--paid">Оплата получена. Спасибо!</p>
                 {% elseif offer.status.value == 'cancelled' %}
                     <p class="payment-card__status">Ссылка отменена. Напишите, если нужна новая.</p>
-                {% elseif offer.sberPaymentUrl %}
-                    <a class="btn btn-primary btn-block" href="{{ offer.sberPaymentUrl }}" rel="noopener">Оплатить через СБП</a>
-                    <p class="payment-card__hint">После оплаты я свяжусь с вами и отправлю чек.</p>
+                {% elseif offer.paymentUrl %}
+                    <a class="btn btn-primary btn-block" href="{{ offer.paymentUrl }}" rel="noopener">Оплатить</a>
+                    <p class="payment-card__hint">После оплаты доступ откроется автоматически.</p>
                 {% else %}
                     <p class="payment-card__status">Ссылка на оплату готовится. Если что — напишите напрямую.</p>
                 {% endif %}

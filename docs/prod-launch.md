@@ -77,6 +77,14 @@ VAPID_SUBJECT=mailto:info@arturlun.ru
 OM_PLAYER_SCRIPT_URL=https://music.arturlun.ru/build/player/om-player.iife.js
 OM_PLAYER_API_BASE=https://music.arturlun.ru/api/v1
 
+# Практика + ЮKassa + Kinescope (см. раздел 6 ниже и docs/practice.md)
+YOOKASSA_SHOP_ID=
+YOOKASSA_SECRET_KEY=
+KINESCOPE_WEBHOOK_USER=
+KINESCOPE_WEBHOOK_PASSWORD=
+# 0 = скрыта с карты/меню, /practice только админ; 1 = публично (+ раскомментировать HouseContent)
+PRACTICE_PUBLIC_ENABLED=0
+
 # Сброс кэша CSS/JS у вернувшихся посетителей — bump при каждом фронт-релизе
 ASSETS_VERSION=20260723a
 ```
@@ -219,16 +227,18 @@ rm -rf content/instagram content/instagram-heyteaflow content/vk \
 
 ## 4. Чеклист https://arturlun.ru/
 
-- [ ] `/` — дом, комнаты; кейсы — «скоро», если черновики
+- [ ] `/` — дом, комнаты; кейсы — «скоро», если черновики; **практика на карте скрыта**, пока `PRACTICE_PUBLIC_ENABLED=0`
 - [ ] `/dev`, `/contact`, `/cases`, `/chronicle`
+- [ ] `/practice` — 404 для гостя; у админа (после входа в `/admin`) открывается по прямой ссылке
 - [ ] `/admin/login` — вход
 - [ ] Картинки хроники (Instagram галереи, VK)
 - [ ] Лайки / шаринг `/p/…`
 - [ ] Форма заявки → Telegram / email
 - [ ] Email/push подписка и notify — см. [notify-smoke-checklist.md](notify-smoke-checklist.md)
-- [ ] `view-source`: canonical `https://arturlun.ru`, CSS/JS с `?v=20260723a`
-- [ ] `/robots.txt`, `/sitemap.xml`
+- [ ] `view-source`: canonical `https://arturlun.ru`, CSS/JS с актуальным `?v=…`
+- [ ] `/robots.txt`, `/sitemap.xml` (практики в sitemap нет, пока не публична)
 - [ ] В админке опубликовать нужные кейсы вручную
+- [ ] Практика: ЮKassa + Kinescope — см. раздел 6
 
 ---
 
@@ -245,3 +255,103 @@ rm -rf content/instagram content/instagram-heyteaflow content/vk \
 Обычный `./deploy-script.sh` **не** вызывает `app:cases:seed` и **не** перезаписывает правки кейсов/настроек из админки.
 
 Не заливай полный mysqldump локальной БД на прод. Хроника = corpus + import.
+
+---
+
+## 6. Практика на прод: что нужно от тебя
+
+Логика продукта: [practice.md](practice.md). Ниже — чеклист именно **твоих** действий при выкладке этой фичи.
+
+### 6.1 Код и миграция (обычный деплой)
+
+На сервере после `git pull`:
+
+```bash
+cd /home/c502022/arturlun.ru/om-brand   # свой путь
+./deploy-script.sh
+# внутри: composer, doctrine:migrations:migrate, cache:clear
+```
+
+Миграция `Version20261014020000` добавляет баланс на `payment_offer` и таблицу `practice_session`. Без неё комната/админка сессий упадут.
+
+Bump `ASSETS_VERSION` в `.env`, если выкатываешь CSS комнаты/кабинета.
+
+### 6.2 Переменные в `.env` на сервере (заполни ты)
+
+| Переменная | Откуда взять | Зачем |
+|------------|--------------|--------|
+| `YOOKASSA_SHOP_ID` | [ЮKassa](https://yookassa.ru/) → магазин | Создание платежей практики |
+| `YOOKASSA_SECRET_KEY` | там же, секретный ключ | API + проверка webhook |
+| `KINESCOPE_WEBHOOK_USER` | сам придумаешь при создании webhook в Kinescope | HTTP Basic на `/webhooks/kinescope` |
+| `KINESCOPE_WEBHOOK_PASSWORD` | то же | то же |
+| `PRACTICE_PUBLIC_ENABLED` | `0` пока дорабатываешь страницу | Скрытие с карты/меню; `/practice` только ROLE_ADMIN |
+| `APP_SITE_URL` / `DEFAULT_URI` | `https://arturlun.ru` | return URL ЮKassa, абсолютные ссылки в письмах |
+| `MAILER_*` | уже должны быть | письма записи/оплаты/комнаты |
+| `TELEGRAM_*` | уже должны быть | уведомления тебе и (если привязан) пользователю |
+
+После правки `.env`: снова `php bin/console cache:clear --env=prod`.
+
+### 6.3 ЮKassa (кабинет ЮKassa)
+
+1. Магазин в режиме, подходящем для живых платежей (или тест — осознанно).
+2. **HTTP-уведомления** на URL:
+
+   `https://arturlun.ru/webhooks/yookassa`
+
+   Событие минимум: `payment.succeeded` (наш код ещё сверит платёж через API).
+3. В настройках магазина домен return URL должен совпадать с `APP_SITE_URL` (возврат ведёт в `/account?tab=practice&yk_return=1&token=…`).
+4. Проверка: тестовая/реальная оплата разовой практики → офер `paid`, письмо про комнату, в админке статус Done у заявки.
+
+### 6.4 Kinescope (кабинет Kinescope)
+
+1. Включи **запись** эфира и чат после стрима:
+   - `chat_after_stream` = on  
+   - `chat_active` = on (чтобы писать после эфира — обратная связь)
+2. Создай **исходящий webhook** (через API, не кабинет):
+
+   ```bash
+   php bin/console app:kinescope:setup-webhook
+   # на проде APP_SITE_URL=https://arturlun.ru уже в .env
+   ```
+
+   URL: `https://arturlun.ru/webhooks/kinescope`, Basic = `KINESCOPE_WEBHOOK_*`, события live/speak/media (см. команду).
+3. Для каждой встречи:
+   - в Kinescope создаёшь live event → копируешь **event id**;
+   - в админке сайта: **Сессии практики** → новая сессия → вставь event id, дату, название;
+   - перед эфиром статус → **Эфир (`live`)**.
+4. После окончания стрима Kinescope шлёт webhook → у нас `replay` + `video_id` + списание встречи. Если webhook не дошёл — кнопка **«Эфир завершён»** в админке (тот же код).
+5. Домены для embed: разреши `arturlun.ru` в privacy/embed настройках плеера, если ограничил домены.
+6. Speak host JWT (ведущий в iframe): на сервере `php bin/console app:kinescope:setup-jwt`, пропиши `KINESCOPE_JWT_PRIVATE_KEY_PATH` и `KINESCOPE_JWT_KID` (см. `docs/practice.md`).
+
+### 6.5 Как смотреть страницу, пока она скрыта
+
+1. Войди в `/admin` (админ-сессия общая с сайтом — `context: app`).
+2. Открой напрямую: `https://arturlun.ru/practice`
+3. Гость и обычный SiteUser без ROLE_ADMIN получат **404**.
+4. Комната `/practice/room` и вкладка «Практика» в Своём месте работают у пользователей с оплаченным доступом (для e2e можно оформить заявку под админом или завести тестового пользователя после оплаты).
+
+### 6.6 Когда отдаёшь практику публике
+
+1. В `.env`: `PRACTICE_PUBLIC_ENABLED=1` (или `HouseContent::PRACTICE_PUBLIC_ENABLED = true`).
+2. В `HouseContent.php` раскомментируй пункт меню и комнату на карте (TODO-комментарии рядом с практикой).
+3. Деплой + cache clear + при желании убрать `Disallow: /practice` из robots.
+4. Проверь: `/` показывает дверку, меню содержит «Практика», гость открывает `/practice`, sitemap содержит URL.
+
+### 6.7 Smoke после деплоя практики
+
+- [ ] Миграции applied (`doctrine:migrations:status` — Latest = Current)
+- [ ] Админ открывает `/practice`, гость — 404
+- [ ] Админка → Сессии практики — CRUD открывается
+- [ ] (опционально) тестовая оплата ЮKassa → paid
+- [ ] (опционально) тестовый `live.finished` на webhook (curl + Basic) с известным event id → replay + `sessionsLeft` −1
+- [ ] Комната показывает embed при live/replay; без них — текст про ближайшую
+
+Пример ручной проверки webhook Kinescope:
+
+```bash
+curl -u 'USER:PASS' -X POST 'https://arturlun.ru/webhooks/kinescope' \
+  -H 'Content-Type: application/json' \
+  -d '{"event":"live.finished","data":{"event_id":"ВАШ_EVENT_ID","video_id":"ВАШ_VIDEO_ID"}}'
+```
+
+Ответ ожидается `{"ok":true}`.

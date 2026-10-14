@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#f5efe4">
+    {% set currentRoute = app.request.attributes.get('_route') %}
+    <meta name="theme-color" content="{% block theme_color %}{% if currentRoute == 'web_practice' %}#5c1a24{% else %}#f5efe4{% endif %}{% endblock %}">
     {% set siteName = siteName|default(blocksBySlug.hero.title|default(settings.name)) %}
     <title>{% block title %}{{ seo.title }}{% endblock %}</title>
     {% include 'web/_partials/seo_head.html.twig' %}
@@ -22,9 +23,8 @@
     </script>
     {% block head %}{% endblock %}
 </head>
-{% set currentRoute = app.request.attributes.get('_route') %}
 {% set isReaderPage = currentRoute == 'web_library_read' %}
-<body class="site-body site-body--{{ siteShell|default('house') }}{% if currentRoute == 'web_home' %} site-body--home-screen{% endif %}{% if isReaderPage %} site-body--reader{% endif %}">
+<body class="site-body site-body--{{ siteShell|default('house') }}{% if currentRoute == 'web_home' %} site-body--home-screen{% endif %}{% if currentRoute == 'web_practice' %} site-body--practice{% endif %}{% if isReaderPage %} site-body--reader{% endif %}">
     <div class="solstice-glow" aria-hidden="true"></div>
 
     {% if currentRoute != 'web_home' %}
@@ -52,7 +52,7 @@
         {% include 'web/_partials/mobile_nav.html.twig' %}
     {% endif %}
 
-    {% if currentRoute not in ['web_home', 'web_dev_landing', 'web_contact'] %}
+    {% if currentRoute not in ['web_home', 'web_dev_landing', 'web_contact', 'web_practice'] %}
         {% for label, messages in app.flashes %}
             {% for message in messages %}
                 <div class="container mt-3">

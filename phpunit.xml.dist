@@ -8,6 +8,15 @@
         <env name="KERNEL_CLASS" value="App\Kernel"/>
         <env name="APP_ENV" value="test"/>
         <env name="APP_DEBUG" value="1"/>
+        <!-- В тестах лендинг практики публичен; на проде по умолчанию скрыт (HouseContent). -->
+        <env name="PRACTICE_PUBLIC_ENABLED" value="1"/>
+        <env name="KINESCOPE_API_TOKEN" value=""/>
+        <env name="KINESCOPE_PARENT_ID" value=""/>
+        <env name="KINESCOPE_SPEAK_OWNER_ID" value=""/>
+        <env name="KINESCOPE_JWT_PRIVATE_KEY_PATH" value=""/>
+        <env name="KINESCOPE_JWT_KID" value=""/>
+        <env name="KINESCOPE_WEBHOOK_USER" value="test-kinescope"/>
+        <env name="KINESCOPE_WEBHOOK_PASSWORD" value="test-kinescope-pass"/>
     </php>
     <testsuites>
         <testsuite name="Project Test Suite">

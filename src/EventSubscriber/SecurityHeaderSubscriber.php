@@ -30,17 +30,21 @@ final class SecurityHeaderSubscriber implements EventSubscriberInterface
         $headers->set('X-Frame-Options', 'SAMEORIGIN');
         $headers->set('X-Content-Type-Options', 'nosniff');
         $headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+        $speakSurface = \in_array($route, ['web_practice_room', 'web_speak_meet'], true);
+        $permissions = $speakSurface
+            ? 'geolocation=()'
+            : 'geolocation=(), microphone=(), camera=()';
+        $headers->set('Permissions-Policy', $permissions);
         $headers->set(
             'Content-Security-Policy',
             "default-src 'self'; "
             // Telegram Login — server-side OAuth redirect; no widget script/iframe
             ."script-src 'self' 'unsafe-inline' https://music.arturlun.ru; "
             ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            ."img-src 'self' data: blob: https://i.ytimg.com https://img.youtube.com https://t.me https://telegram.org; "
+            ."img-src 'self' data: blob: https://i.ytimg.com https://img.youtube.com https://t.me https://telegram.org https://*.kinescope.io; "
             ."font-src 'self' https://fonts.gstatic.com; "
             ."media-src 'self' https://music.arturlun.ru blob:; "
-            ."frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://rutube.ru; "
+            ."frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://rutube.ru https://kinescope.io https://player.kinescope.io https://speak.kinescope.io; "
             ."connect-src 'self' https://music.arturlun.ru; "
             ."base-uri 'self'; "
             ."form-action 'self'",

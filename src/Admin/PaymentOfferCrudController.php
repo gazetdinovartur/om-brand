@@ -2,8 +2,10 @@
 
 namespace App\Admin;
 
+use App\Entity\Inquiry;
 use App\Entity\PaymentOffer;
 use App\Enum\PaymentOfferStatus;
+use App\Repository\InquiryRepository;
 use App\Service\PaymentOfferService;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -21,12 +23,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class PaymentOfferCrudController extends AbstractCrudController
 {
     public function __construct(
         private readonly PaymentOfferService $paymentOfferService,
         private readonly AdminUrlGenerator $adminUrlGenerator,
+        private readonly InquiryRepository $inquiries,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
@@ -47,7 +52,7 @@ class PaymentOfferCrudController extends AbstractCrudController
             ->setEntityLabelInPlural('Оплаты')
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->setPageTitle(Crud::PAGE_INDEX, 'Оплаты')
-            ->setPageTitle(Crud::PAGE_NEW, 'Новая ссылка на оплату')
+            ->setPageTitle(Crud::PAGE_NEW, 'Новая оплата')
             ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать оплату')
             ->setPageTitle(Crud::PAGE_DETAIL, 'Оплата')
             ->showEntityActionsInlined();
@@ -60,6 +65,24 @@ class PaymentOfferCrudController extends AbstractCrudController
             ->add(Crud::PAGE_INDEX, Action::DETAIL);
     }
 
+    public function createEntity(string $entityFqcn): PaymentOffer
+    {
+        $offer = new PaymentOffer();
+
+        $inquiryId = (int) ($this->requestStack->getCurrentRequest()?->query->get('inquiry') ?? 0);
+        if ($inquiryId > 0) {
+            $inquiry = $this->inquiries->find($inquiryId);
+            if ($inquiry instanceof Inquiry) {
+                $offer->setInquiry($inquiry);
+                if ('' === $offer->getTitle()) {
+                    $offer->setTitle(sprintf('Оплата — %s', $inquiry->getName()));
+                }
+            }
+        }
+
+        return $offer;
+    }
+
     public function configureFields(string $pageName): iterable
     {
         yield TextField::new('token', 'Ссылки')
@@ -69,10 +92,11 @@ class PaymentOfferCrudController extends AbstractCrudController
 
         yield IdField::new('id')->hideOnForm();
 
-        yield AssociationField::new('inquiry', 'Заявка');
+        yield AssociationField::new('inquiry', 'Заявка')
+            ->setHelp('Для чека ЮKassa нужен email в контакте заявки.');
         yield TextField::new('title', 'Название');
         yield IntegerField::new('amount', 'Сумма, ₽')
-            ->setHelp('Целое число в рублях, например 5000. Ссылка СБП пересчитается при сохранении, если задан шаблон в настройках.')
+            ->setHelp('Целое число в рублях, например 5000. При создании сразу создаётся платёж в ЮKassa.')
             ->formatValue(static fn (int $value): string => number_format($value / 100, 0, ',', ' ').' ₽')
             ->setFormTypeOptions([
                 // В БД — копейки; в админке показываем и принимаем рубли.
@@ -82,15 +106,22 @@ class PaymentOfferCrudController extends AbstractCrudController
                 },
             ]);
 
-        yield TextField::new('sberPaymentUrl', 'Ссылка СБП')
+        yield TextField::new('paymentUrl', 'Ссылка на оплату')
+            ->setHelp('confirmation_url ЮKassa')
             ->hideOnForm()
-            ->setHelp('Заполняется автоматически из шаблона в настройках сайта.');
+            ->hideOnIndex();
+
+        yield TextField::new('yookassaPaymentId', 'ID платежа ЮKassa')
+            ->hideOnForm()
+            ->hideOnIndex();
 
         yield ChoiceField::new('status', 'Статус')
             ->setChoices(array_combine(
                 array_map(static fn (PaymentOfferStatus $s) => $s->label(), PaymentOfferStatus::cases()),
                 PaymentOfferStatus::cases(),
-            ));
+            ))
+            ->setHelp('Меняется автоматически по webhook / возврату из ЮKassa.')
+            ->hideOnForm();
 
         yield DateTimeField::new('expiresAt', 'Действует до');
         yield DateTimeField::new('paidAt', 'Оплачено')->hideOnForm();
@@ -102,9 +133,34 @@ class PaymentOfferCrudController extends AbstractCrudController
     {
         parent::persistEntity($entityManager, $entityInstance);
 
-        if ($entityInstance instanceof PaymentOffer) {
-            $this->flashClientUrl($entityInstance, created: true);
+        if (!$entityInstance instanceof PaymentOffer) {
+            return;
         }
+
+        $inquiry = $entityInstance->getInquiry();
+        if (!$inquiry instanceof Inquiry) {
+            $entityManager->remove($entityInstance);
+            $entityManager->flush();
+            throw new \InvalidArgumentException('Выберите заявку — оплата всегда привязана к заявке.');
+        }
+
+        try {
+            $this->paymentOfferService->attachYookassaPayment(
+                $entityInstance,
+                $inquiry->getContact(),
+                $entityInstance->getTitle(),
+            );
+        } catch (\Throwable $exception) {
+            $entityManager->remove($entityInstance);
+            $entityManager->flush();
+            throw new \RuntimeException(
+                'Не удалось создать платёж в ЮKassa: '.$exception->getMessage(),
+                0,
+                $exception,
+            );
+        }
+
+        $this->flashClientUrl($entityInstance, created: true);
     }
 
     public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
@@ -145,5 +201,4 @@ class PaymentOfferCrudController extends AbstractCrudController
             $this->paymentOfferService->getClientUrl($offer),
         ));
     }
-
 }

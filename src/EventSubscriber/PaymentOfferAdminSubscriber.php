@@ -4,16 +4,16 @@ namespace App\EventSubscriber;
 
 use App\Entity\PaymentOffer;
 use App\Service\PaymentOfferService;
-use App\Service\PaymentSbpUrlFactory;
 use EasyCorp\Bundle\EasyAdminBundle\Event\AfterEntityPersistedEvent;
-use EasyCorp\Bundle\EasyAdminBundle\Event\BeforeEntityPersistedEvent;
-use EasyCorp\Bundle\EasyAdminBundle\Event\BeforeEntityUpdatedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ * Telegram-уведомление после успешного создания оплаты в админке.
+ * Платёж ЮKassa создаётся в PaymentOfferCrudController::persistEntity.
+ */
 final class PaymentOfferAdminSubscriber implements EventSubscriberInterface
 {
     public function __construct(
-        private readonly PaymentSbpUrlFactory $sbpUrlFactory,
         private readonly PaymentOfferService $paymentOfferService,
     ) {
     }
@@ -21,29 +21,19 @@ final class PaymentOfferAdminSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            BeforeEntityPersistedEvent::class => 'applySbpUrl',
-            BeforeEntityUpdatedEvent::class => 'applySbpUrl',
             AfterEntityPersistedEvent::class => 'notifyCreated',
         ];
-    }
-
-    public function applySbpUrl(BeforeEntityPersistedEvent|BeforeEntityUpdatedEvent $event): void
-    {
-        $entity = $event->getEntityInstance();
-        if (!$entity instanceof PaymentOffer) {
-            return;
-        }
-
-        $sbpUrl = $this->sbpUrlFactory->build($entity);
-        if (null !== $sbpUrl) {
-            $entity->setSberPaymentUrl($sbpUrl);
-        }
     }
 
     public function notifyCreated(AfterEntityPersistedEvent $event): void
     {
         $entity = $event->getEntityInstance();
         if (!$entity instanceof PaymentOffer) {
+            return;
+        }
+
+        // Без URL значит persistEntity откатил создание (или ещё не прикрепил ЮKassa).
+        if (null === $this->paymentOfferService->getPayUrl($entity)) {
             return;
         }
 

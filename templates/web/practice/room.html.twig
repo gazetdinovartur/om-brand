@@ -1,0 +1,85 @@
+{% extends 'web/layout.html.twig' %}
+
+{% block title %}Комната практики{% endblock %}
+
+{% block body %}
+<section class="section practice-room" aria-labelledby="practice-room-title">
+    <div class="container practice-container">
+        <nav class="case-crumb" aria-label="Навигация">
+            <a href="{{ path('web_account', {tab: 'practice'}) }}">Своё место · Практика</a>
+            <span class="case-crumb__sep" aria-hidden="true">/</span>
+            <span class="case-crumb__current" aria-current="page">Комната</span>
+        </nav>
+
+        <header class="practice-room__head">
+            <h1 id="practice-room-title">Комната практики</h1>
+            {% if sessionsTotal > 0 %}
+                <p class="practice-room__balance">Осталось встреч: {{ sessionsLeft }} из {{ sessionsTotal }}</p>
+            {% endif %}
+        </header>
+
+        {% if focusSession and focusSession.hasPlayerEmbed %}
+            <div class="practice-room__stage">
+                <p class="practice-room__session-meta">
+                    <span class="practice-room__session-title">{{ focusSession.title }}</span>
+                    · {{ focusSession.startsAt|date('d.m.Y H:i') }}
+                    · {{ focusSession.kind.label() }}
+                    · {{ focusSession.status.label() }}
+                </p>
+
+                {% if focusSession.speak and focusSession.status.value != 'replay' and speakEmbedUrl and not focusSession.kinescopeVideoId %}
+                    <div class="practice-room__speak">
+                        <iframe
+                            src="{{ speakEmbedUrl }}"
+                            title="{{ focusSession.title }}"
+                            allow="camera; microphone; display-capture; fullscreen; autoplay; clipboard-write"
+                            allowfullscreen
+                        ></iframe>
+                    </div>
+                {% else %}
+                    <div class="practice-room__media{% if focusSession.chatEmbedUrl and not focusSession.speak %} practice-room__media--with-chat{% endif %}">
+                        <div class="practice-room__player kin-player-embed-container">
+                            <iframe
+                                src="https://kinescope.io/embed/{{ focusSession.playerEmbedId }}"
+                                title="{{ focusSession.title }}"
+                                allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+                                allowfullscreen
+                                loading="lazy"
+                            ></iframe>
+                        </div>
+                        {% if focusSession.chatEmbedUrl and not focusSession.speak %}
+                            <div class="practice-room__chat">
+                                <iframe
+                                    src="{{ focusSession.chatEmbedUrl }}"
+                                    title="Чат: {{ focusSession.title }}"
+                                    allow="clipboard-write"
+                                    loading="lazy"
+                                ></iframe>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="form-card practice-panel practice-room__card">
+                <p class="practice-room__status">Сейчас эфира нет</p>
+                {% if nextSession %}
+                    <p class="practice-room__hint">
+                        Ближайшая встреча: {{ nextSession.startsAt|date('d.m.Y H:i') }}
+                        {% if nextSession.title %} · {{ nextSession.title }}{% endif %}
+                    </p>
+                {% else %}
+                    <p class="practice-room__hint">Расписание появится здесь.</p>
+                {% endif %}
+                {% if sessionsTotal > 0 %}
+                    <p class="practice-room__hint">Осталось встреч: {{ sessionsLeft }} из {{ sessionsTotal }}</p>
+                {% endif %}
+                <p class="practice-room__actions">
+                    <a class="btn practice-btn" href="{{ path('web_account', {tab: 'practice'}) }}">Своё место · Практика</a>
+                    <a class="btn practice-btn practice-btn--ghost" href="{{ path('web_practice') }}">К странице практики</a>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

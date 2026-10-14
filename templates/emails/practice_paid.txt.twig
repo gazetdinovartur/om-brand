@@ -1,0 +1,11 @@
+Регуляция и регулярность · оплата получена
+
+Привет{{ inquiry and inquiry.name ? ', '~inquiry.name : '' }}.
+Оплата за «{{ offer.title }}» прошла{% if amountRubles > 0 %} ({{ amountRubles|number_format(0, ',', ' ') }} ₽){% endif %}.
+
+Доступ к комнате практики открыт.
+
+Войти в комнату: {{ loginUrl }}
+
+Если уже вошёл: {{ roomUrl }}
+Заказы: {{ accountUrl }}

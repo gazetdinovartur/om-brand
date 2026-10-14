@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\AdminUser;
+use App\Entity\PaymentOffer;
 use App\Entity\SiteUser;
 use App\Entity\WebauthnCredential;
+use App\Enum\PaymentOfferStatus;
+use App\Repository\PaymentOfferRepository;
+use App\Repository\PracticeSessionRepository;
 use App\Repository\ReadingBookmarkRepository;
 use App\Repository\ReadingNoteRepository;
 use App\Repository\ReadingQuoteRepository;
 use App\Repository\WebauthnCredentialRepository;
 use App\Security\SiteUserAuthenticator;
+use App\Service\PaymentOfferService;
+use App\Service\PracticeSessionService;
 use App\Service\SiteEmailLoginService;
 use App\Service\SiteUserResolver;
 use App\Service\TelegramOAuthClient;
@@ -21,6 +27,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -37,6 +44,10 @@ final class LibraryAuthController extends AbstractController
         private readonly ReadingBookmarkRepository $bookmarks,
         private readonly ReadingQuoteRepository $quotes,
         private readonly ReadingNoteRepository $notes,
+        private readonly PaymentOfferRepository $paymentOffers,
+        private readonly PaymentOfferService $paymentOfferService,
+        private readonly PracticeSessionRepository $practiceSessions,
+        private readonly PracticeSessionService $practiceSessionService,
         #[Autowire(service: 'limiter.library_login')]
         private readonly RateLimiterFactory $loginLimiter,
     ) {
@@ -179,7 +190,17 @@ final class LibraryAuthController extends AbstractController
         throw new \LogicException('Logout is handled by Symfony security.');
     }
 
-    #[Route('/library/account', name: 'web_library_account', methods: ['GET', 'POST'])]
+    #[Route('/library/account', name: 'web_library_account_redirect', methods: ['GET', 'POST'])]
+    public function accountRedirect(Request $request): Response
+    {
+        return $this->redirectToRoute(
+            'web_account',
+            $request->query->all(),
+            $request->isMethod('POST') ? Response::HTTP_TEMPORARY_REDIRECT : Response::HTTP_MOVED_PERMANENTLY,
+        );
+    }
+
+    #[Route('/account', name: 'web_account', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_USER')]
     public function account(Request $request): Response
     {
@@ -188,12 +209,30 @@ final class LibraryAuthController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $accountTab = $request->query->getString('tab', 'reading');
-        if (!\in_array($accountTab, ['reading', 'keys'], true)) {
-            $accountTab = 'reading';
+        $accountTab = $request->query->getString('tab', 'practice');
+        if (!\in_array($accountTab, ['practice', 'reading', 'keys'], true)) {
+            $accountTab = 'practice';
+        }
+
+        if (
+            $request->isMethod('GET')
+            && '1' === $request->query->getString('yk_return')
+            && 'practice' === $accountTab
+        ) {
+            $this->handleYookassaReturn($request, $user);
+
+            return $this->redirectToRoute('web_account', ['tab' => 'practice']);
         }
 
         if ($request->isMethod('POST')) {
+            $action = $request->request->getString('action');
+
+            if (\in_array($action, ['cancel_offer', 'delete_offer'], true)) {
+                $this->handlePracticeOfferAction($request, $user, $action);
+
+                return $this->redirectToRoute('web_account', ['tab' => 'practice']);
+            }
+
             $credentialId = $request->request->getString('credential_id');
             $credential = $this->credentials->find($credentialId);
             if (
@@ -203,7 +242,6 @@ final class LibraryAuthController extends AbstractController
                 throw $this->createNotFoundException('Ключ доступа не найден.');
             }
 
-            $action = $request->request->getString('action');
             if ('rename' === $action) {
                 if (!$this->isCsrfTokenValid('site_passkey_rename_'.$credentialId, $request->request->getString('_token'))) {
                     throw $this->createAccessDeniedException('Сессия устарела.');
@@ -225,7 +263,26 @@ final class LibraryAuthController extends AbstractController
                 $this->addFlash('success', 'Ключ доступа удалён.');
             }
 
-            return $this->redirectToRoute('web_library_account', ['tab' => 'keys']);
+            return $this->redirectToRoute('web_account', ['tab' => 'keys']);
+        }
+
+        $practiceOffers = 'practice' === $accountTab
+            ? $this->paymentOffers->findForSiteUser($user)
+            : [];
+        $practiceOfferUrls = [];
+        foreach ($practiceOffers as $offer) {
+            $payUrl = $this->paymentOfferService->getPayUrl($offer)
+                ?? $this->paymentOfferService->getLegacyClientUrl($offer);
+            $practiceOfferUrls[$offer->getToken()] = $payUrl;
+        }
+
+        $hasLiveOrReplay = $this->practiceSessions->hasLiveOrReplay();
+        $hasPracticeRoomAccess = $this->paymentOffers->userHasPracticeRoomAccess($user, $hasLiveOrReplay);
+        $practiceRecordings = [];
+        $practiceBalance = ['total' => 0, 'left' => 0, 'offer' => null];
+        if ('practice' === $accountTab && $this->paymentOffers->userHasPaidPracticeAccess($user)) {
+            $practiceRecordings = $this->practiceSessions->findRecordings();
+            $practiceBalance = $this->practiceSessionService->remainingForUserOffers($practiceOffers);
         }
 
         $response = $this->render('web/library/account.html.twig', [
@@ -235,12 +292,103 @@ final class LibraryAuthController extends AbstractController
             'recentBookmarks' => $this->bookmarks->findRecentForUser($user, 20),
             'recentQuotes' => $this->quotes->findRecentForUser($user, 20),
             'recentNotes' => $this->notes->findRecentForUser($user, 20),
+            'practiceOffers' => $practiceOffers,
+            'practiceOfferUrls' => $practiceOfferUrls,
+            'hasPracticeRoomAccess' => $hasPracticeRoomAccess,
+            'practiceRecordings' => $practiceRecordings,
+            'practiceSessionsLeft' => $practiceBalance['left'],
+            'practiceSessionsTotal' => $practiceBalance['total'],
         ]);
         $response->setPrivate();
         $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
 
         return $response;
+    }
+
+    private function handlePracticeOfferAction(Request $request, SiteUser $user, string $action): void
+    {
+        $token = trim($request->request->getString('offer_token'));
+        if ('' === $token) {
+            throw $this->createNotFoundException('Заявка не найдена.');
+        }
+
+        if (!$this->isCsrfTokenValid('practice_offer_'.$action.'_'.$token, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Сессия устарела.');
+        }
+
+        $offer = $this->paymentOffers->findOneBy(['token' => $token]);
+        if (
+            !$offer instanceof PaymentOffer
+            || !$offer->getSiteUser() instanceof SiteUser
+            || $offer->getSiteUser()->getId() !== $user->getId()
+        ) {
+            throw $this->createNotFoundException('Заявка не найдена.');
+        }
+
+        if ('cancel_offer' === $action) {
+            if (PaymentOfferStatus::Pending !== $offer->getStatus()) {
+                $this->addFlash('danger', 'Отменить можно только заявку, ожидающую оплаты.');
+
+                return;
+            }
+            $this->paymentOfferService->markAsCancelled($offer);
+            $this->addFlash('success', 'Заявка отменена.');
+
+            return;
+        }
+
+        if (!\in_array($offer->getStatus(), [PaymentOfferStatus::Cancelled, PaymentOfferStatus::Expired], true)) {
+            $this->addFlash('danger', 'Удалить из списка можно только отменённую или истёкшую заявку.');
+
+            return;
+        }
+
+        $this->paymentOfferService->unlinkFromSiteUser($offer);
+        $this->addFlash('success', 'Заявка убрана из списка.');
+    }
+
+    private function handleYookassaReturn(Request $request, SiteUser $user): void
+    {
+        $token = trim($request->query->getString('token'));
+        if ('' === $token) {
+            return;
+        }
+
+        try {
+            $offer = $this->paymentOfferService->getValidOffer($token);
+        } catch (NotFoundHttpException) {
+            $this->addFlash('danger', 'Ссылка на оплату не найдена или истекла.');
+
+            return;
+        }
+
+        if (
+            $offer->getSiteUser() instanceof SiteUser
+            && $offer->getSiteUser()->getId() !== $user->getId()
+        ) {
+            $this->addFlash('danger', 'Эта оплата привязана к другому аккаунту.');
+
+            return;
+        }
+
+        $offer = $this->paymentOfferService->syncOfferFromYookassaIfPending($offer);
+
+        match ($offer->getStatus()) {
+            PaymentOfferStatus::Paid => $this->addFlash(
+                'success',
+                'Оплата получена. Можно войти в комнату практики.',
+            ),
+            PaymentOfferStatus::Cancelled => $this->addFlash(
+                'danger',
+                'Оплата отменена. Если это ошибка — напиши мне, разберёмся.',
+            ),
+            PaymentOfferStatus::Pending => $this->addFlash(
+                'success',
+                'Платёж ещё обрабатывается. Обнови страницу через минуту или зайди позже.',
+            ),
+            default => null,
+        };
     }
 
     private function loginSiteUser(SiteUser $user, string $targetPath): Response
