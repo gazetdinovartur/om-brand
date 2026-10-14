@@ -79,10 +79,16 @@ php bin/console app:kinescope:speak-owner --pick=1   # или email / uuid
 
 В `.env` поставь выведенный `KINESCOPE_SPEAK_OWNER_ID`, `cache:clear`, снова создай комнату в карточке встречи.
 
-1. Создай сессию (название, время, тип Live/Speak) → **сохранение сразу создаёт** event/room в Kinescope.
-2. Live: в карточке RTMP URL + stream key для OBS; участники — `/practice/room`. Speak: та же комната сайта.
-3. **В эфир** / webhook `live.connected` / `speak.call.started`.
-4. **Эфир завершён** или webhook `live.finished` / Speak record → replay + списание + метаданные записи (постер).
+1. Админка → **Сессии практики** → создать (название, время, Live/Speak) → сохранить.
+2. Сразу открывается **карточка**: ссылка «Комната на сайте», блок «Как запустить», для Live — RTMP + Stream key.
+3. **Live (OBS):**
+   - OBS → Settings → Stream → Custom → Server = RTMP URL, Stream Key = ключ из карточки;
+   - в карточке кнопка **«В эфир»** (статус на сайте → плеер в `/practice/room`);
+   - в OBS — **Start Streaming**.
+4. **Speak:** **«В эфир»** → открыть «Комнату на сайте» (админ с JWT — ведущий).
+5. **Эфир завершён** или webhook → replay + списание.
+
+Кнопка **«В эфир»** видна только если сессия в статусе «Запланирована» **и** уже есть event/room id в Kinescope. Если id нет — **«Создать в Kinescope»** (не жми повторно, если эфир уже есть в кабинете Kinescope — лучше «Обновить RTMP»).
 
 Галерея в кабинете — карточки записей практики (poster/дата), не весь каталог Kinescope.
 

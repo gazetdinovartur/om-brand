@@ -351,6 +351,17 @@ class PracticeSession
         return '/practice/room';
     }
 
+    /** Non-empty placeholder so EasyAdmin renders the howto template. */
+    public function getHowToBroadcast(): string
+    {
+        return 'howto';
+    }
+
+    public function hasKinescopeRemote(): bool
+    {
+        return null !== $this->kinescopeEventId || null !== $this->kinescopeRoomId;
+    }
+
     public function chatEmbedUrl(): ?string
     {
         if (null !== $this->kinescopeChatEmbedUrl) {

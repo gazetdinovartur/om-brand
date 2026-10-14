@@ -53,7 +53,11 @@ class PracticeSessionCrudController extends AbstractCrudController
             ->setPageTitle(Crud::PAGE_DETAIL, 'Сессия практики')
             ->setHelp(
                 Crud::PAGE_NEW,
-                'Укажи название, время и тип. После сохранения сразу создаётся эфир/комната в Kinescope — для Live в карточке будут RTMP-данные для OBS.',
+                'Название + время + тип Live/Speak → сохранить. Откроется карточка с RTMP (Live) или кодом Speak и кнопкой «В эфир».',
+            )
+            ->setHelp(
+                Crud::PAGE_DETAIL,
+                'Live: OBS (RTMP + key) → «В эфир» → Start Streaming. Участники — «Комната на сайте».',
             )
             ->showEntityActionsInlined();
     }
@@ -63,7 +67,7 @@ class PracticeSessionCrudController extends AbstractCrudController
         $goLive = Action::new('goLive', 'В эфир', 'fa fa-broadcast-tower')
             ->linkToCrudAction('goLive')
             ->displayIf(static fn (PracticeSession $session): bool => PracticeSessionStatus::Scheduled === $session->getStatus()
-                && (null !== $session->getKinescopeEventId() || null !== $session->getKinescopeRoomId()));
+                && $session->hasKinescopeRemote());
 
         $finish = Action::new('finish', 'Эфир завершён', 'fa fa-check')
             ->linkToCrudAction('finishSession')
@@ -73,11 +77,9 @@ class PracticeSessionCrudController extends AbstractCrudController
                 true,
             ));
 
-        $sync = Action::new('sync', 'Синхронизировать', 'fa fa-sync')
+        $sync = Action::new('sync', 'Обновить RTMP', 'fa fa-sync')
             ->linkToCrudAction('syncSession')
-            ->displayIf(static fn (PracticeSession $session): bool => null !== $session->getKinescopeEventId()
-                || null !== $session->getKinescopeVideoId()
-                || null !== $session->getKinescopeRoomId());
+            ->displayIf(static fn (PracticeSession $session): bool => null !== $session->getKinescopeEventId());
 
         $archive = Action::new('archive', 'В архив', 'fa fa-archive')
             ->linkToCrudAction('archiveSession')
@@ -85,8 +87,7 @@ class PracticeSessionCrudController extends AbstractCrudController
 
         $retryRemote = Action::new('createRemote', 'Создать в Kinescope', 'fa fa-cloud-upload-alt')
             ->linkToCrudAction('createRemote')
-            ->displayIf(static fn (PracticeSession $session): bool => null === $session->getKinescopeEventId()
-                && null === $session->getKinescopeRoomId());
+            ->displayIf(static fn (PracticeSession $session): bool => !$session->hasKinescopeRemote());
 
         return $actions
             ->update(Crud::PAGE_INDEX, Action::NEW, static fn (Action $action) => $action->setLabel('Создать сессию'))
@@ -98,9 +99,10 @@ class PracticeSessionCrudController extends AbstractCrudController
             ->add(Crud::PAGE_DETAIL, $sync)
             ->add(Crud::PAGE_INDEX, $archive)
             ->add(Crud::PAGE_DETAIL, $archive)
-            // только если автосоздание не удалось
+            ->add(Crud::PAGE_INDEX, $retryRemote)
             ->add(Crud::PAGE_DETAIL, $retryRemote)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, 'goLive', 'finish', 'archive', Action::EDIT, Action::DELETE]);
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, 'goLive', 'createRemote', 'finish', 'archive', Action::EDIT, Action::DELETE])
+            ->reorder(Crud::PAGE_DETAIL, ['goLive', 'createRemote', 'sync', 'finish', 'archive', Action::EDIT, Action::DELETE]);
     }
 
     public function configureFields(string $pageName): iterable
@@ -113,7 +115,7 @@ class PracticeSessionCrudController extends AbstractCrudController
                 PracticeSessionKind::Live->label() => PracticeSessionKind::Live,
                 PracticeSessionKind::Speak->label() => PracticeSessionKind::Speak,
             ])
-            ->setHelp('Live = OBS + эфир; Speak = многосторонняя встреча');
+            ->setHelp('Live = OBS; Speak = общая видеовстреча');
 
         if (Crud::PAGE_NEW !== $pageName) {
             yield ChoiceField::new('status', 'Статус')
@@ -142,23 +144,27 @@ class PracticeSessionCrudController extends AbstractCrudController
 
         yield UrlField::new('roomLink', 'Комната на сайте')
             ->onlyOnDetail()
-            ->setHelp('Сюда заходят участники с оплаченным доступом')
+            ->setHelp('Участники с оплатой. Админ тоже может открыть после входа на сайт.')
             ->formatValue(fn (): string => $this->practiceRoomUrl());
 
-        // Live: OBS
-        yield TextField::new('kinescopeIngestUrl', 'RTMP URL (OBS)')
+        yield TextField::new('howToBroadcast', 'Как запустить')
             ->onlyOnDetail()
-            ->setHelp('Сервер в OBS → Settings → Stream');
+            ->setTemplatePath('admin/practice_session/howto.html.twig');
+
+        yield TextField::new('kinescopeIngestUrl', 'RTMP URL (OBS Server)')
+            ->onlyOnDetail()
+            ->setHelp('OBS → Settings → Stream → Custom → Server');
         yield TextField::new('kinescopeStreamKey', 'Stream key (OBS)')
             ->onlyOnDetail()
-            ->setHelp('Ключ потока — не светить участникам');
+            ->setHelp('OBS → Stream Key. Не светить участникам.');
 
-        // Speak
+        yield TextField::new('kinescopeEventId', 'Kinescope event id')
+            ->onlyOnDetail()
+            ->formatValue(static fn ($value, PracticeSession $session): ?string => $session->isSpeak() ? null : $session->getKinescopeEventId());
+
         yield TextField::new('kinescopeRoomCode', 'Код Speak')
             ->onlyOnDetail()
-            ->formatValue(static function ($value, PracticeSession $session): ?string {
-                return $session->isSpeak() ? $session->getKinescopeRoomCode() : null;
-            });
+            ->formatValue(static fn ($value, PracticeSession $session): ?string => $session->isSpeak() ? $session->getKinescopeRoomCode() : null);
 
         yield DateTimeField::new('debitedAt', 'Списано')
             ->setFormat('dd.MM.yyyy HH:mm')
@@ -182,7 +188,7 @@ class PracticeSessionCrudController extends AbstractCrudController
 
         parent::persistEntity($entityManager, $entityInstance);
 
-        if (null !== $entityInstance->getKinescopeEventId() || null !== $entityInstance->getKinescopeRoomId()) {
+        if ($entityInstance->hasKinescopeRemote()) {
             return;
         }
 
@@ -193,7 +199,7 @@ class PracticeSessionCrudController extends AbstractCrudController
             $this->addFlash(
                 'danger',
                 'Сессия сохранена, но Kinescope не создал эфир/комнату: '.$exception->getMessage()
-                .' Открой карточку и нажми «Создать в Kinescope», когда исправишь настройки.',
+                .' Нажми «Создать в Kinescope» в карточке после правки настроек.',
             );
         }
     }
@@ -204,6 +210,21 @@ class PracticeSessionCrudController extends AbstractCrudController
             $entityInstance->touch();
         }
         parent::updateEntity($entityManager, $entityInstance);
+    }
+
+    /**
+     * @param AdminContext<PracticeSession> $context
+     */
+    protected function getRedirectResponseAfterSave(AdminContext $context, string $action): RedirectResponse
+    {
+        if (Action::NEW === $action) {
+            $entity = $context->getEntity()->getInstance();
+            if ($entity instanceof PracticeSession && null !== $entity->getId()) {
+                return $this->redirectToDetail($entity);
+            }
+        }
+
+        return parent::getRedirectResponseAfterSave($context, $action);
     }
 
     #[AdminRoute(path: '/{entityId}/create-remote', name: 'create_remote')]
@@ -232,8 +253,21 @@ class PracticeSessionCrudController extends AbstractCrudController
             throw $this->createNotFoundException();
         }
 
+        if (!$session->hasKinescopeRemote()) {
+            $this->addFlash('danger', 'Сначала создай эфир/комнату в Kinescope (кнопка «Создать в Kinescope»).');
+
+            return $this->redirectToDetail($session);
+        }
+
         $this->kinescopeSessions->goLive($session);
-        $this->addFlash('success', sprintf('«%s» в статусе эфир. Участники: %s', $session->getTitle(), $this->practiceRoomUrl()));
+        $msg = $session->isSpeak()
+            ? sprintf('«%s» в эфире. Заходи в комнату: %s', $session->getTitle(), $this->practiceRoomUrl())
+            : sprintf(
+                '«%s» в эфире на сайте. В OBS: Start Streaming (Server + Stream key из этой карточки). Участники: %s',
+                $session->getTitle(),
+                $this->practiceRoomUrl(),
+            );
+        $this->addFlash('success', $msg);
 
         return $this->redirectToDetail($session);
     }
@@ -275,8 +309,11 @@ class PracticeSessionCrudController extends AbstractCrudController
         }
 
         try {
+            if (null !== $session->getKinescopeEventId()) {
+                $this->kinescopeSessions->refreshLiveCredentials($session);
+            }
             $this->kinescopeSessions->syncSession($session);
-            $this->addFlash('success', 'Синхронизация с Kinescope выполнена.');
+            $this->addFlash('success', 'Данные Kinescope обновлены (RTMP/запись).');
         } catch (\Throwable $exception) {
             $this->addFlash('danger', 'Синхронизация: '.$exception->getMessage());
         }
@@ -302,19 +339,17 @@ class PracticeSessionCrudController extends AbstractCrudController
     {
         $room = $this->practiceRoomUrl();
         if ($session->isSpeak()) {
-            return sprintf(
-                'Speak-комната готова. Участники заходят сюда: %s',
-                $room,
-            );
+            return sprintf('Speak готов. Дальше: «В эфир» → комната %s', $room);
         }
 
-        $parts = [sprintf('Live создан. Участники: %s', $room)];
+        $parts = ['Live готов. Дальше: скопируй RTMP + key → «В эфир» → OBS Start Streaming.'];
         if (null !== $session->getKinescopeIngestUrl()) {
-            $parts[] = 'RTMP: '.$session->getKinescopeIngestUrl();
+            $parts[] = 'Server: '.$session->getKinescopeIngestUrl();
         }
         if (null !== $session->getKinescopeStreamKey()) {
-            $parts[] = 'ключ: '.$session->getKinescopeStreamKey();
+            $parts[] = 'Key: '.$session->getKinescopeStreamKey();
         }
+        $parts[] = 'Участники: '.$room;
 
         return implode(' · ', $parts);
     }

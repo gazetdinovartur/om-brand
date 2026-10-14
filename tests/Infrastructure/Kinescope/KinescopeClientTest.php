@@ -11,7 +11,7 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 
 final class KinescopeClientTest extends TestCase
 {
-    public function testCreateLiveEventPostsEventAndStream(): void
+    public function testCreateLiveEventUsesCredentialsFromCreateResponse(): void
     {
         $calls = [];
         $client = new KinescopeClient(
@@ -19,14 +19,11 @@ final class KinescopeClientTest extends TestCase
                 $calls[] = [$method, $url];
                 if (str_ends_with($url, '/v2/live/events') && 'POST' === $method) {
                     return new MockResponse(json_encode([
-                        'data' => ['id' => 'evt-1', 'play_link' => 'https://kinescope.io/evt-1'],
-                    ], \JSON_THROW_ON_ERROR));
-                }
-                if (str_contains($url, '/stream') && 'POST' === $method) {
-                    return new MockResponse(json_encode([
                         'data' => [
-                            'server' => 'rtmp://ingest.example/live',
-                            'stream_key' => 'key-abc',
+                            'id' => 'evt-1',
+                            'play_link' => 'https://kinescope.io/evt-1',
+                            'rtmp_link' => 'rtmp://rtmp.kinescope.io/live',
+                            'streamkey' => 'key-from-create',
                         ],
                     ], \JSON_THROW_ON_ERROR));
                 }
@@ -42,9 +39,51 @@ final class KinescopeClientTest extends TestCase
 
         $result = $client->createLiveEvent('Практика', new \DateTimeImmutable('+1 day'));
         self::assertSame('evt-1', $result->eventId);
-        self::assertSame('rtmp://ingest.example/live', $result->ingestUrl);
-        self::assertSame('key-abc', $result->streamKey);
-        self::assertGreaterThanOrEqual(2, count($calls));
+        self::assertSame('rtmp://rtmp.kinescope.io/live', $result->ingestUrl);
+        self::assertSame('key-from-create', $result->streamKey);
+        // No second POST /stream when credentials already present
+        self::assertFalse(
+            (bool) array_filter($calls, static fn (array $c): bool => str_contains($c[1], '/stream') && 'POST' === $c[0]),
+        );
+    }
+
+    public function testCreateLiveEventSurvivesFailedStreamStepViaGetEvent(): void
+    {
+        $client = new KinescopeClient(
+            new MockHttpClient(static function (string $method, string $url): MockResponse {
+                if (str_ends_with($url, '/v2/live/events') && 'POST' === $method) {
+                    return new MockResponse(json_encode([
+                        'data' => ['id' => 'evt-2', 'play_link' => 'https://kinescope.io/evt-2'],
+                    ], \JSON_THROW_ON_ERROR));
+                }
+                if (str_contains($url, '/stream') && 'POST' === $method) {
+                    return new MockResponse(json_encode([
+                        'message' => 'stream already exists',
+                    ], \JSON_THROW_ON_ERROR), ['http_code' => 400]);
+                }
+                if (str_contains($url, '/v2/live/events/evt-2') && 'GET' === $method) {
+                    return new MockResponse(json_encode([
+                        'data' => [
+                            'id' => 'evt-2',
+                            'rtmp_link' => 'rtmp://rtmp.kinescope.io/live',
+                            'streamkey' => 'key-from-get',
+                        ],
+                    ], \JSON_THROW_ON_ERROR));
+                }
+                if (str_contains($url, '/enable')) {
+                    return new MockResponse('{}');
+                }
+
+                return new MockResponse('{}', ['http_code' => 404]);
+            }),
+            'test-token',
+            '11111111-1111-1111-1111-111111111111',
+        );
+
+        $result = $client->createLiveEvent('Практика');
+        self::assertSame('evt-2', $result->eventId);
+        self::assertSame('rtmp://rtmp.kinescope.io/live', $result->ingestUrl);
+        self::assertSame('key-from-get', $result->streamKey);
     }
 
     public function testGetVideoParsesPosterAndDuration(): void

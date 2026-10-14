@@ -31,7 +31,15 @@ final class PracticeKinescopeService
         }
 
         if (PracticeSessionKind::Speak === $session->getKind()) {
+            if (null !== $session->getKinescopeRoomId()) {
+                return $session;
+            }
+
             return $this->createSpeakForSession($session);
+        }
+
+        if (null !== $session->getKinescopeEventId()) {
+            return $this->refreshLiveCredentials($session);
         }
 
         return $this->createLiveForSession($session);
@@ -39,6 +47,10 @@ final class PracticeKinescopeService
 
     public function createLiveForSession(PracticeSession $session): PracticeSession
     {
+        if (null !== $session->getKinescopeEventId()) {
+            return $this->refreshLiveCredentials($session);
+        }
+
         $result = $this->kinescope->createLiveEvent($session->getTitle(), $session->getStartsAt());
         $session
             ->setKind(PracticeSessionKind::Live)
@@ -53,6 +65,10 @@ final class PracticeKinescopeService
 
     public function createSpeakForSession(PracticeSession $session): PracticeSession
     {
+        if (null !== $session->getKinescopeRoomId()) {
+            return $session;
+        }
+
         $result = $this->kinescope->createSpeakRoom($session->getTitle(), 'scheduled_meeting', true);
         $session
             ->setKind(PracticeSessionKind::Speak)
@@ -64,10 +80,53 @@ final class PracticeKinescopeService
         return $session;
     }
 
+    /**
+     * Re-read RTMP credentials for an existing event (no second event create).
+     */
+    public function refreshLiveCredentials(PracticeSession $session): PracticeSession
+    {
+        $eventId = $session->getKinescopeEventId();
+        if (null === $eventId || !$this->kinescope->isConfigured()) {
+            return $session;
+        }
+
+        $data = $this->kinescope->getLiveEvent($eventId);
+        $ingest = null;
+        $key = null;
+        foreach (['rtmp_link', 'server', 'rtmp_url', 'ingest_url'] as $ingestKey) {
+            $candidate = trim((string) ($data[$ingestKey] ?? ''));
+            if ('' !== $candidate) {
+                $ingest = $candidate;
+                break;
+            }
+        }
+        foreach (['streamkey', 'stream_key', 'key'] as $keyName) {
+            $candidate = trim((string) ($data[$keyName] ?? ''));
+            if ('' !== $candidate) {
+                $key = $candidate;
+                break;
+            }
+        }
+        if (null !== $ingest) {
+            $session->setKinescopeIngestUrl($ingest);
+        }
+        if (null !== $key) {
+            $session->setKinescopeStreamKey($key);
+        }
+        $session->touch();
+        $this->entityManager->flush();
+
+        return $session;
+    }
+
     public function createSpeakMeetingRemote(SpeakMeeting $meeting): SpeakMeeting
     {
         if (!$this->kinescope->isConfigured()) {
             throw new \RuntimeException('Kinescope API token is not configured.');
+        }
+
+        if (null !== $meeting->getKinescopeRoomId()) {
+            return $meeting;
         }
 
         $result = $this->kinescope->createSpeakRoom(

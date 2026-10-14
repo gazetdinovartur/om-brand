@@ -119,34 +119,41 @@ final class KinescopeClient
             throw new \RuntimeException('Kinescope create live event: missing id.');
         }
 
-        $streamPayload = [];
-        if ($scheduledAt instanceof \DateTimeImmutable) {
-            $streamPayload['start_at'] = $scheduledAt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
-        }
+        // Create response already has rtmp_link + streamkey when auto_start=true.
+        // Extra POST /stream often fails (stream already exists) and used to abort
+        // before we saved event id → orphan events + no «В эфир» button.
+        [$ingest, $key] = self::extractIngestCredentials($event);
 
-        $stream = $this->request('POST', '/v2/live/events/'.$eventId.'/stream', $streamPayload);
-        $streamData = \is_array($stream['data'] ?? null) ? $stream['data'] : $stream;
-
-        $ingest = null;
-        $key = null;
-        if (\is_array($streamData)) {
-            foreach (['server', 'rtmp_url', 'ingest_url'] as $ingestKey) {
-                $candidate = self::stringifyField($streamData[$ingestKey] ?? null);
-                if ('' !== $candidate) {
-                    $ingest = $candidate;
-                    break;
+        if (null === $ingest || null === $key) {
+            try {
+                $streamPayload = [];
+                if ($scheduledAt instanceof \DateTimeImmutable) {
+                    $streamPayload['started_at'] = $scheduledAt
+                        ->setTimezone(new \DateTimeZone('UTC'))
+                        ->format('Y-m-d\TH:i:s\Z');
                 }
-            }
-            foreach (['stream_key', 'key'] as $keyName) {
-                $candidate = self::stringifyField($streamData[$keyName] ?? null);
-                if ('' !== $candidate) {
-                    $key = $candidate;
-                    break;
+                $stream = $this->request('POST', '/v2/live/events/'.$eventId.'/stream', $streamPayload);
+                $streamData = \is_array($stream['data'] ?? null) ? $stream['data'] : $stream;
+                if (\is_array($streamData)) {
+                    [$ingestFromStream, $keyFromStream] = self::extractIngestCredentials($streamData);
+                    $ingest ??= $ingestFromStream;
+                    $key ??= $keyFromStream;
                 }
+            } catch (\Throwable) {
+                // Stream may already exist — re-read event.
             }
         }
 
-        // Enable event for ingest
+        if (null === $ingest || null === $key) {
+            try {
+                $fresh = $this->getLiveEvent($eventId);
+                [$ingestFromGet, $keyFromGet] = self::extractIngestCredentials($fresh);
+                $ingest ??= $ingestFromGet;
+                $key ??= $keyFromGet;
+            } catch (\Throwable) {
+            }
+        }
+
         try {
             $this->request('PUT', '/v2/live/events/'.$eventId.'/enable');
         } catch (\Throwable) {
@@ -501,5 +508,33 @@ final class KinescopeClient
         }
 
         return '';
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array{0: ?string, 1: ?string} [ingestUrl, streamKey]
+     */
+    private static function extractIngestCredentials(array $data): array
+    {
+        $ingest = null;
+        foreach (['rtmp_link', 'server', 'rtmp_url', 'ingest_url'] as $ingestKey) {
+            $candidate = self::stringifyField($data[$ingestKey] ?? null);
+            if ('' !== $candidate) {
+                $ingest = $candidate;
+                break;
+            }
+        }
+
+        $key = null;
+        foreach (['streamkey', 'stream_key', 'key'] as $keyName) {
+            $candidate = self::stringifyField($data[$keyName] ?? null);
+            if ('' !== $candidate) {
+                $key = $candidate;
+                break;
+            }
+        }
+
+        return [$ingest, $key];
     }
 }
