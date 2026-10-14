@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Enum\PaymentOfferStatus;
+use App\Enum\PracticeSessionKind;
 use App\Enum\PracticeSessionStatus;
 use App\Tests\Support\PracticePaymentFixtures;
 use App\Tests\Support\SiteAuthFixtures;
@@ -131,5 +132,36 @@ final class PracticeRoomControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.practice-room__session-title', 'Запись прошлой');
         self::assertSelectorExists('iframe[src*="kinescope.io/embed/replay-vid"]');
+    }
+
+    public function testRoomShowsSpeakIframeWhenLiveSpeak(): void
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+        /** @var EntityManagerInterface $em */
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->clearPracticeSessions($em);
+
+        $email = 'room-speak-'.bin2hex(random_bytes(3)).'@example.test';
+        $user = $this->loginViaEmailCode($client, $em, $email, '/practice/room');
+        $inquiry = $this->createInquiry($em, (string) $user->getEmail());
+        $offer = $this->createPendingOffer($em, $inquiry, $user);
+        $offer->setStatus(PaymentOfferStatus::Paid)->setPaidAt(new \DateTimeImmutable());
+        $em->flush();
+
+        $code = 'speak-'.bin2hex(random_bytes(2));
+        $this->createPracticeSession(
+            $em,
+            title: 'Speak эфир',
+            status: PracticeSessionStatus::Live,
+            kind: PracticeSessionKind::Speak,
+            roomId: 'room-'.bin2hex(random_bytes(2)),
+            roomCode: $code,
+        );
+
+        $client->request('GET', '/practice/room');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.practice-room__session-title', 'Speak эфир');
+        self::assertSelectorExists('iframe[src="https://speak.kinescope.io/'.$code.'"]');
     }
 }

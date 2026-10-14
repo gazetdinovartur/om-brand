@@ -315,13 +315,10 @@ Bump `ASSETS_VERSION` в `.env`, если выкатываешь CSS комна�
    ```
 
    URL: `https://arturlun.ru/webhooks/kinescope`, Basic = `KINESCOPE_WEBHOOK_*`, события live/speak/media (см. команду).
-3. Для каждой встречи:
-   - в Kinescope создаёшь live event → копируешь **event id**;
-   - в админке сайта: **Сессии практики** → новая сессия → вставь event id, дату, название;
-   - перед эфиром статус → **Эфир (`live`)**.
-4. После окончания стрима Kinescope шлёт webhook → у нас `replay` + `video_id` + списание встречи. Если webhook не дошёл — кнопка **«Эфир завершён»** в админке (тот же код).
-5. Домены для embed: разреши `arturlun.ru` в privacy/embed настройках плеера, если ограничил домены.
-6. Speak host JWT (ведущий в iframe): на сервере `php bin/console app:kinescope:setup-jwt`, пропиши `KINESCOPE_JWT_PRIVATE_KEY_PATH` и `KINESCOPE_JWT_KID` (см. `docs/practice.md`).
+3. Для каждой встречи в админке: **Сессии практики** → новая (название, время, Live/Speak) → сохранение **само** создаёт event/room в Kinescope. Live: RTMP в карточке для OBS. Перед эфиром — **В эфир**.
+4. После стрима webhook → `replay` + списание. Запасной путь — **«Эфир завершён»**.
+5. Домены для embed: разреши `arturlun.ru` в privacy/embed, если ограничил.
+6. Speak host JWT: `php bin/console app:kinescope:setup-jwt` + `KINESCOPE_JWT_*` (см. `docs/practice.md`).
 
 ### 6.5 Как смотреть страницу, пока она скрыта
 

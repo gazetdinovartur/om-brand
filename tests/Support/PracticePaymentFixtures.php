@@ -11,6 +11,7 @@ use App\Entity\SiteUser;
 use App\Enum\ContactType;
 use App\Enum\InquiryType;
 use App\Enum\PaymentOfferStatus;
+use App\Enum\PracticeSessionKind;
 use App\Enum\PracticeSessionStatus;
 use App\Infrastructure\Yookassa\YookassaClient;
 use App\Practice\PracticeFormat;
@@ -93,13 +94,19 @@ trait PracticePaymentFixtures
         ?string $eventId = null,
         ?string $videoId = null,
         ?\DateTimeImmutable $startsAt = null,
+        PracticeSessionKind $kind = PracticeSessionKind::Live,
+        ?string $roomId = null,
+        ?string $roomCode = null,
     ): PracticeSession {
         $session = (new PracticeSession())
             ->setTitle($title)
+            ->setKind($kind)
             ->setStatus($status)
             ->setStartsAt($startsAt ?? new \DateTimeImmutable('+1 day'))
             ->setKinescopeEventId($eventId)
-            ->setKinescopeVideoId($videoId);
+            ->setKinescopeVideoId($videoId)
+            ->setKinescopeRoomId($roomId)
+            ->setKinescopeRoomCode($roomCode);
         $em->persist($session);
         $em->flush();
 

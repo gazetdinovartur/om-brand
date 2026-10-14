@@ -68,16 +68,25 @@
 
 ## Управление из админки (Kinescope API)
 
-Env: `KINESCOPE_API_TOKEN`, `KINESCOPE_PARENT_ID` (проект arturlun / UUID), `KINESCOPE_SPEAK_OWNER_ID` (UUID владельца Speak), webhook Basic, плюс JWT для ведущего (ниже).
+Env: `KINESCOPE_API_TOKEN`, `KINESCOPE_PARENT_ID` (проект arturlun / UUID), `KINESCOPE_SPEAK_OWNER_ID` (**user_id участника workspace**, не project id), webhook Basic, плюс JWT для ведущего (ниже).
 
-1. Создай сессию → выбери **тип Live или Speak**.
-2. **Создать в Kinescope** — API создаёт event (Live + RTMP в карточке) или Speak room.
+Если Speak пишет `no such user in workspace`:
+
+```bash
+php bin/console app:kinescope:speak-owner
+php bin/console app:kinescope:speak-owner --pick=1   # или email / uuid
+```
+
+В `.env` поставь выведенный `KINESCOPE_SPEAK_OWNER_ID`, `cache:clear`, снова создай комнату в карточке встречи.
+
+1. Создай сессию (название, время, тип Live/Speak) → **сохранение сразу создаёт** event/room в Kinescope.
+2. Live: в карточке RTMP URL + stream key для OBS; участники — `/practice/room`. Speak: та же комната сайта.
 3. **В эфир** / webhook `live.connected` / `speak.call.started`.
 4. **Эфир завершён** или webhook `live.finished` / Speak record → replay + списание + метаданные записи (постер).
 
 Галерея в кабинете — карточки записей практики (poster/дата), не весь каталог Kinescope.
 
-**Встречи Speak без практики:** админка «Встречи Speak» → создать → «Создать комнату» → ссылка `/meet/{token}`.
+**Встречи Speak без практики:** админка «Встречи Speak» → сохранить → комната и ссылка `/meet/{token}` сразу.
 
 ### Speak host JWT (ведущий в iframe)
 

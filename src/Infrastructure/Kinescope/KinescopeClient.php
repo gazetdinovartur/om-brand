@@ -110,8 +110,11 @@ final class KinescopeClient
         }
 
         $created = $this->request('POST', '/v2/live/events', $payload);
-        $event = $created['data'] ?? $created;
-        $eventId = (string) ($event['id'] ?? '');
+        $event = \is_array($created['data'] ?? null) ? $created['data'] : $created;
+        if (!\is_array($event)) {
+            throw new \RuntimeException('Kinescope create live event: unexpected response.');
+        }
+        $eventId = self::stringifyField($event['id'] ?? null);
         if ('' === $eventId) {
             throw new \RuntimeException('Kinescope create live event: missing id.');
         }
@@ -122,21 +125,24 @@ final class KinescopeClient
         }
 
         $stream = $this->request('POST', '/v2/live/events/'.$eventId.'/stream', $streamPayload);
-        $streamData = $stream['data'] ?? $stream;
+        $streamData = \is_array($stream['data'] ?? null) ? $stream['data'] : $stream;
 
         $ingest = null;
         $key = null;
         if (\is_array($streamData)) {
-            $ingest = isset($streamData['server']) ? (string) $streamData['server'] : null;
-            if (null === $ingest && isset($streamData['rtmp_url'])) {
-                $ingest = (string) $streamData['rtmp_url'];
+            foreach (['server', 'rtmp_url', 'ingest_url'] as $ingestKey) {
+                $candidate = self::stringifyField($streamData[$ingestKey] ?? null);
+                if ('' !== $candidate) {
+                    $ingest = $candidate;
+                    break;
+                }
             }
-            if (null === $ingest && isset($streamData['ingest_url'])) {
-                $ingest = (string) $streamData['ingest_url'];
-            }
-            $key = isset($streamData['stream_key']) ? (string) $streamData['stream_key'] : null;
-            if (null === $key && isset($streamData['key'])) {
-                $key = (string) $streamData['key'];
+            foreach (['stream_key', 'key'] as $keyName) {
+                $candidate = self::stringifyField($streamData[$keyName] ?? null);
+                if ('' !== $candidate) {
+                    $key = $candidate;
+                    break;
+                }
             }
         }
 
@@ -147,7 +153,7 @@ final class KinescopeClient
             // Some accounts auto-enable after schedule — ignore.
         }
 
-        $playLink = isset($event['play_link']) ? (string) $event['play_link'] : null;
+        $playLink = self::stringifyField($event['play_link'] ?? null) ?: null;
 
         return new LiveEventResult($eventId, $ingest, $key, $playLink);
     }
@@ -241,9 +247,9 @@ final class KinescopeClient
         $response = $this->request('POST', '/v1/speak/rooms', $payload);
         $data = \is_array($response['data'] ?? null) ? $response['data'] : $response;
 
-        $roomId = (string) ($data['id'] ?? '');
-        $code = (string) ($data['code'] ?? '');
-        $link = (string) ($data['link'] ?? '');
+        $roomId = self::stringifyField($data['id'] ?? null);
+        $code = self::stringifyField($data['code'] ?? null);
+        $link = self::stringifyField($data['link'] ?? null);
         if ('' === $link && '' !== $code) {
             $link = 'https://speak.kinescope.io/'.$code;
         }
@@ -260,6 +266,67 @@ final class KinescopeClient
         $response = $this->request('GET', '/v1/speak/rooms/'.$roomId);
 
         return \is_array($response['data'] ?? null) ? $response['data'] : $response;
+    }
+
+    /**
+     * Workspace members (Speak owner_id must be one of these user_id values).
+     *
+     * @return list<array{user_id: string, email: string, username: string}>
+     */
+    public function listModerators(int $perPage = 50): array
+    {
+        $this->assertConfigured();
+        $response = $this->request('GET', '/v1/moderators?per_page='.$perPage);
+        $items = $response['data'] ?? [];
+        if (!\is_array($items)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($items as $item) {
+            if (!\is_array($item)) {
+                continue;
+            }
+            $userId = self::stringifyField($item['user_id'] ?? null);
+            if ('' === $userId) {
+                continue;
+            }
+            $out[] = [
+                'user_id' => $userId,
+                'email' => self::stringifyField($item['email'] ?? null),
+                'username' => self::stringifyField($item['username'] ?? null),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array{id: string, name: string, owner_id: string, code: string}>
+     */
+    public function listSpeakRooms(int $perPage = 20): array
+    {
+        $this->assertConfigured();
+        $response = $this->request('GET', '/v1/speak/rooms?per_page='.$perPage);
+        $items = $response['data'] ?? [];
+        if (!\is_array($items)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($items as $item) {
+            if (!\is_array($item)) {
+                continue;
+            }
+            $out[] = [
+                'id' => self::stringifyField($item['id'] ?? null),
+                'name' => self::stringifyField($item['name'] ?? null),
+                'owner_id' => self::stringifyField($item['owner_id'] ?? null),
+                'code' => self::stringifyField($item['code'] ?? null),
+            ];
+        }
+
+        return $out;
     }
 
     /**
@@ -368,9 +435,7 @@ final class KinescopeClient
             : [];
 
         if ($status < 200 || $status >= 300) {
-            $message = \is_array($decoded)
-                ? (string) ($decoded['message'] ?? $decoded['error'] ?? $content)
-                : $content;
+            $message = self::formatApiErrorMessage($decoded, $content);
             throw new \RuntimeException(sprintf('Kinescope API %s %s failed (%d): %s', $method, $path, $status, $message));
         }
 
@@ -390,5 +455,51 @@ final class KinescopeClient
             '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
             $value,
         );
+    }
+
+    /**
+     * @param mixed $decoded
+     */
+    private static function formatApiErrorMessage(mixed $decoded, string $fallback): string
+    {
+        if (!\is_array($decoded)) {
+            return '' !== trim($fallback) ? $fallback : 'unknown error';
+        }
+
+        foreach (['message', 'error', 'errors', 'detail'] as $key) {
+            if (!\array_key_exists($key, $decoded)) {
+                continue;
+            }
+            $text = self::stringifyField($decoded[$key]);
+            if ('' !== $text) {
+                return $text;
+            }
+        }
+
+        $encoded = json_encode($decoded, \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES);
+
+        return false !== $encoded && '[]' !== $encoded && '{}' !== $encoded
+            ? $encoded
+            : ('' !== trim($fallback) ? $fallback : 'unknown error');
+    }
+
+    private static function stringifyField(mixed $value): string
+    {
+        if (null === $value || false === $value) {
+            return '';
+        }
+        if (\is_string($value) || \is_int($value) || \is_float($value)) {
+            return trim((string) $value);
+        }
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (\is_array($value)) {
+            $encoded = json_encode($value, \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES);
+
+            return false !== $encoded ? $encoded : '';
+        }
+
+        return '';
     }
 }
