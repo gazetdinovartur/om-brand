@@ -112,8 +112,44 @@ final class AccountAccessTest extends WebTestCase
         self::assertContains('Цитата для внимания', $bodies);
         self::assertContains('Заметка на первом плане', $bodies);
         $placeText = trim($crawler->filter('.library-account__mark-place')->first()->text());
-        self::assertSame($book->getTitle(), $placeText);
-        self::assertStringNotContainsString('·', $placeText);
+        self::assertStringContainsString($book->getTitle(), $placeText);
+        self::assertStringContainsString('·', $placeText);
+        self::assertSelectorExists('button.library-account__mark-remove');
+        self::assertSelectorTextContains('button.library-account__mark-remove', 'Удалить');
+        $quoteLink = $crawler->filter('a.library-account__mark-link[href*="focus=quote"]')->attr('href') ?? '';
+        self::assertStringContainsString('qid=', $quoteLink);
+        self::assertStringContainsString('so=', $quoteLink);
+        self::assertStringContainsString('eo=', $quoteLink);
+    }
+
+    public function testAccountReadingMarkDeleteRemovesQuote(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = $this->createSiteUser($em);
+        [$book, $chapter] = $this->createBookChapter($em);
+
+        $quote = (new ReadingQuote())
+            ->setSiteUser($user)
+            ->setBook($book)
+            ->setChapter($chapter)
+            ->setBlockId('b-acc-del')
+            ->setStartOffset(0)
+            ->setEndOffset(8)
+            ->setExcerpt('Удалить меня');
+        $em->persist($quote);
+        $em->flush();
+        $quoteId = (int) $quote->getId();
+
+        $client->loginUser($user, 'app');
+        $crawler = $client->request('GET', '/account?tab=reading');
+        $form = $crawler->filter('form.library-account__mark-remove-form')->form();
+        self::assertSame('delete_quote', $form->get('action')->getValue());
+        $client->submit($form);
+        self::assertResponseRedirects('/account?tab=reading');
+        $client->followRedirect();
+        self::assertSelectorTextContains('.site-alert', 'Цитата удалена');
+        self::assertNull($em->find(ReadingQuote::class, $quoteId));
     }
 
     public function testAccountKeysTabAndInvalidTabFallback(): void

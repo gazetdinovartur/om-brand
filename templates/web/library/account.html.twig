@@ -167,17 +167,27 @@
                                 <ul class="library-account__mark-list">
                                     {% for bookmark in recentBookmarks %}
                                         <li class="library-account__mark-item">
-                                            <p class="library-account__mark-body">{{ bookmark.excerpt }}</p>
-                                            <a
-                                                class="library-account__mark-place"
-                                                href="{{ path('web_library_read', {
-                                                    bookSlug: bookmark.book.slug,
-                                                    chapterSlug: bookmark.chapter.slug,
-                                                    focus: 'bookmark',
-                                                    bid: bookmark.id,
-                                                    _fragment: bookmark.blockId
-                                                }) }}"
-                                            >{{ bookmark.book.title }}</a>
+                                            <div class="library-account__mark-main">
+                                                <a
+                                                    class="library-account__mark-link"
+                                                    href="{{ path('web_library_read', {
+                                                        bookSlug: bookmark.book.slug,
+                                                        chapterSlug: bookmark.chapter.slug,
+                                                        focus: 'bookmark',
+                                                        bid: bookmark.id,
+                                                        _fragment: bookmark.blockId
+                                                    }) }}"
+                                                >
+                                                    <p class="library-account__mark-body">{{ bookmark.excerpt }}</p>
+                                                    <span class="library-account__mark-place">{{ bookmark.book.title }} · {{ bookmark.chapter.title }}</span>
+                                                </a>
+                                                <form method="post" class="library-account__mark-remove-form" action="{{ path('web_account', {tab: 'reading'}) }}">
+                                                    <input type="hidden" name="action" value="delete_bookmark">
+                                                    <input type="hidden" name="mark_id" value="{{ bookmark.id }}">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('account_mark_delete_bookmark_' ~ bookmark.id) }}">
+                                                    <button type="submit" class="library-account__mark-remove">Удалить</button>
+                                                </form>
+                                            </div>
                                         </li>
                                     {% endfor %}
                                 </ul>
@@ -200,17 +210,29 @@
                                 <ul class="library-account__mark-list">
                                     {% for quote in recentQuotes %}
                                         <li class="library-account__mark-item">
-                                            <blockquote class="library-account__mark-body">{{ quote.excerpt }}</blockquote>
-                                            <a
-                                                class="library-account__mark-place"
-                                                href="{{ path('web_library_read', {
-                                                    bookSlug: quote.book.slug,
-                                                    chapterSlug: quote.chapter.slug,
-                                                    focus: 'quote',
-                                                    qid: quote.id,
-                                                    _fragment: quote.blockId
-                                                }) }}"
-                                            >{{ quote.book.title }}</a>
+                                            <div class="library-account__mark-main">
+                                                <a
+                                                    class="library-account__mark-link"
+                                                    href="{{ path('web_library_read', {
+                                                        bookSlug: quote.book.slug,
+                                                        chapterSlug: quote.chapter.slug,
+                                                        focus: 'quote',
+                                                        qid: quote.id,
+                                                        so: quote.startOffset,
+                                                        eo: quote.endOffset,
+                                                        _fragment: quote.blockId
+                                                    }) }}"
+                                                >
+                                                    <blockquote class="library-account__mark-body">{{ quote.excerpt }}</blockquote>
+                                                    <span class="library-account__mark-place">{{ quote.book.title }} · {{ quote.chapter.title }}</span>
+                                                </a>
+                                                <form method="post" class="library-account__mark-remove-form" action="{{ path('web_account', {tab: 'reading'}) }}">
+                                                    <input type="hidden" name="action" value="delete_quote">
+                                                    <input type="hidden" name="mark_id" value="{{ quote.id }}">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('account_mark_delete_quote_' ~ quote.id) }}">
+                                                    <button type="submit" class="library-account__mark-remove">Удалить</button>
+                                                </form>
+                                            </div>
                                         </li>
                                     {% endfor %}
                                 </ul>
@@ -233,17 +255,27 @@
                                 <ul class="library-account__mark-list">
                                     {% for note in recentNotes %}
                                         <li class="library-account__mark-item">
-                                            <p class="library-account__mark-body">{{ note.body }}</p>
-                                            <a
-                                                class="library-account__mark-place"
-                                                href="{{ path('web_library_read', {
-                                                    bookSlug: note.book.slug,
-                                                    chapterSlug: note.chapter.slug,
-                                                    focus: 'note',
-                                                    nid: note.id,
-                                                    _fragment: note.blockId
-                                                }) }}"
-                                            >{{ note.book.title }}</a>
+                                            <div class="library-account__mark-main">
+                                                <a
+                                                    class="library-account__mark-link"
+                                                    href="{{ path('web_library_read', {
+                                                        bookSlug: note.book.slug,
+                                                        chapterSlug: note.chapter.slug,
+                                                        focus: 'note',
+                                                        nid: note.id,
+                                                        _fragment: note.blockId
+                                                    }) }}"
+                                                >
+                                                    <p class="library-account__mark-body">{{ note.body }}</p>
+                                                    <span class="library-account__mark-place">{{ note.book.title }} · {{ note.chapter.title }}</span>
+                                                </a>
+                                                <form method="post" class="library-account__mark-remove-form" action="{{ path('web_account', {tab: 'reading'}) }}">
+                                                    <input type="hidden" name="action" value="delete_note">
+                                                    <input type="hidden" name="mark_id" value="{{ note.id }}">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('account_mark_delete_note_' ~ note.id) }}">
+                                                    <button type="submit" class="library-account__mark-remove">Удалить</button>
+                                                </form>
+                                            </div>
                                         </li>
                                     {% endfor %}
                                 </ul>

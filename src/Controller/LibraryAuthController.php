@@ -7,6 +7,9 @@ namespace App\Controller;
 use App\Content\HouseContent;
 use App\Entity\AdminUser;
 use App\Entity\PaymentOffer;
+use App\Entity\ReadingBookmark;
+use App\Entity\ReadingNote;
+use App\Entity\ReadingQuote;
 use App\Entity\SiteUser;
 use App\Entity\WebauthnCredential;
 use App\Enum\PaymentOfferStatus;
@@ -242,6 +245,12 @@ final class LibraryAuthController extends AbstractController
                 return $this->redirectToRoute('web_account', ['tab' => 'practice']);
             }
 
+            if (\in_array($action, ['delete_bookmark', 'delete_quote', 'delete_note'], true)) {
+                $this->handleReadingMarkDelete($request, $user, $action);
+
+                return $this->redirectToRoute('web_account', ['tab' => 'reading']);
+            }
+
             $credentialId = $request->request->getString('credential_id');
             $credential = $this->credentials->find($credentialId);
             if (
@@ -316,6 +325,47 @@ final class LibraryAuthController extends AbstractController
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
 
         return $response;
+    }
+
+    private function handleReadingMarkDelete(Request $request, SiteUser $user, string $action): void
+    {
+        $markId = $request->request->getInt('mark_id');
+        $csrfId = 'account_mark_'.$action.'_'.$markId;
+        if (!$this->isCsrfTokenValid($csrfId, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Сессия устарела.');
+        }
+
+        if ('delete_bookmark' === $action) {
+            $bookmark = $this->bookmarks->find($markId);
+            if (!$bookmark instanceof ReadingBookmark || $bookmark->getSiteUser()->getId() !== $user->getId()) {
+                throw $this->createNotFoundException('Закладка не найдена.');
+            }
+            $this->entityManager->remove($bookmark);
+            $this->entityManager->flush();
+            $this->addFlash('success', 'Закладка удалена.');
+
+            return;
+        }
+
+        if ('delete_quote' === $action) {
+            $quote = $this->quotes->find($markId);
+            if (!$quote instanceof ReadingQuote || $quote->getSiteUser()->getId() !== $user->getId()) {
+                throw $this->createNotFoundException('Цитата не найдена.');
+            }
+            $this->entityManager->remove($quote);
+            $this->entityManager->flush();
+            $this->addFlash('success', 'Цитата удалена.');
+
+            return;
+        }
+
+        $note = $this->notes->find($markId);
+        if (!$note instanceof ReadingNote || $note->getSiteUser()->getId() !== $user->getId()) {
+            throw $this->createNotFoundException('Заметка не найдена.');
+        }
+        $this->entityManager->remove($note);
+        $this->entityManager->flush();
+        $this->addFlash('success', 'Заметка удалена.');
     }
 
     private function handlePracticeOfferAction(Request $request, SiteUser $user, string $action): void

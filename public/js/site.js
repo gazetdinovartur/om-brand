@@ -2870,19 +2870,41 @@ function initLibraryReader() {
         currentFromViewport();
     };
 
+    const pageIndexForElement = (el) => {
+        if (!(el instanceof Element) || !(content instanceof HTMLElement) || columnWidth <= 0) {
+            return 0;
+        }
+        const contentRect = content.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(true);
+        const rects = range.getClientRects();
+        const rect = rects.length > 0 ? rects[0] : el.getBoundingClientRect();
+        const left = rect.left - contentRect.left + content.scrollLeft;
+        return Math.max(0, Math.min(pageCount - 1, Math.floor((left + 0.5) / columnWidth)));
+    };
+
+    const jumpToElement = (el) => {
+        if (!(el instanceof Element)) {
+            return;
+        }
+        const block = el.closest('[data-reader-block]');
+        if (block instanceof HTMLElement) {
+            selectActiveBlock(block, true);
+        }
+        if (reader.dataset.readerFlow === 'paginated' && content instanceof HTMLElement) {
+            measurePages();
+            goToPage(pageIndexForElement(el));
+        } else if (el instanceof HTMLElement) {
+            el.scrollIntoView({ block: 'center', inline: 'nearest' });
+        }
+    };
+
     const jumpToBlock = (block) => {
         if (!(block instanceof HTMLElement)) {
             return;
         }
-        selectActiveBlock(block, true);
-        if (reader.dataset.readerFlow === 'paginated' && content instanceof HTMLElement) {
-            measurePages();
-            const left = block.offsetLeft;
-            const target = Math.floor(left / Math.max(1, columnWidth));
-            goToPage(target);
-        } else {
-            block.scrollIntoView({ block: 'start', inline: 'nearest' });
-        }
+        jumpToElement(block);
     };
 
     if (!isPdfFallback && 'IntersectionObserver' in window) {
@@ -3532,28 +3554,35 @@ function initLibraryReader() {
         if (navigation instanceof HTMLDetailsElement) {
             navigation.open = false;
         }
-        jumpToBlock(block);
-        window.requestAnimationFrame(() => {
+
+        const reveal = () => {
+            let target = null;
             if (kind === 'quote' && id) {
-                const mark = block.querySelector(`mark.reader-inline-quote[data-quote-id="${CSS.escape(String(id))}"]`);
-                if (mark instanceof HTMLElement) {
-                    flashElements([mark]);
-                    return;
-                }
+                target = block.querySelector(`mark.reader-inline-quote[data-quote-id="${CSS.escape(String(id))}"]`);
             }
-            if (endOffset > startOffset) {
+            if (!(target instanceof HTMLElement) && endOffset > startOffset) {
                 flashTextRange(block, startOffset, endOffset);
-                return;
-            }
-            if (excerpt) {
+                target = block.querySelector('.reader-focus-temp, mark.reader-inline-quote.is-reader-focus');
+            } else if (!(target instanceof HTMLElement) && excerpt) {
                 const haystack = block.textContent || '';
                 const at = haystack.indexOf(excerpt);
                 if (at >= 0) {
                     flashTextRange(block, at, at + excerpt.length);
-                    return;
+                    target = block.querySelector('.reader-focus-temp, mark.reader-inline-quote.is-reader-focus');
                 }
             }
+            if (target instanceof HTMLElement) {
+                jumpToElement(target);
+                flashElements([target]);
+                return;
+            }
+            jumpToElement(block);
             flashElements([block]);
+        };
+
+        // Дождаться раскладки страниц (особенно после перехода из Своего места).
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(reveal);
         });
         return true;
     };
@@ -3723,8 +3752,6 @@ function initLibraryReader() {
         }
         offlineButton.setAttribute('aria-pressed', cached ? 'true' : 'false');
         offlineButton.setAttribute('aria-label', cached ? 'Книга доступна офлайн' : 'Сохранить офлайн');
-        offlineButton.querySelector('[data-icon-offline]')?.toggleAttribute('hidden', cached);
-        offlineButton.querySelector('[data-icon-offline-on]')?.toggleAttribute('hidden', !cached);
         if (announce && cached) {
             setStatus('Книга доступна офлайн');
         }
@@ -3802,14 +3829,16 @@ function initLibraryReader() {
     const focusBlockId = (window.location.hash || '').replace(/^#/, '');
     if (focusKind && focusBlockId) {
         window.setTimeout(() => {
-            let startOffset = 0;
-            let endOffset = 0;
+            let startOffset = Number(focusParams.get('so') || 0);
+            let endOffset = Number(focusParams.get('eo') || 0);
             let excerpt = '';
             if (focusKind === 'quote' && focusId) {
                 const card = reader.querySelector(`[data-reader-mark="quote"][data-quote-id="${CSS.escape(focusId)}"]`);
                 if (card instanceof HTMLElement) {
-                    startOffset = Number(card.dataset.startOffset || 0);
-                    endOffset = Number(card.dataset.endOffset || 0);
+                    if (!(endOffset > startOffset)) {
+                        startOffset = Number(card.dataset.startOffset || 0);
+                        endOffset = Number(card.dataset.endOffset || 0);
+                    }
                     excerpt = card.dataset.jumpExcerpt || card.querySelector('.reader-mark__text')?.textContent || '';
                 }
             } else if (focusKind === 'bookmark' && focusId) {
@@ -3835,35 +3864,45 @@ function initLibraryReader() {
             focusParams.delete('qid');
             focusParams.delete('bid');
             focusParams.delete('nid');
+            focusParams.delete('so');
+            focusParams.delete('eo');
             const next = focusParams.toString();
             const url = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`;
             window.history.replaceState({}, '', url);
-        }, 120);
+        }, 180);
     }
 }
 
 function initReaderPreferences(reader, hooks = {}) {
     const chrome = document.querySelector('[data-reader-chrome]') || reader;
-    const fontDecrease = chrome.querySelector('[data-reader-font="decrease"]');
-    const fontIncrease = chrome.querySelector('[data-reader-font="increase"]');
     const themeButton = chrome.querySelector('[data-reader-theme]');
     const flowButton = chrome.querySelector('[data-reader-flow]');
-    const sizes = ['small', 'default', 'large'];
-    let preferences = { size: 'default', theme: 'light', flow: 'paginated' };
+    const flowLabel = flowButton?.querySelector('[data-reader-flow-label]');
+    const isDesktop = window.matchMedia('(min-width: 900px)').matches;
+    let preferences = {
+        size: 'default',
+        theme: 'light',
+        flow: isDesktop ? 'scroll' : 'paginated',
+    };
+    let stored = {};
 
     try {
-        preferences = { ...preferences, ...(JSON.parse(localStorage.getItem(READER_PREFERENCES_KEY) || '{}') || {}) };
+        stored = JSON.parse(localStorage.getItem(READER_PREFERENCES_KEY) || '{}') || {};
+        preferences = { ...preferences, ...stored };
     } catch {
         // Keep safe defaults when storage is unavailable or corrupt.
     }
-    if (!sizes.includes(preferences.size)) {
-        preferences.size = 'default';
-    }
+    preferences.size = 'default';
     if (!['light', 'dark'].includes(preferences.theme)) {
         preferences.theme = 'light';
     }
     if (!['paginated', 'scroll'].includes(preferences.flow)) {
-        preferences.flow = 'paginated';
+        preferences.flow = isDesktop ? 'scroll' : 'paginated';
+    }
+    // Один раз на десктопе перевести старый дефолт «страницы» на ленту.
+    if (isDesktop && stored.flowDesktopScroll !== true) {
+        preferences.flow = 'scroll';
+        preferences.flowDesktopScroll = true;
     }
 
     const persist = () => {
@@ -3874,17 +3913,14 @@ function initReaderPreferences(reader, hooks = {}) {
         }
     };
 
+    if (isDesktop && stored.flowDesktopScroll !== true) {
+        persist();
+    }
+
     const render = () => {
         reader.dataset.readerSize = preferences.size;
         reader.dataset.readerTheme = preferences.theme;
         reader.dataset.readerFlow = preferences.flow;
-        const index = sizes.indexOf(preferences.size);
-        if (fontDecrease instanceof HTMLButtonElement) {
-            fontDecrease.disabled = index === 0;
-        }
-        if (fontIncrease instanceof HTMLButtonElement) {
-            fontIncrease.disabled = index === sizes.length - 1;
-        }
         if (themeButton instanceof HTMLButtonElement) {
             const dark = preferences.theme === 'dark';
             themeButton.setAttribute('aria-pressed', dark ? 'true' : 'false');
@@ -3898,24 +3934,15 @@ function initReaderPreferences(reader, hooks = {}) {
             flowButton.setAttribute('aria-label', paginated ? 'Режим: страницы' : 'Режим: лента');
             flowButton.querySelector('[data-icon-pages]')?.toggleAttribute('hidden', !paginated);
             flowButton.querySelector('[data-icon-scroll]')?.toggleAttribute('hidden', paginated);
+            if (flowLabel instanceof HTMLElement) {
+                flowLabel.textContent = paginated ? 'Страницы' : 'Лента';
+            }
         }
         if (typeof hooks.measurePages === 'function') {
             window.requestAnimationFrame(() => hooks.measurePages());
         }
     };
 
-    fontDecrease?.addEventListener('click', () => {
-        const index = Math.max(0, sizes.indexOf(preferences.size) - 1);
-        preferences.size = sizes[index];
-        persist();
-        render();
-    });
-    fontIncrease?.addEventListener('click', () => {
-        const index = Math.min(sizes.length - 1, sizes.indexOf(preferences.size) + 1);
-        preferences.size = sizes[index];
-        persist();
-        render();
-    });
     themeButton?.addEventListener('click', () => {
         preferences.theme = preferences.theme === 'dark' ? 'light' : 'dark';
         persist();
@@ -3923,6 +3950,7 @@ function initReaderPreferences(reader, hooks = {}) {
     });
     flowButton?.addEventListener('click', () => {
         preferences.flow = preferences.flow === 'paginated' ? 'scroll' : 'paginated';
+        preferences.flowDesktopScroll = true;
         persist();
         render();
         if (typeof hooks.onFlowChange === 'function') {
