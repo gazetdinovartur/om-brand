@@ -19,7 +19,9 @@
                         data-chronicle-hub-link
                         data-chronicle-hub-base="{{ item.href }}"
                     {% endif %}
-                    {% if item.href == path('web_library') and app.request.attributes.get('_route') starts with 'web_library' %}aria-current="page"{% endif %}
+                    {% set currentRoute = app.request.attributes.get('_route') %}
+                    {% if item.href == path('web_library') and currentRoute starts with 'web_library' %}aria-current="page"{% endif %}
+                    {% if item.href == path('web_account') and currentRoute in ['web_account', 'web_library_account_redirect'] %}aria-current="page"{% endif %}
                 >{{ item.label }}</a>
             {% endfor %}
         </nav>

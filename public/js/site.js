@@ -2691,8 +2691,9 @@ function initLibraryReader() {
     const scheduleProgressSave = () => {
         window.clearTimeout(saveTimer);
         saveTimer = window.setTimeout(() => {
-            void saveProgress();
-        }, 1300);
+            // Автосохранение без тоста — иначе на каждой смене абзаца мелькает «Место сохранено».
+            void saveProgress({ quiet: true });
+        }, 1800);
     };
 
     const firstVisibleBlockOnPage = () => {
@@ -2711,11 +2712,57 @@ function initLibraryReader() {
         return found;
     };
 
+    const isReaderSelection = () => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+            return false;
+        }
+        const node = selection.anchorNode;
+        const host = node instanceof Element ? node : node?.parentElement;
+        return host instanceof Element && reader.contains(host);
+    };
+
+    let selectionActive = false;
+    let selectionLockRaf = 0;
+    let touchIsDown = false;
+    let touchSawSelection = false;
+
+    const lockPageScroll = () => {
+        if (!(content instanceof HTMLElement) || reader.dataset.readerFlow !== 'paginated' || columnWidth <= 0) {
+            return;
+        }
+        const expected = pageIndex * columnWidth;
+        if (Math.abs(content.scrollLeft - expected) > 0.5) {
+            content.scrollLeft = expected;
+        }
+    };
+
+    const syncSelectionLock = () => {
+        selectionActive = isReaderSelection();
+        if (!selectionActive) {
+            return;
+        }
+        lockPageScroll();
+        if (selectionLockRaf) {
+            return;
+        }
+        const tick = () => {
+            if (!selectionActive) {
+                selectionLockRaf = 0;
+                return;
+            }
+            lockPageScroll();
+            selectionLockRaf = window.requestAnimationFrame(tick);
+        };
+        selectionLockRaf = window.requestAnimationFrame(tick);
+    };
+
     const currentFromViewport = () => {
-        if (restoringPosition || isPdfFallback) {
+        if (restoringPosition || isPdfFallback || selectionActive) {
             return;
         }
         if (reader.dataset.readerFlow === 'paginated') {
+            lockPageScroll();
             const block = firstVisibleBlockOnPage();
             if (block) {
                 selectActiveBlock(block);
@@ -3016,25 +3063,28 @@ function initLibraryReader() {
 
     if (bookmarkButton instanceof HTMLButtonElement && bookmarkUrl && bookmarkToken) {
         bookmarkButton.addEventListener('click', async () => {
-            if (!(activeBlock instanceof HTMLElement)) {
+            const selected = selectionInReader();
+            const target = selected?.block instanceof HTMLElement ? selected.block : activeBlock;
+            if (!(target instanceof HTMLElement)) {
                 return;
             }
             bookmarkButton.disabled = true;
             try {
                 const data = await postJson(bookmarkUrl, bookmarkToken, {
                     chapter,
-                    block: activeBlock.id,
+                    block: target.id,
                 });
-                activeBlock.dataset.bookmarked = data.bookmarked ? '1' : '0';
-                activeBlock.classList.toggle('is-bookmarked', Boolean(data.bookmarked));
+                target.dataset.bookmarked = data.bookmarked ? '1' : '0';
+                target.classList.toggle('is-bookmarked', Boolean(data.bookmarked));
+                selectActiveBlock(target, true);
                 if (data.bookmarked) {
                     appendListItem(bookmarksList, bookmarksEmpty, '[data-reader-bookmark-item]', data, 'bookmark');
-                    upsertInlineMark(activeBlock.id, 'bookmark');
+                    upsertInlineMark(target.id, 'bookmark');
                     setStatus('Закладка добавлена');
                 } else {
-                    bookmarksList?.querySelector(`[data-reader-bookmark-item][data-block="${CSS.escape(activeBlock.id)}"]`)?.remove();
+                    bookmarksList?.querySelector(`[data-reader-bookmark-item][data-block="${CSS.escape(target.id)}"]`)?.remove();
                     syncEmpty(bookmarksEmpty, bookmarksList, '[data-reader-bookmark-item]');
-                    removeInlineMark(activeBlock.id, 'bookmark');
+                    removeInlineMark(target.id, 'bookmark');
                     setStatus('Закладка удалена');
                 }
             } catch {
@@ -3045,33 +3095,27 @@ function initLibraryReader() {
         });
     }
 
-    const selectedExcerpt = () => {
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) {
-            return activeBlock instanceof HTMLElement ? (activeBlock.textContent || '').trim() : '';
-        }
-        return selection.toString().trim();
-    };
-
     if (quoteButton instanceof HTMLButtonElement && quoteUrl && quoteToken) {
         quoteButton.addEventListener('click', async () => {
-            if (!(activeBlock instanceof HTMLElement)) {
+            const selected = selectionInReader();
+            if (!selected?.block) {
+                setStatus('Выделите текст для цитаты', true);
                 return;
             }
             quoteButton.disabled = true;
             try {
-                const excerpt = selectedExcerpt() || (activeBlock.textContent || '').trim();
                 const data = await postJson(quoteUrl, quoteToken, {
                     chapter,
-                    block: activeBlock.id,
-                    excerpt,
-                    startOffset: 0,
-                    endOffset: excerpt.length,
+                    block: selected.block.id,
+                    excerpt: selected.excerpt,
+                    startOffset: selected.startOffset,
+                    endOffset: selected.endOffset,
                 });
-                activeBlock.dataset.quoted = '1';
-                activeBlock.classList.add('is-quoted');
+                selected.block.dataset.quoted = '1';
+                selected.block.classList.add('is-quoted');
+                selectActiveBlock(selected.block, true);
                 appendListItem(quotesList, quotesEmpty, '[data-reader-quote-item]', data, 'quote');
-                upsertInlineMark(activeBlock.id, 'quote', data.excerpt || excerpt, data.quoteId);
+                upsertInlineMark(selected.block.id, 'quote', data.excerpt || selected.excerpt, data.quoteId);
                 setStatus('Цитата сохранена');
             } catch {
                 setStatus('Не удалось сохранить цитату', true);
@@ -3230,36 +3274,61 @@ function initLibraryReader() {
         }
     });
 
-    // Horizontal swipe to change page.
+    // Horizontal swipe to change page (не во время выделения / long-press).
     let touchStartX = 0;
     let touchStartY = 0;
+    let touchStartAt = 0;
     const swipeTarget = content instanceof HTMLElement ? content : reader;
     swipeTarget.addEventListener('touchstart', (event) => {
         const touch = event.changedTouches[0];
         if (!touch) {
             return;
         }
+        touchIsDown = true;
+        touchSawSelection = isReaderSelection();
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
+        touchStartAt = Date.now();
+    }, { passive: true });
+    swipeTarget.addEventListener('touchcancel', () => {
+        touchIsDown = false;
+        touchSawSelection = false;
     }, { passive: true });
     swipeTarget.addEventListener('touchend', (event) => {
-        if (reader.dataset.readerFlow !== 'paginated' || isPdfFallback) {
-            return;
-        }
         const touch = event.changedTouches[0];
-        if (!touch) {
+        const dx = touch ? touch.clientX - touchStartX : 0;
+        const dy = touch ? touch.clientY - touchStartY : 0;
+        const heldMs = Date.now() - touchStartAt;
+        const blockSwipe = touchSawSelection || selectionActive || isReaderSelection() || heldMs > 350;
+        touchIsDown = false;
+        touchSawSelection = false;
+        if (reader.dataset.readerFlow !== 'paginated' || isPdfFallback || blockSwipe || !touch) {
+            lockPageScroll();
             return;
         }
-        const dx = touch.clientX - touchStartX;
-        const dy = touch.clientY - touchStartY;
-        const selection = window.getSelection?.()?.toString() || '';
-        if (selection.trim()) {
-            return;
-        }
-        if (Math.abs(dx) >= 28 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+        if (Math.abs(dx) >= 36 && Math.abs(dx) > Math.abs(dy) * 1.25) {
             goToPage(pageIndex + (dx < 0 ? 1 : -1));
+        } else {
+            lockPageScroll();
         }
     }, { passive: true });
+
+    document.addEventListener('selectionchange', () => {
+        if (touchIsDown && isReaderSelection()) {
+            touchSawSelection = true;
+        }
+        syncSelectionLock();
+        updateActionButtons();
+    });
+
+    if (content instanceof HTMLElement) {
+        content.addEventListener('scroll', () => {
+            if (selectionActive || reader.dataset.readerFlow === 'paginated') {
+                // В постраничном режиме колонки не должны «плыть» (iOS двигает scroll при селекте).
+                lockPageScroll();
+            }
+        }, { passive: true });
+    }
 
     window.addEventListener('resize', () => {
         if (reader.dataset.readerFlow === 'paginated') {

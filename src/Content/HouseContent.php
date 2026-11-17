@@ -87,6 +87,7 @@ final class HouseContent
         return [
             ['route' => 'web_dev_landing', 'label' => 'Разработка'],
             ['route' => 'web_library', 'label' => 'Библиотека'],
+            ['route' => 'web_account', 'label' => 'Своё место'],
             // ['route' => 'web_cases', 'label' => 'Кейсы'], // TODO: раскомментировать вместе с CASES_PUBLIC_ENABLED
             // ['route' => 'web_practice', 'label' => PracticeContent::navLabel()], // TODO: вместе с PRACTICE_PUBLIC_ENABLED
             ['route' => 'web_chronicle', 'label' => 'Хроника', 'persistFilters' => true],

@@ -28,6 +28,18 @@ final class HousePlaceDoorTest extends TestCase
         self::assertStringNotContainsString('практика', mb_strtolower($place['invite']));
     }
 
+    public function testNavigationIncludesPlaceAfterLibrary(): void
+    {
+        $routes = array_column(HouseContent::navigationItems(), 'route');
+        $libraryIndex = array_search('web_library', $routes, true);
+        $placeIndex = array_search('web_account', $routes, true);
+
+        self::assertNotFalse($libraryIndex);
+        self::assertNotFalse($placeIndex);
+        self::assertSame($libraryIndex + 1, $placeIndex);
+        self::assertSame('Своё место', HouseContent::navigationItems()[$placeIndex]['label']);
+    }
+
     public function testPracticeHiddenFromPublicNavigationAndMap(): void
     {
         putenv('PRACTICE_PUBLIC_ENABLED=0');

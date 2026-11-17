@@ -6887,8 +6887,13 @@ blockquote.library-account__mark-body {
     max-height: none;
     min-height: 0;
     overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: none;
     column-gap: 0;
     column-fill: auto;
+    -webkit-user-select: text;
+    user-select: text;
+    touch-action: manipulation;
 }
 
 .reader[data-reader-flow="paginated"] .reader-footnotes,
@@ -7435,7 +7440,7 @@ blockquote.reader-nav-item__body {
         height: auto;
         max-height: none;
         padding-bottom: 0;
-        touch-action: pan-y;
+        touch-action: manipulation;
     }
 
     .reader-navigation__content {
