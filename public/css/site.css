@@ -87,6 +87,17 @@ body.site-body {
     display: inline-flex;
 }
 
+/* Paginated reader: one screen, no document scroll. */
+.site-body--reader.is-reader-paginated {
+    overflow: hidden;
+    height: 100dvh;
+    overscroll-behavior: none;
+}
+
+.site-body--reader.is-reader-paginated .site-header {
+    flex-shrink: 0;
+}
+
 .site-header--reader {
     display: flex;
     flex-direction: column;
@@ -6763,6 +6774,7 @@ blockquote.library-account__mark-body {
     border-radius: 0;
     background: color-mix(in srgb, var(--reader-surface, #faf6ef) 92%, transparent);
     box-shadow: none;
+    overflow: visible;
 }
 
 .reader-toolbar__inner {
@@ -6842,118 +6854,65 @@ blockquote.library-account__mark-body {
     box-shadow: none;
 }
 
-.reader-page-edges {
-    pointer-events: none;
-}
-
-.reader-page-edge {
-    pointer-events: auto;
-    position: fixed;
-    top: 22%;
-    bottom: 5.5rem;
-    z-index: 35;
-    width: max(3.25rem, 14vw);
-    max-width: 6rem;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.reader-page-edge--prev {
-    left: 0;
-}
-
-.reader-page-edge--next {
-    right: 0;
-}
-
-.reader-page-edge:disabled {
-    pointer-events: none;
-}
-
-.reader-page-edge:not(:disabled):active {
-    background: rgba(232, 168, 73, 0.12);
-}
-
-.reader-thumb-pager {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .reader-thumb-pager {
-        position: fixed;
-        left: 50%;
-        bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-        z-index: 45;
-        display: flex;
-        gap: 0.85rem;
-        transform: translateX(-50%);
-        padding: 0.35rem;
-        border: 1px solid var(--reader-border, rgba(80, 60, 40, 0.18));
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--reader-surface, #faf6ef) 92%, transparent);
-        box-shadow: 0 0.55rem 1.6rem rgba(31, 26, 20, 0.14);
-        backdrop-filter: blur(12px);
-    }
-
-    .reader-thumb-pager[hidden] {
-        display: none !important;
-    }
-
-    .reader-thumb-pager__btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 3.4rem;
-        height: 3.4rem;
-        margin: 0;
-        padding: 0;
-        border: 0;
-        border-radius: 999px;
-        color: var(--reader-text, var(--text));
-        background: rgba(232, 168, 73, 0.14);
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-    }
-
-    .reader-thumb-pager__btn:disabled {
-        opacity: 0.35;
-        cursor: default;
-    }
-
-    .reader-thumb-pager__btn:not(:disabled):active {
-        background: rgba(232, 168, 73, 0.28);
-    }
-}
-
 .reader-head__hint {
     margin-top: 0.5rem;
     color: var(--reader-muted);
     font-size: 0.85rem;
 }
 
+.reader[data-reader-flow="paginated"] {
+    padding-top: 0;
+    height: calc(100dvh - var(--reader-chrome-height, 3.5rem));
+    overflow: hidden;
+}
+
+.reader[data-reader-flow="paginated"] .reader-crumb,
+.reader[data-reader-flow="paginated"] .reader-head {
+    display: none;
+}
+
 .reader[data-reader-flow="paginated"] .reader-shell {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 7.5rem);
+    height: 100%;
+    min-height: 0;
+    max-width: none;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .reader[data-reader-flow="paginated"] .reader-text {
     flex: 1 1 auto;
-    height: calc(100vh - 8.5rem);
-    max-height: calc(100vh - 8.5rem);
+    height: auto;
+    max-height: none;
+    min-height: 0;
     overflow: hidden;
     column-gap: 0;
     column-fill: auto;
 }
 
 .reader[data-reader-flow="paginated"] .reader-footnotes,
-.reader[data-reader-flow="paginated"] .reader-chapter-nav {
+.reader[data-reader-flow="paginated"] .reader-chapter-nav,
+.reader[data-reader-flow="paginated"] .reader-save-status {
     display: none;
+}
+
+.reader[data-reader-flow="paginated"] .reader-navigation:not([open]) {
+    display: none;
+}
+
+.reader[data-reader-flow="paginated"] .reader-navigation[open] {
+    position: fixed;
+    top: var(--reader-chrome-height, 3.5rem);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 55;
+    margin: 0;
+    overflow: auto;
+    background: color-mix(in srgb, var(--reader-surface, #faf6ef) 96%, transparent);
+    border-top: 1px solid var(--reader-border, rgba(80, 60, 40, 0.14));
+    -webkit-overflow-scrolling: touch;
 }
 
 .reader-block.is-quoted {
@@ -7368,6 +7327,35 @@ blockquote.reader-nav-item__body {
     text-align: center;
 }
 
+.reader-toast {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.45rem);
+    z-index: 60;
+    width: max-content;
+    max-width: min(92vw, 22rem);
+    margin: 0;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid rgba(200, 120, 40, 0.28);
+    border-radius: 999px;
+    color: var(--reader-text, var(--text));
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    background: color-mix(in srgb, var(--reader-surface, #faf6ef) 94%, #e8a849 6%);
+    box-shadow: 0 0.45rem 1.25rem rgba(31, 26, 20, 0.12);
+    transform: translateX(-50%) translateY(-0.25rem);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.reader-toast.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
 .reader a:focus-visible,
 .reader button:focus-visible,
 .library-page a:focus-visible {
@@ -7434,21 +7422,20 @@ blockquote.reader-nav-item__body {
         min-height: 2.75rem;
     }
 
-    .reader-page-edge {
-        width: max(4rem, 20vw);
-        top: 18%;
-        bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
-    }
-
-    .reader[data-reader-flow="paginated"] .reader-text {
-        height: calc(100vh - 7.5rem);
-        max-height: calc(100vh - 7.5rem);
-        padding-bottom: 4.5rem;
-        touch-action: pan-y;
+    .reader[data-reader-flow="paginated"] {
+        padding-top: 0;
+        height: calc(100dvh - var(--reader-chrome-height, 3.5rem));
     }
 
     .reader[data-reader-flow="paginated"] .reader-shell {
-        padding-bottom: 4.75rem;
+        padding-bottom: 0;
+    }
+
+    .reader[data-reader-flow="paginated"] .reader-text {
+        height: auto;
+        max-height: none;
+        padding-bottom: 0;
+        touch-action: pan-y;
     }
 
     .reader-navigation__content {

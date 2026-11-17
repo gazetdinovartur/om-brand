@@ -2534,8 +2534,6 @@ function initLibraryReader() {
     const noteButton = q('[data-reader-note]');
     const pagePrevButtons = Array.from(document.querySelectorAll('[data-reader-page="prev"]'));
     const pageNextButtons = Array.from(document.querySelectorAll('[data-reader-page="next"]'));
-    const pageEdges = reader.querySelector('[data-reader-page-edges]');
-    const thumbPager = reader.querySelector('[data-reader-thumb-pager]');
     const offlineButton = q('[data-reader-offline]');
     const saveStatus = reader.querySelector('[data-reader-save-status]');
     const bookmarksList = reader.querySelector('[data-reader-bookmarks-list]');
@@ -2554,35 +2552,91 @@ function initLibraryReader() {
     let pageCount = 1;
     let columnWidth = 0;
 
+    const toast = document.querySelector('[data-reader-toast]');
     const setStatus = (message, keep = false) => {
-        if (!(saveStatus instanceof HTMLElement)) {
-            return;
-        }
         window.clearTimeout(statusTimer);
-        saveStatus.textContent = message;
+        if (saveStatus instanceof HTMLElement) {
+            saveStatus.textContent = message;
+        }
+        if (toast instanceof HTMLElement) {
+            const showToast = Boolean(message);
+            toast.hidden = !showToast;
+            toast.textContent = message;
+            toast.classList.toggle('is-visible', showToast);
+        }
         if (!keep && message) {
             statusTimer = window.setTimeout(() => {
-                saveStatus.textContent = '';
-            }, 1800);
+                if (saveStatus instanceof HTMLElement) {
+                    saveStatus.textContent = '';
+                }
+                if (toast instanceof HTMLElement) {
+                    toast.hidden = true;
+                    toast.textContent = '';
+                    toast.classList.remove('is-visible');
+                }
+            }, 2800);
         }
     };
 
+    const selectionInReader = () => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+            return null;
+        }
+        const range = selection.getRangeAt(0);
+        const node = range.commonAncestorContainer;
+        const host = node instanceof Element ? node : node.parentElement;
+        if (!(host instanceof Element)) {
+            return null;
+        }
+        const block = host.closest('[data-reader-block]');
+        if (!(block instanceof HTMLElement) || !reader.contains(block)) {
+            return null;
+        }
+        const excerpt = selection.toString().replace(/\s+/g, ' ').trim();
+        if (!excerpt) {
+            return null;
+        }
+        const prefix = document.createRange();
+        prefix.selectNodeContents(block);
+        prefix.setEnd(range.startContainer, range.startOffset);
+        const startOffset = prefix.toString().length;
+        const endOffset = startOffset + selection.toString().length;
+
+        return { block, excerpt, startOffset, endOffset };
+    };
+
     const updateActionButtons = () => {
+        const selected = selectionInReader();
+        const targetBlock = selected?.block instanceof HTMLElement
+            ? selected.block
+            : activeBlock;
+
         if (bookmarkButton instanceof HTMLButtonElement) {
-            if (!(activeBlock instanceof HTMLElement)) {
+            if (!(targetBlock instanceof HTMLElement)) {
                 bookmarkButton.disabled = true;
             } else {
-                const bookmarked = activeBlock.dataset.bookmarked === '1';
+                const bookmarked = targetBlock.dataset.bookmarked === '1';
                 bookmarkButton.disabled = false;
-                bookmarkButton.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
-                bookmarkButton.setAttribute('aria-label', bookmarked ? 'Убрать закладку' : 'Закладка');
+                bookmarkButton.setAttribute('aria-pressed', bookmarked && !selected ? 'true' : 'false');
+                bookmarkButton.setAttribute(
+                    'aria-label',
+                    selected
+                        ? 'Закладка на выделенное'
+                        : (bookmarked ? 'Убрать закладку' : 'Закладка'),
+                );
             }
         }
         if (quoteButton instanceof HTMLButtonElement) {
-            quoteButton.disabled = !(activeBlock instanceof HTMLElement) || isPdfFallback;
+            // Цитата — только по выделению (на мобиле свайп больше не мешает).
+            quoteButton.disabled = isPdfFallback || !selected;
+            quoteButton.setAttribute(
+                'aria-label',
+                selected ? 'Сохранить выделенное как цитату' : 'Выделите текст для цитаты',
+            );
         }
         if (noteButton instanceof HTMLButtonElement) {
-            noteButton.disabled = !(activeBlock instanceof HTMLElement) || isPdfFallback;
+            noteButton.disabled = !(targetBlock instanceof HTMLElement) || isPdfFallback;
         }
     };
 
@@ -2701,19 +2755,29 @@ function initLibraryReader() {
             btn.hidden = !paginated;
             btn.disabled = pageIndex >= pageCount - 1;
         });
-        if (pageEdges instanceof HTMLElement) {
-            pageEdges.hidden = !paginated;
-        }
-        if (thumbPager instanceof HTMLElement) {
-            thumbPager.hidden = !paginated;
-        }
         if (pageLabel instanceof HTMLElement) {
             pageLabel.hidden = !paginated;
             pageLabel.textContent = paginated ? `${pageIndex + 1} / ${pageCount}` : '';
         }
     };
 
+    const syncPaginatedViewport = () => {
+        const paginated = reader.dataset.readerFlow === 'paginated' && !isPdfFallback;
+        document.body.classList.toggle('is-reader-paginated', paginated);
+        const header = document.querySelector('.site-header--reader');
+        if (header instanceof HTMLElement && paginated) {
+            const height = Math.ceil(header.getBoundingClientRect().height);
+            document.documentElement.style.setProperty('--reader-chrome-height', `${height}px`);
+        } else {
+            document.documentElement.style.removeProperty('--reader-chrome-height');
+        }
+        if (paginated) {
+            window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        }
+    };
+
     const measurePages = () => {
+        syncPaginatedViewport();
         if (!(content instanceof HTMLElement) || reader.dataset.readerFlow !== 'paginated' || isPdfFallback) {
             pageCount = 1;
             pageIndex = 0;
@@ -2742,6 +2806,7 @@ function initLibraryReader() {
         if (!(content instanceof HTMLElement)) {
             return;
         }
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
         pageIndex = Math.max(0, Math.min(pageCount - 1, index));
         content.scrollLeft = pageIndex * columnWidth;
         updatePageUi();
@@ -3165,11 +3230,9 @@ function initLibraryReader() {
         }
     });
 
-    // Thumb paging: swipe + Kindle-style tap (left = back, right = next).
+    // Horizontal swipe to change page.
     let touchStartX = 0;
     let touchStartY = 0;
-    let touchStartAt = 0;
-    let touchMoved = false;
     const swipeTarget = content instanceof HTMLElement ? content : reader;
     swipeTarget.addEventListener('touchstart', (event) => {
         const touch = event.changedTouches[0];
@@ -3178,17 +3241,6 @@ function initLibraryReader() {
         }
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
-        touchStartAt = Date.now();
-        touchMoved = false;
-    }, { passive: true });
-    swipeTarget.addEventListener('touchmove', (event) => {
-        const touch = event.changedTouches[0];
-        if (!touch) {
-            return;
-        }
-        if (Math.abs(touch.clientX - touchStartX) > 10 || Math.abs(touch.clientY - touchStartY) > 10) {
-            touchMoved = true;
-        }
     }, { passive: true });
     swipeTarget.addEventListener('touchend', (event) => {
         if (reader.dataset.readerFlow !== 'paginated' || isPdfFallback) {
@@ -3200,27 +3252,12 @@ function initLibraryReader() {
         }
         const dx = touch.clientX - touchStartX;
         const dy = touch.clientY - touchStartY;
-        const dt = Date.now() - touchStartAt;
         const selection = window.getSelection?.()?.toString() || '';
         if (selection.trim()) {
             return;
         }
-
-        // Horizontal swipe with thumb.
         if (Math.abs(dx) >= 28 && Math.abs(dx) > Math.abs(dy) * 1.15) {
             goToPage(pageIndex + (dx < 0 ? 1 : -1));
-            return;
-        }
-
-        // Short tap: ~65% right → next, left → prev (reachable by thumb).
-        if (!touchMoved && dt < 320 && Math.abs(dx) < 12 && Math.abs(dy) < 12) {
-            const rect = swipeTarget.getBoundingClientRect();
-            const ratio = (touch.clientX - rect.left) / Math.max(1, rect.width);
-            if (ratio >= 0.33) {
-                goToPage(pageIndex + 1);
-            } else {
-                goToPage(pageIndex - 1);
-            }
         }
     }, { passive: true });
 
@@ -3230,9 +3267,9 @@ function initLibraryReader() {
         }
     });
 
-    const refreshOfflineButton = async () => {
+    const refreshOfflineButton = async ({ announce = false } = {}) => {
         if (!(offlineButton instanceof HTMLButtonElement) || !bookSlug) {
-            return;
+            return false;
         }
         let cached = false;
         try {
@@ -3248,11 +3285,21 @@ function initLibraryReader() {
         offlineButton.setAttribute('aria-label', cached ? 'Книга доступна офлайн' : 'Сохранить офлайн');
         offlineButton.querySelector('[data-icon-offline]')?.toggleAttribute('hidden', cached);
         offlineButton.querySelector('[data-icon-offline-on]')?.toggleAttribute('hidden', !cached);
+        if (announce && cached) {
+            setStatus('Книга доступна офлайн');
+        }
+        return cached;
     };
 
     if (offlineButton instanceof HTMLButtonElement && offlineUrl && bookSlug) {
         offlineButton.addEventListener('click', async () => {
+            const alreadyCached = offlineButton.getAttribute('aria-pressed') === 'true';
+            if (alreadyCached) {
+                setStatus('Книга уже доступна офлайн');
+                return;
+            }
             offlineButton.disabled = true;
+            setStatus('Сохраняю офлайн…', true);
             try {
                 const response = await fetch(offlineUrl, {
                     headers: { Accept: 'application/json' },
@@ -3275,15 +3322,27 @@ function initLibraryReader() {
                         await navigator.serviceWorker.register('/sw.js', { scope: '/' });
                     }
                 }
-                setStatus('Книга доступна офлайн');
                 await refreshOfflineButton();
+                setStatus('Книга доступна офлайн');
             } catch {
                 setStatus('Не удалось сохранить офлайн', true);
             } finally {
                 offlineButton.disabled = false;
             }
         });
-        void refreshOfflineButton();
+        void refreshOfflineButton({ announce: true });
+    }
+
+    const tocLink = chrome.querySelector('a[href="#reader-navigation"]');
+    const navigation = reader.querySelector('#reader-navigation');
+    if (tocLink instanceof HTMLAnchorElement && navigation instanceof HTMLDetailsElement) {
+        tocLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            navigation.open = !navigation.open;
+            if (navigation.open) {
+                syncPaginatedViewport();
+            }
+        });
     }
 
     initReaderPreferences(reader, {

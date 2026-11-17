@@ -62,6 +62,7 @@
                 </button>
             </div>
         </div>
+        <p class="reader-toast" data-reader-toast role="status" aria-live="polite" hidden></p>
     </div>
 {% endblock %}
 
@@ -278,19 +279,6 @@
                 {% endfor %}
             </div>
 
-            <div class="reader-page-edges" data-reader-page-edges hidden>
-                <button type="button" class="reader-page-edge reader-page-edge--prev" data-reader-page="prev" aria-label="Предыдущий экран"></button>
-                <button type="button" class="reader-page-edge reader-page-edge--next" data-reader-page="next" aria-label="Следующий экран"></button>
-            </div>
-
-            <nav class="reader-thumb-pager" data-reader-thumb-pager hidden aria-label="Листание большим пальцем">
-                <button type="button" class="reader-thumb-pager__btn" data-reader-page="prev" aria-label="Предыдущий экран">
-                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                </button>
-                <button type="button" class="reader-thumb-pager__btn" data-reader-page="next" aria-label="Следующий экран">
-                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-            </nav>
         {% endif %}
 
         {% if footnotes is not empty %}
