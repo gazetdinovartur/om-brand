@@ -119,16 +119,18 @@ final class LibraryController extends AbstractController
             }
         }
         $quotedBlockIds = [];
-        foreach ($quotes as $quote) {
-            if ($quote->getChapter()->getId() === $chapter->getId()) {
-                $quotedBlockIds[$quote->getBlockId()] = true;
-            }
-        }
         $notedBlockIds = [];
         $quotesByBlock = [];
         $notesByBlock = [];
+        $bookmarksByBlock = [];
+        foreach ($bookmarks as $bookmark) {
+            if ($bookmark->getChapter()->getId() === $chapter->getId()) {
+                $bookmarksByBlock[$bookmark->getBlockId()] = $bookmark;
+            }
+        }
         foreach ($quotes as $quote) {
             if ($quote->getChapter()->getId() === $chapter->getId()) {
+                $quotedBlockIds[$quote->getBlockId()] = true;
                 $quotesByBlock[$quote->getBlockId()][] = $quote;
             }
         }
@@ -173,6 +175,7 @@ final class LibraryController extends AbstractController
             'notedBlockIds' => $notedBlockIds,
             'quotesByBlock' => $quotesByBlock,
             'notesByBlock' => $notesByBlock,
+            'bookmarksByBlock' => $bookmarksByBlock,
             'footnotes' => $footnotes,
             'pdfPage' => $pdfPage,
             'openAtEnd' => 'end' === $request->query->getString('at'),

@@ -2830,19 +2830,25 @@ function initLibraryReader() {
             pageIndex = 0;
             if (content instanceof HTMLElement) {
                 content.style.columnWidth = '';
+                content.style.height = '';
                 content.scrollLeft = 0;
             }
             updatePageUi();
             return;
         }
-        // One “page” = full content width; gap 0 so scroll step is exact.
-        const width = Math.max(1, content.clientWidth);
+        // Сначала сбрасываем явные размеры, чтобы взять фактический flex-бокс.
+        content.style.columnWidth = '';
+        content.style.height = '';
+        void content.offsetHeight;
+        const width = Math.max(1, Math.floor(content.getBoundingClientRect().width));
+        const height = Math.max(1, Math.floor(content.getBoundingClientRect().height));
+        content.style.height = `${height}px`;
         content.style.columnWidth = `${width}px`;
+        content.style.columnGap = '0px';
         columnWidth = width;
-        // Force layout before measuring multi-column scrollWidth.
         void content.offsetHeight;
         const scrollWidth = content.scrollWidth;
-        pageCount = Math.max(1, Math.ceil((scrollWidth - 1) / width));
+        pageCount = Math.max(1, Math.round(scrollWidth / width));
         pageIndex = Math.min(pageIndex, pageCount - 1);
         content.scrollLeft = pageIndex * columnWidth;
         updatePageUi();
@@ -2856,6 +2862,10 @@ function initLibraryReader() {
         window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
         pageIndex = Math.max(0, Math.min(pageCount - 1, index));
         content.scrollLeft = pageIndex * columnWidth;
+        // Подстраховка от субпиксельного «плывущего» столбца.
+        window.requestAnimationFrame(() => {
+            lockPageScroll();
+        });
         updatePageUi();
         currentFromViewport();
     };
@@ -2942,49 +2952,66 @@ function initLibraryReader() {
         emptyEl.hidden = listEl.querySelector(itemSel) !== null;
     };
 
-    const appendListItem = (listEl, emptyEl, itemSel, data, kind) => {
+    const appendListItem = (listEl, emptyEl, itemSel, data, kind, offsets = null) => {
         if (!(listEl instanceof HTMLOListElement) || !data.block) {
             return;
         }
         const item = document.createElement('li');
-        item.dataset[`reader${kind[0].toUpperCase()}${kind.slice(1)}Item`] = '';
-        if (kind === 'bookmark') {
-            item.dataset.readerBookmarkItem = '';
-            item.dataset.bookmarkId = String(data.bookmarkId);
-        } else if (kind === 'quote') {
-            item.dataset.readerQuoteItem = '';
-            item.dataset.quoteId = String(data.quoteId);
-        } else {
-            item.dataset.readerNoteItem = '';
-            item.dataset.noteId = String(data.noteId);
-        }
         item.className = 'reader-nav-item';
         item.dataset.chapter = chapter;
         item.dataset.block = data.block;
-        const body = document.createElement(kind === 'quote' ? 'blockquote' : 'p');
+        const idValue = kind === 'bookmark'
+            ? data.bookmarkId
+            : (kind === 'quote' ? data.quoteId : data.noteId);
+        if (kind === 'bookmark') {
+            item.dataset.readerBookmarkItem = '';
+            item.dataset.bookmarkId = String(idValue);
+        } else if (kind === 'quote') {
+            item.dataset.readerQuoteItem = '';
+            item.dataset.quoteId = String(idValue);
+        } else {
+            item.dataset.readerNoteItem = '';
+            item.dataset.noteId = String(idValue);
+        }
+
+        const jump = document.createElement('button');
+        jump.type = 'button';
+        jump.className = 'reader-nav-item__jump';
+        jump.dataset.readerJump = '';
+        jump.dataset.jumpKind = kind;
+        jump.dataset.jumpId = String(idValue || '');
+        jump.dataset.jumpBlock = data.block;
+        jump.dataset.jumpChapter = chapter;
+        jump.dataset.jumpExcerpt = data.excerpt || data.body || '';
+        if (offsets) {
+            jump.dataset.startOffset = String(offsets.startOffset);
+            jump.dataset.endOffset = String(offsets.endOffset);
+        }
+        jump.dataset.jumpHref = `#${encodeURIComponent(data.block)}`;
+
+        const body = document.createElement('span');
         body.className = 'reader-nav-item__body';
         body.textContent = data.excerpt || data.body || '';
-        const place = document.createElement('a');
+        const place = document.createElement('span');
         place.className = 'reader-nav-item__place';
-        place.href = `#${encodeURIComponent(data.block)}`;
         place.textContent = reader.querySelector('.reader-head h1')?.textContent?.trim() || 'К месту';
+        jump.append(body, place);
+
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
+        removeButton.className = 'reader-nav-item__remove';
+        removeButton.textContent = 'Удалить';
         if (kind === 'bookmark') {
             removeButton.dataset.readerBookmarkRemove = '';
-            removeButton.dataset.bookmarkId = String(data.bookmarkId);
-            removeButton.setAttribute('aria-label', 'Удалить закладку');
+            removeButton.dataset.bookmarkId = String(idValue);
         } else if (kind === 'quote') {
             removeButton.dataset.readerQuoteRemove = '';
-            removeButton.dataset.quoteId = String(data.quoteId);
-            removeButton.setAttribute('aria-label', 'Удалить цитату');
+            removeButton.dataset.quoteId = String(idValue);
         } else {
             removeButton.dataset.readerNoteRemove = '';
-            removeButton.dataset.noteId = String(data.noteId);
-            removeButton.setAttribute('aria-label', 'Удалить заметку');
+            removeButton.dataset.noteId = String(idValue);
         }
-        removeButton.textContent = '×';
-        item.append(body, place, removeButton);
+        item.append(jump, removeButton);
         listEl.prepend(item);
         syncEmpty(emptyEl, listEl, itemSel);
     };
@@ -3001,7 +3028,123 @@ function initLibraryReader() {
         host.hidden = host.querySelector('[data-reader-mark]') === null;
     };
 
-    const upsertInlineMark = (blockId, kind, text, id = '') => {
+    const unwrapQuoteHighlight = (block, quoteId = null) => {
+        if (!(block instanceof HTMLElement)) {
+            return;
+        }
+        block.querySelectorAll('mark.reader-inline-quote').forEach((mark) => {
+            if (!(mark instanceof HTMLElement)) {
+                return;
+            }
+            if (quoteId !== null && mark.dataset.quoteId !== String(quoteId)) {
+                return;
+            }
+            const parent = mark.parentNode;
+            if (!(parent instanceof Node)) {
+                return;
+            }
+            while (mark.firstChild) {
+                parent.insertBefore(mark.firstChild, mark);
+            }
+            parent.removeChild(mark);
+            if (parent instanceof Element) {
+                parent.normalize();
+            }
+        });
+    };
+
+    const wrapQuoteHighlight = (block, startOffset, endOffset, quoteId) => {
+        if (!(block instanceof HTMLElement) || endOffset <= startOffset) {
+            return;
+        }
+        unwrapQuoteHighlight(block, quoteId);
+        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+        let pos = 0;
+        /** @type {{ node: Text, sliceStart: number, sliceEnd: number }[]} */
+        const slices = [];
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            if (!(node instanceof Text)) {
+                continue;
+            }
+            const len = node.data.length;
+            const nodeStart = pos;
+            const nodeEnd = pos + len;
+            pos = nodeEnd;
+            if (nodeEnd <= startOffset || nodeStart >= endOffset) {
+                continue;
+            }
+            slices.push({
+                node,
+                sliceStart: Math.max(0, startOffset - nodeStart),
+                sliceEnd: Math.min(len, endOffset - nodeStart),
+            });
+        }
+        for (let i = slices.length - 1; i >= 0; i -= 1) {
+            const { node, sliceStart, sliceEnd } = slices[i];
+            if (sliceEnd <= sliceStart || !node.parentNode) {
+                continue;
+            }
+            const text = node.data;
+            const mark = document.createElement('mark');
+            mark.className = 'reader-inline-quote';
+            mark.dataset.quoteId = String(quoteId);
+            mark.textContent = text.slice(sliceStart, sliceEnd);
+            const frag = document.createDocumentFragment();
+            if (sliceStart > 0) {
+                frag.append(document.createTextNode(text.slice(0, sliceStart)));
+            }
+            frag.append(mark);
+            if (sliceEnd < text.length) {
+                frag.append(document.createTextNode(text.slice(sliceEnd)));
+            }
+            node.parentNode.replaceChild(frag, node);
+        }
+    };
+
+    const applyQuoteHighlights = () => {
+        blocks.forEach((block) => {
+            if (!(block instanceof HTMLElement)) {
+                return;
+            }
+            unwrapQuoteHighlight(block);
+            const host = marksHostFor(block.id);
+            if (!(host instanceof HTMLElement)) {
+                return;
+            }
+            /** @type {{ id: string, start: number, end: number }[]} */
+            const quotes = [];
+            host.querySelectorAll('[data-reader-mark="quote"]').forEach((el) => {
+                if (!(el instanceof HTMLElement)) {
+                    return;
+                }
+                const id = el.dataset.quoteId || '';
+                const start = Number(el.dataset.startOffset || 0);
+                const end = Number(el.dataset.endOffset || 0);
+                if (!id || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+                    // Старые цитаты без оффсетов — подсветим по тексту excerpt, если найдётся.
+                    const excerpt = el.querySelector('.reader-mark__text')?.textContent?.trim() || '';
+                    if (!id || !excerpt) {
+                        return;
+                    }
+                    const haystack = block.textContent || '';
+                    const at = haystack.indexOf(excerpt);
+                    if (at >= 0) {
+                        quotes.push({ id, start: at, end: at + excerpt.length });
+                    }
+                    return;
+                }
+                quotes.push({ id, start, end });
+            });
+            quotes.sort((a, b) => b.start - a.start);
+            quotes.forEach((quote) => {
+                wrapQuoteHighlight(block, quote.start, quote.end, quote.id);
+            });
+            block.dataset.quoted = quotes.length ? '1' : '0';
+        });
+    };
+
+    const upsertInlineMark = (blockId, kind, text, id = '', offsets = null) => {
         const host = marksHostFor(blockId);
         if (!(host instanceof HTMLElement)) {
             return;
@@ -3018,21 +3161,44 @@ function initLibraryReader() {
             mark = document.createElement('div');
             mark.className = `reader-mark reader-mark--${kind}`;
             mark.dataset.readerMark = kind;
+            if (kind === 'bookmark' && id) {
+                mark.dataset.bookmarkId = String(id);
+            }
             if (kind === 'quote' && id) {
                 mark.dataset.quoteId = String(id);
             }
             if (kind === 'note' && id) {
                 mark.dataset.noteId = String(id);
             }
+            const head = document.createElement('div');
+            head.className = 'reader-mark__head';
             const label = document.createElement('span');
             label.className = 'reader-mark__label';
             label.textContent = kind === 'bookmark' ? 'Закладка' : (kind === 'quote' ? 'Цитата' : 'Заметка');
-            mark.append(label);
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'reader-mark__remove';
+            removeButton.textContent = 'Удалить';
+            if (kind === 'bookmark') {
+                removeButton.dataset.readerBookmarkRemove = '';
+                removeButton.dataset.bookmarkId = String(id);
+            } else if (kind === 'quote') {
+                removeButton.dataset.readerQuoteRemove = '';
+                removeButton.dataset.quoteId = String(id);
+            } else {
+                removeButton.dataset.readerNoteRemove = '';
+                removeButton.dataset.noteId = String(id);
+            }
+            head.append(label, removeButton);
+            mark.append(head);
             if (kind !== 'bookmark') {
                 const body = document.createElement('p');
                 body.className = 'reader-mark__text';
                 body.textContent = text || '';
                 mark.append(body);
+            }
+            if (text) {
+                mark.dataset.jumpExcerpt = text;
             }
             host.append(mark);
         } else if (kind !== 'bookmark') {
@@ -3040,6 +3206,13 @@ function initLibraryReader() {
             if (body instanceof HTMLElement) {
                 body.textContent = text || '';
             }
+            if (text) {
+                mark.dataset.jumpExcerpt = text;
+            }
+        }
+        if (kind === 'quote' && mark instanceof HTMLElement && offsets) {
+            mark.dataset.startOffset = String(offsets.startOffset);
+            mark.dataset.endOffset = String(offsets.endOffset);
         }
         refreshMarksVisibility(host);
     };
@@ -3079,7 +3252,7 @@ function initLibraryReader() {
                 selectActiveBlock(target, true);
                 if (data.bookmarked) {
                     appendListItem(bookmarksList, bookmarksEmpty, '[data-reader-bookmark-item]', data, 'bookmark');
-                    upsertInlineMark(target.id, 'bookmark');
+                    upsertInlineMark(target.id, 'bookmark', data.excerpt || '', data.bookmarkId);
                     setStatus('Закладка добавлена');
                 } else {
                     bookmarksList?.querySelector(`[data-reader-bookmark-item][data-block="${CSS.escape(target.id)}"]`)?.remove();
@@ -3112,10 +3285,37 @@ function initLibraryReader() {
                     endOffset: selected.endOffset,
                 });
                 selected.block.dataset.quoted = '1';
-                selected.block.classList.add('is-quoted');
                 selectActiveBlock(selected.block, true);
-                appendListItem(quotesList, quotesEmpty, '[data-reader-quote-item]', data, 'quote');
-                upsertInlineMark(selected.block.id, 'quote', data.excerpt || selected.excerpt, data.quoteId);
+                appendListItem(
+                    quotesList,
+                    quotesEmpty,
+                    '[data-reader-quote-item]',
+                    data,
+                    'quote',
+                    {
+                        startOffset: selected.startOffset,
+                        endOffset: selected.endOffset,
+                    },
+                );
+                upsertInlineMark(
+                    selected.block.id,
+                    'quote',
+                    data.excerpt || selected.excerpt,
+                    data.quoteId,
+                    {
+                        startOffset: selected.startOffset,
+                        endOffset: selected.endOffset,
+                    },
+                );
+                wrapQuoteHighlight(
+                    selected.block,
+                    selected.startOffset,
+                    selected.endOffset,
+                    data.quoteId || selected.excerpt,
+                );
+                if (reader.dataset.readerFlow === 'paginated') {
+                    measurePages();
+                }
                 setStatus('Цитата сохранена');
             } catch {
                 setStatus('Не удалось сохранить цитату', true);
@@ -3159,90 +3359,261 @@ function initLibraryReader() {
         });
     }
 
-    const wireRemovals = (listEl, removeSel, idAttr, url, token, actionKey, idKey, clearFlag) => {
-        if (!(listEl instanceof HTMLOListElement)) {
+    const clearBookmarkLocal = (block, _id, blockId) => {
+        block.dataset.bookmarked = '0';
+        block.classList.remove('is-bookmarked');
+        removeInlineMark(blockId, 'bookmark');
+        bookmarksList?.querySelector(`[data-reader-bookmark-item][data-block="${CSS.escape(blockId)}"]`)?.remove();
+        syncEmpty(bookmarksEmpty, bookmarksList, '[data-reader-bookmark-item]');
+    };
+
+    const clearQuoteLocal = (block, id, blockId) => {
+        removeInlineMark(blockId, 'quote', id);
+        unwrapQuoteHighlight(block, id);
+        quotesList?.querySelector(`[data-reader-quote-item][data-quote-id="${CSS.escape(String(id))}"]`)?.remove();
+        syncEmpty(quotesEmpty, quotesList, '[data-reader-quote-item]');
+        const host = marksHostFor(blockId);
+        const stillQuoted = Boolean(host?.querySelector('[data-reader-mark="quote"]'));
+        block.dataset.quoted = stillQuoted ? '1' : '0';
+        if (reader.dataset.readerFlow === 'paginated') {
+            measurePages();
+        }
+    };
+
+    const clearNoteLocal = (block, id, blockId) => {
+        removeInlineMark(blockId, 'note', id);
+        notesList?.querySelector(`[data-reader-note-item][data-note-id="${CSS.escape(String(id))}"]`)?.remove();
+        syncEmpty(notesEmpty, notesList, '[data-reader-note-item]');
+        const host = marksHostFor(blockId);
+        const stillNoted = Boolean(host?.querySelector('[data-reader-mark="note"]'));
+        block.dataset.noted = stillNoted ? '1' : '0';
+        block.classList.toggle('is-noted', stillNoted);
+    };
+
+    const resolveRemoveTarget = (button) => {
+        if (button.hasAttribute('data-reader-bookmark-remove')) {
+            return {
+                kind: 'bookmark',
+                id: button.dataset.bookmarkId || '',
+                idKey: 'bookmarkId',
+                url: bookmarkUrl,
+                token: bookmarkToken,
+                clearFlag: clearBookmarkLocal,
+                listSel: `[data-reader-bookmark-item][data-bookmark-id="${CSS.escape(button.dataset.bookmarkId || '')}"]`,
+            };
+        }
+        if (button.hasAttribute('data-reader-quote-remove')) {
+            return {
+                kind: 'quote',
+                id: button.dataset.quoteId || '',
+                idKey: 'quoteId',
+                url: quoteUrl,
+                token: quoteToken,
+                clearFlag: clearQuoteLocal,
+                listSel: `[data-reader-quote-item][data-quote-id="${CSS.escape(button.dataset.quoteId || '')}"]`,
+            };
+        }
+        if (button.hasAttribute('data-reader-note-remove')) {
+            return {
+                kind: 'note',
+                id: button.dataset.noteId || '',
+                idKey: 'noteId',
+                url: noteUrl,
+                token: noteToken,
+                clearFlag: clearNoteLocal,
+                listSel: `[data-reader-note-item][data-note-id="${CSS.escape(button.dataset.noteId || '')}"]`,
+            };
+        }
+        return null;
+    };
+
+    reader.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
             return;
         }
-        listEl.addEventListener('click', async (event) => {
+        const button = target.closest('[data-reader-bookmark-remove], [data-reader-quote-remove], [data-reader-note-remove]');
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const spec = resolveRemoveTarget(button);
+        if (!spec || !spec.id || !spec.url || !spec.token) {
+            return;
+        }
+        button.disabled = true;
+        try {
+            await postJson(spec.url, spec.token, { action: 'remove', [spec.idKey]: Number(spec.id) });
+            const listItem = reader.querySelector(spec.listSel);
+            const markCard = button.closest('[data-reader-mark]');
+            const blockId = (listItem instanceof HTMLElement && listItem.dataset.block)
+                || (markCard instanceof HTMLElement && markCard.closest('[data-reader-marks]')?.getAttribute('data-block'))
+                || '';
+            if (blockId) {
+                const block = reader.querySelector(`#${CSS.escape(blockId)}`);
+                if (block instanceof HTMLElement) {
+                    spec.clearFlag(block, spec.id, blockId);
+                }
+            } else if (listItem instanceof HTMLElement) {
+                listItem.remove();
+            }
+            updateActionButtons();
+            setStatus('Удалено');
+        } catch {
+            button.disabled = false;
+            setStatus('Не удалось удалить', true);
+        }
+    });
+
+    let focusTimer = 0;
+    const clearFocusFlash = () => {
+        reader.querySelectorAll('.is-reader-focus, .reader-focus-temp').forEach((el) => {
+            if (!(el instanceof HTMLElement)) {
+                return;
+            }
+            if (el.classList.contains('reader-focus-temp')) {
+                const parent = el.parentNode;
+                while (el.firstChild) {
+                    parent?.insertBefore(el.firstChild, el);
+                }
+                el.remove();
+                if (parent instanceof Element) {
+                    parent.normalize();
+                }
+                return;
+            }
+            el.classList.remove('is-reader-focus');
+        });
+    };
+
+    const flashElements = (elements) => {
+        window.clearTimeout(focusTimer);
+        clearFocusFlash();
+        elements.forEach((el) => {
+            if (el instanceof HTMLElement) {
+                el.classList.add('is-reader-focus');
+            }
+        });
+        focusTimer = window.setTimeout(() => {
+            clearFocusFlash();
+        }, 1800);
+    };
+
+    const flashTextRange = (block, startOffset, endOffset) => {
+        if (!(block instanceof HTMLElement) || endOffset <= startOffset) {
+            flashElements([block]);
+            return;
+        }
+        const focusId = `focus-${startOffset}-${endOffset}`;
+        wrapQuoteHighlight(block, startOffset, endOffset, focusId);
+        const temp = block.querySelector(`mark.reader-inline-quote[data-quote-id="${CSS.escape(focusId)}"]`);
+        if (temp instanceof HTMLElement) {
+            temp.classList.add('reader-focus-temp');
+            flashElements([temp]);
+            return;
+        }
+        flashElements([block]);
+    };
+
+    const focusMark = ({
+        blockId,
+        kind = '',
+        id = '',
+        startOffset = 0,
+        endOffset = 0,
+        excerpt = '',
+    }) => {
+        const block = blockId ? reader.querySelector(`#${CSS.escape(blockId)}`) : null;
+        if (!(block instanceof HTMLElement)) {
+            return false;
+        }
+        const navigation = reader.querySelector('#reader-navigation');
+        if (navigation instanceof HTMLDetailsElement) {
+            navigation.open = false;
+        }
+        jumpToBlock(block);
+        window.requestAnimationFrame(() => {
+            if (kind === 'quote' && id) {
+                const mark = block.querySelector(`mark.reader-inline-quote[data-quote-id="${CSS.escape(String(id))}"]`);
+                if (mark instanceof HTMLElement) {
+                    flashElements([mark]);
+                    return;
+                }
+            }
+            if (endOffset > startOffset) {
+                flashTextRange(block, startOffset, endOffset);
+                return;
+            }
+            if (excerpt) {
+                const haystack = block.textContent || '';
+                const at = haystack.indexOf(excerpt);
+                if (at >= 0) {
+                    flashTextRange(block, at, at + excerpt.length);
+                    return;
+                }
+            }
+            flashElements([block]);
+        });
+        return true;
+    };
+
+    reader.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+        if (target.closest('[data-reader-bookmark-remove], [data-reader-quote-remove], [data-reader-note-remove]')) {
+            return;
+        }
+        const jump = target.closest('[data-reader-jump]');
+        if (jump instanceof HTMLElement) {
+            event.preventDefault();
+            const jumpChapter = jump.dataset.jumpChapter || '';
+            const href = jump.dataset.jumpHref || '';
+            if (jumpChapter && jumpChapter !== chapter && href) {
+                window.location.href = href;
+                return;
+            }
+            focusMark({
+                blockId: jump.dataset.jumpBlock || '',
+                kind: jump.dataset.jumpKind || '',
+                id: jump.dataset.jumpId || '',
+                startOffset: Number(jump.dataset.startOffset || 0),
+                endOffset: Number(jump.dataset.endOffset || 0),
+                excerpt: jump.dataset.jumpExcerpt || '',
+            });
+            return;
+        }
+        const markCard = target.closest('[data-reader-mark]');
+        if (!(markCard instanceof HTMLElement)) {
+            return;
+        }
+        const host = markCard.closest('[data-reader-marks]');
+        const blockId = host instanceof HTMLElement ? (host.dataset.block || '') : '';
+        focusMark({
+            blockId,
+            kind: markCard.dataset.readerMark || '',
+            id: markCard.dataset.quoteId || markCard.dataset.bookmarkId || markCard.dataset.noteId || '',
+            startOffset: Number(markCard.dataset.startOffset || 0),
+            endOffset: Number(markCard.dataset.endOffset || 0),
+            excerpt: markCard.dataset.jumpExcerpt || markCard.querySelector('.reader-mark__text')?.textContent || '',
+        });
+    });
+
+    // Click on inline quote mark in text → flash it.
+    if (content instanceof HTMLElement) {
+        content.addEventListener('click', (event) => {
             const target = event.target;
             if (!(target instanceof Element)) {
                 return;
             }
-            const button = target.closest(removeSel);
-            if (!(button instanceof HTMLButtonElement)) {
-                return;
-            }
-            const item = button.closest('li');
-            const id = button.dataset[idAttr] || '';
-            if (!id || !(item instanceof HTMLElement)) {
-                return;
-            }
-            button.disabled = true;
-            try {
-                await postJson(url, token, { action: actionKey, [idKey]: Number(id) });
-                const blockId = item.dataset.block || '';
-                if (item.dataset.chapter === chapter && blockId) {
-                    const block = reader.querySelector(`#${CSS.escape(blockId)}`);
-                    if (block instanceof HTMLElement) {
-                        clearFlag(block, id, blockId);
-                    }
-                }
-                item.remove();
-                updateActionButtons();
-                setStatus('Удалено');
-            } catch {
-                button.disabled = false;
-                setStatus('Не удалось удалить', true);
+            const mark = target.closest('mark.reader-inline-quote');
+            if (mark instanceof HTMLElement) {
+                flashElements([mark]);
             }
         });
-    };
-
-    wireRemovals(
-        bookmarksList,
-        '[data-reader-bookmark-remove]',
-        'bookmarkId',
-        bookmarkUrl,
-        bookmarkToken,
-        'remove',
-        'bookmarkId',
-        (block, _id, blockId) => {
-            block.dataset.bookmarked = '0';
-            block.classList.remove('is-bookmarked');
-            removeInlineMark(blockId, 'bookmark');
-        },
-    );
-    wireRemovals(
-        quotesList,
-        '[data-reader-quote-remove]',
-        'quoteId',
-        quoteUrl,
-        quoteToken,
-        'remove',
-        'quoteId',
-        (block, id, blockId) => {
-            removeInlineMark(blockId, 'quote', id);
-            const host = marksHostFor(blockId);
-            const stillQuoted = Boolean(host?.querySelector('[data-reader-mark="quote"]'));
-            block.dataset.quoted = stillQuoted ? '1' : '0';
-            block.classList.toggle('is-quoted', stillQuoted);
-        },
-    );
-    wireRemovals(
-        notesList,
-        '[data-reader-note-remove]',
-        'noteId',
-        noteUrl,
-        noteToken,
-        'remove',
-        'noteId',
-        (block, id, blockId) => {
-            removeInlineMark(blockId, 'note', id);
-            const host = marksHostFor(blockId);
-            const stillNoted = Boolean(host?.querySelector('[data-reader-mark="note"]'));
-            block.dataset.noted = stillNoted ? '1' : '0';
-            block.classList.toggle('is-noted', stillNoted);
-        },
-    );
+    }
 
     pagePrevButtons.forEach((btn) => {
         btn.addEventListener('click', (event) => {
@@ -3323,8 +3694,8 @@ function initLibraryReader() {
 
     if (content instanceof HTMLElement) {
         content.addEventListener('scroll', () => {
-            if (selectionActive || reader.dataset.readerFlow === 'paginated') {
-                // В постраничном режиме колонки не должны «плыть» (iOS двигает scroll при селекте).
+            // Фиксируем столбец только во время выделения — иначе iOS рвёт страницы при листании.
+            if (selectionActive) {
                 lockPageScroll();
             }
         }, { passive: true });
@@ -3414,6 +3785,8 @@ function initLibraryReader() {
         });
     }
 
+    applyQuoteHighlights();
+
     initReaderPreferences(reader, {
         onFlowChange: () => {
             pageIndex = 0;
@@ -3422,6 +3795,51 @@ function initLibraryReader() {
         },
         measurePages,
     });
+
+    const focusParams = new URLSearchParams(window.location.search);
+    const focusKind = focusParams.get('focus') || '';
+    const focusId = focusParams.get('qid') || focusParams.get('bid') || focusParams.get('nid') || '';
+    const focusBlockId = (window.location.hash || '').replace(/^#/, '');
+    if (focusKind && focusBlockId) {
+        window.setTimeout(() => {
+            let startOffset = 0;
+            let endOffset = 0;
+            let excerpt = '';
+            if (focusKind === 'quote' && focusId) {
+                const card = reader.querySelector(`[data-reader-mark="quote"][data-quote-id="${CSS.escape(focusId)}"]`);
+                if (card instanceof HTMLElement) {
+                    startOffset = Number(card.dataset.startOffset || 0);
+                    endOffset = Number(card.dataset.endOffset || 0);
+                    excerpt = card.dataset.jumpExcerpt || card.querySelector('.reader-mark__text')?.textContent || '';
+                }
+            } else if (focusKind === 'bookmark' && focusId) {
+                const card = reader.querySelector(`[data-reader-mark="bookmark"][data-bookmark-id="${CSS.escape(focusId)}"]`);
+                excerpt = card instanceof HTMLElement
+                    ? (card.dataset.jumpExcerpt || '')
+                    : '';
+            } else if (focusKind === 'note' && focusId) {
+                const card = reader.querySelector(`[data-reader-mark="note"][data-note-id="${CSS.escape(focusId)}"]`);
+                excerpt = card instanceof HTMLElement
+                    ? (card.dataset.jumpExcerpt || card.querySelector('.reader-mark__text')?.textContent || '')
+                    : '';
+            }
+            focusMark({
+                blockId: focusBlockId,
+                kind: focusKind,
+                id: focusId,
+                startOffset,
+                endOffset,
+                excerpt,
+            });
+            focusParams.delete('focus');
+            focusParams.delete('qid');
+            focusParams.delete('bid');
+            focusParams.delete('nid');
+            const next = focusParams.toString();
+            const url = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`;
+            window.history.replaceState({}, '', url);
+        }, 120);
+    }
 }
 
 function initReaderPreferences(reader, hooks = {}) {

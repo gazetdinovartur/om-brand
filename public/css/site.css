@@ -6882,15 +6882,16 @@ blockquote.library-account__mark-body {
 }
 
 .reader[data-reader-flow="paginated"] .reader-text {
-    flex: 1 1 auto;
-    height: auto;
-    max-height: none;
+    flex: 1 1 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
     min-height: 0;
     overflow: hidden;
-    overflow-x: hidden;
     overscroll-behavior: none;
     column-gap: 0;
     column-fill: auto;
+    text-wrap: wrap;
     -webkit-user-select: text;
     user-select: text;
     touch-action: manipulation;
@@ -6898,7 +6899,8 @@ blockquote.library-account__mark-body {
 
 .reader[data-reader-flow="paginated"] .reader-footnotes,
 .reader[data-reader-flow="paginated"] .reader-chapter-nav,
-.reader[data-reader-flow="paginated"] .reader-save-status {
+.reader[data-reader-flow="paginated"] .reader-save-status,
+.reader[data-reader-flow="paginated"] .reader-marks {
     display: none;
 }
 
@@ -6920,9 +6922,15 @@ blockquote.library-account__mark-body {
     -webkit-overflow-scrolling: touch;
 }
 
-.reader-block.is-quoted {
-    background: rgba(232, 168, 73, 0.16);
+.reader-inline-quote {
+    margin: 0;
+    padding: 0.05em 0;
+    border: 0;
+    border-radius: 0.15em;
+    color: inherit;
+    background: rgba(232, 168, 73, 0.28);
     box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
 }
 
 .reader-block.is-noted {
@@ -6951,6 +6959,13 @@ blockquote.library-account__mark-body {
     line-height: 1.4;
 }
 
+.reader-mark__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
 .reader-mark__label {
     color: var(--reader-muted);
     font-size: 0.68rem;
@@ -6959,9 +6974,35 @@ blockquote.library-account__mark-body {
     text-transform: uppercase;
 }
 
+.reader-mark__remove {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: var(--reader-muted);
+    background: transparent;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+    cursor: pointer;
+}
+
+.reader-mark__remove:hover {
+    color: var(--reader-text);
+}
+
 .reader-mark__text {
     margin: 0;
     color: var(--reader-text);
+}
+
+.reader-inline-quote.is-reader-focus,
+.reader-block.is-reader-focus,
+.reader-focus-temp {
+    background: rgba(232, 168, 73, 0.42) !important;
+    box-shadow: 0 0 0 0.15rem rgba(232, 168, 73, 0.28);
+    transition: background 0.9s ease, box-shadow 0.9s ease;
 }
 
 .reader-mark--bookmark {
@@ -7125,20 +7166,28 @@ blockquote.library-account__mark-body {
 .reader-nav-item {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-        "body remove"
-        "place remove";
-    gap: 0.1rem 0.35rem;
+    gap: 0.35rem 0.55rem;
     align-items: start;
-    padding: 0.35rem 0;
+    padding: 0.4rem 0;
 }
 
 .reader-nav-item + .reader-nav-item {
     border-top: 1px solid rgba(80, 60, 40, 0.1);
 }
 
+.reader-nav-item__jump {
+    display: grid;
+    gap: 0.12rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
 .reader-nav-item__body {
-    grid-area: body;
     margin: 0;
     color: var(--reader-text);
     font-size: 0.8rem;
@@ -7150,41 +7199,36 @@ blockquote.library-account__mark-body {
     overflow: hidden;
 }
 
-blockquote.reader-nav-item__body {
-    padding: 0;
-    border: 0;
-    font-style: italic;
+.reader-nav-item__jump:hover .reader-nav-item__body {
+    color: var(--reader-link);
 }
 
 .reader-nav-item__place {
-    grid-area: place;
     color: var(--reader-muted);
     font-size: 0.68rem;
     line-height: 1.25;
-    text-decoration: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.reader-nav-item__place:hover {
-    color: var(--reader-link);
-}
-
-.reader-nav-item button {
-    grid-area: remove;
+.reader-nav-item__remove {
     align-self: start;
     margin: 0;
-    padding: 0 0.2rem;
+    padding: 0.15rem 0;
     border: 0;
     background: transparent;
     color: var(--reader-muted);
-    font-size: 1rem;
-    line-height: 1;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
     cursor: pointer;
+    white-space: nowrap;
 }
 
-.reader-nav-item button:hover {
+.reader-nav-item__remove:hover {
     color: var(--reader-text);
 }
 
@@ -7437,8 +7481,6 @@ blockquote.reader-nav-item__body {
     }
 
     .reader[data-reader-flow="paginated"] .reader-text {
-        height: auto;
-        max-height: none;
         padding-bottom: 0;
         touch-action: manipulation;
     }

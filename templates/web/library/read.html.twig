@@ -131,21 +131,32 @@
                                 data-chapter="{{ bookmark.chapter.slug }}"
                                 data-block="{{ bookmark.blockId }}"
                             >
-                                <p class="reader-nav-item__body">{{ bookmark.excerpt }}</p>
-                                <a
-                                    class="reader-nav-item__place"
-                                    href="{{ path('web_library_read', {
-                                        bookSlug: book.slug,
-                                        chapterSlug: bookmark.chapter.slug,
-                                        _fragment: bookmark.blockId
-                                    }) }}"
-                                >{{ bookmark.chapter.title }}</a>
                                 <button
                                     type="button"
+                                    class="reader-nav-item__jump"
+                                    data-reader-jump
+                                    data-jump-kind="bookmark"
+                                    data-jump-id="{{ bookmark.id }}"
+                                    data-jump-block="{{ bookmark.blockId }}"
+                                    data-jump-chapter="{{ bookmark.chapter.slug }}"
+                                    data-jump-excerpt="{{ bookmark.excerpt|e('html_attr') }}"
+                                    data-jump-href="{{ path('web_library_read', {
+                                        bookSlug: book.slug,
+                                        chapterSlug: bookmark.chapter.slug,
+                                        focus: 'bookmark',
+                                        bid: bookmark.id,
+                                        _fragment: bookmark.blockId
+                                    }) }}"
+                                >
+                                    <span class="reader-nav-item__body">{{ bookmark.excerpt }}</span>
+                                    <span class="reader-nav-item__place">{{ bookmark.chapter.title }}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="reader-nav-item__remove"
                                     data-reader-bookmark-remove
                                     data-bookmark-id="{{ bookmark.id }}"
-                                    aria-label="Удалить закладку"
-                                >×</button>
+                                >Удалить</button>
                             </li>
                         {% endfor %}
                     </ol>
@@ -163,21 +174,34 @@
                                 data-chapter="{{ quote.chapter.slug }}"
                                 data-block="{{ quote.blockId }}"
                             >
-                                <blockquote class="reader-nav-item__body">{{ quote.excerpt }}</blockquote>
-                                <a
-                                    class="reader-nav-item__place"
-                                    href="{{ path('web_library_read', {
-                                        bookSlug: book.slug,
-                                        chapterSlug: quote.chapter.slug,
-                                        _fragment: quote.blockId
-                                    }) }}"
-                                >{{ quote.chapter.title }}</a>
                                 <button
                                     type="button"
+                                    class="reader-nav-item__jump"
+                                    data-reader-jump
+                                    data-jump-kind="quote"
+                                    data-jump-id="{{ quote.id }}"
+                                    data-jump-block="{{ quote.blockId }}"
+                                    data-jump-chapter="{{ quote.chapter.slug }}"
+                                    data-jump-excerpt="{{ quote.excerpt|e('html_attr') }}"
+                                    data-start-offset="{{ quote.startOffset }}"
+                                    data-end-offset="{{ quote.endOffset }}"
+                                    data-jump-href="{{ path('web_library_read', {
+                                        bookSlug: book.slug,
+                                        chapterSlug: quote.chapter.slug,
+                                        focus: 'quote',
+                                        qid: quote.id,
+                                        _fragment: quote.blockId
+                                    }) }}"
+                                >
+                                    <span class="reader-nav-item__body">{{ quote.excerpt }}</span>
+                                    <span class="reader-nav-item__place">{{ quote.chapter.title }}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="reader-nav-item__remove"
                                     data-reader-quote-remove
                                     data-quote-id="{{ quote.id }}"
-                                    aria-label="Удалить цитату"
-                                >×</button>
+                                >Удалить</button>
                             </li>
                         {% endfor %}
                     </ol>
@@ -195,21 +219,32 @@
                                 data-chapter="{{ note.chapter.slug }}"
                                 data-block="{{ note.blockId }}"
                             >
-                                <p class="reader-nav-item__body">{{ note.body }}</p>
-                                <a
-                                    class="reader-nav-item__place"
-                                    href="{{ path('web_library_read', {
-                                        bookSlug: book.slug,
-                                        chapterSlug: note.chapter.slug,
-                                        _fragment: note.blockId
-                                    }) }}"
-                                >{{ note.chapter.title }}</a>
                                 <button
                                     type="button"
+                                    class="reader-nav-item__jump"
+                                    data-reader-jump
+                                    data-jump-kind="note"
+                                    data-jump-id="{{ note.id }}"
+                                    data-jump-block="{{ note.blockId }}"
+                                    data-jump-chapter="{{ note.chapter.slug }}"
+                                    data-jump-excerpt="{{ note.body|e('html_attr') }}"
+                                    data-jump-href="{{ path('web_library_read', {
+                                        bookSlug: book.slug,
+                                        chapterSlug: note.chapter.slug,
+                                        focus: 'note',
+                                        nid: note.id,
+                                        _fragment: note.blockId
+                                    }) }}"
+                                >
+                                    <span class="reader-nav-item__body">{{ note.body }}</span>
+                                    <span class="reader-nav-item__place">{{ note.chapter.title }}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="reader-nav-item__remove"
                                     data-reader-note-remove
                                     data-note-id="{{ note.id }}"
-                                    aria-label="Удалить заметку"
-                                >×</button>
+                                >Удалить</button>
                             </li>
                         {% endfor %}
                     </ol>
@@ -231,12 +266,13 @@
                     {% set isBookmarked = bookmarkedBlockIds[block.id]|default(false) %}
                     {% set isQuoted = quotedBlockIds[block.id]|default(false) %}
                     {% set isNoted = notedBlockIds[block.id]|default(false) %}
+                    {% set blockBookmark = bookmarksByBlock[block.id]|default(null) %}
                     {% set blockQuotes = quotesByBlock[block.id]|default([]) %}
                     {% set blockNotes = notesByBlock[block.id]|default([]) %}
                     {% if block.type == 'heading' %}
                         <h2
                             id="{{ block.id }}"
-                            class="reader-block reader-block--heading{{ isBookmarked ? ' is-bookmarked' : '' }}{{ isQuoted ? ' is-quoted' : '' }}{{ isNoted ? ' is-noted' : '' }}"
+                            class="reader-block reader-block--heading{{ isBookmarked ? ' is-bookmarked' : '' }}{{ isNoted ? ' is-noted' : '' }}"
                             data-reader-block
                             data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
                             data-quoted="{{ isQuoted ? '1' : '0' }}"
@@ -245,7 +281,7 @@
                     {% else %}
                         <p
                             id="{{ block.id }}"
-                            class="reader-block reader-block--paragraph{{ isBookmarked ? ' is-bookmarked' : '' }}{{ isQuoted ? ' is-quoted' : '' }}{{ isNoted ? ' is-noted' : '' }}"
+                            class="reader-block reader-block--paragraph{{ isBookmarked ? ' is-bookmarked' : '' }}{{ isNoted ? ' is-noted' : '' }}"
                             data-reader-block
                             data-bookmarked="{{ isBookmarked ? '1' : '0' }}"
                             data-quoted="{{ isQuoted ? '1' : '0' }}"
@@ -258,20 +294,41 @@
                         data-block="{{ block.id }}"
                         {% if not isBookmarked and blockQuotes is empty and blockNotes is empty %}hidden{% endif %}
                     >
-                        {% if isBookmarked %}
-                            <div class="reader-mark reader-mark--bookmark" data-reader-mark="bookmark">
-                                <span class="reader-mark__label">Закладка</span>
+                        {% if blockBookmark %}
+                            <div
+                                class="reader-mark reader-mark--bookmark"
+                                data-reader-mark="bookmark"
+                                data-bookmark-id="{{ blockBookmark.id }}"
+                                data-jump-excerpt="{{ blockBookmark.excerpt|e('html_attr') }}"
+                            >
+                                <div class="reader-mark__head">
+                                    <span class="reader-mark__label">Закладка</span>
+                                    <button type="button" class="reader-mark__remove" data-reader-bookmark-remove data-bookmark-id="{{ blockBookmark.id }}">Удалить</button>
+                                </div>
                             </div>
                         {% endif %}
                         {% for quote in blockQuotes %}
-                            <div class="reader-mark reader-mark--quote" data-reader-mark="quote" data-quote-id="{{ quote.id }}">
-                                <span class="reader-mark__label">Цитата</span>
+                            <div
+                                class="reader-mark reader-mark--quote"
+                                data-reader-mark="quote"
+                                data-quote-id="{{ quote.id }}"
+                                data-start-offset="{{ quote.startOffset }}"
+                                data-end-offset="{{ quote.endOffset }}"
+                                data-jump-excerpt="{{ quote.excerpt|e('html_attr') }}"
+                            >
+                                <div class="reader-mark__head">
+                                    <span class="reader-mark__label">Цитата</span>
+                                    <button type="button" class="reader-mark__remove" data-reader-quote-remove data-quote-id="{{ quote.id }}">Удалить</button>
+                                </div>
                                 <p class="reader-mark__text">{{ quote.excerpt }}</p>
                             </div>
                         {% endfor %}
                         {% for note in blockNotes %}
-                            <div class="reader-mark reader-mark--note" data-reader-mark="note" data-note-id="{{ note.id }}">
-                                <span class="reader-mark__label">Заметка</span>
+                            <div class="reader-mark reader-mark--note" data-reader-mark="note" data-note-id="{{ note.id }}" data-jump-excerpt="{{ note.body|e('html_attr') }}">
+                                <div class="reader-mark__head">
+                                    <span class="reader-mark__label">Заметка</span>
+                                    <button type="button" class="reader-mark__remove" data-reader-note-remove data-note-id="{{ note.id }}">Удалить</button>
+                                </div>
                                 <p class="reader-mark__text">{{ note.body }}</p>
                             </div>
                         {% endfor %}

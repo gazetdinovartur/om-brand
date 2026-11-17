@@ -173,6 +173,8 @@
                                                 href="{{ path('web_library_read', {
                                                     bookSlug: bookmark.book.slug,
                                                     chapterSlug: bookmark.chapter.slug,
+                                                    focus: 'bookmark',
+                                                    bid: bookmark.id,
                                                     _fragment: bookmark.blockId
                                                 }) }}"
                                             >{{ bookmark.book.title }}</a>
@@ -204,6 +206,8 @@
                                                 href="{{ path('web_library_read', {
                                                     bookSlug: quote.book.slug,
                                                     chapterSlug: quote.chapter.slug,
+                                                    focus: 'quote',
+                                                    qid: quote.id,
                                                     _fragment: quote.blockId
                                                 }) }}"
                                             >{{ quote.book.title }}</a>
@@ -235,6 +239,8 @@
                                                 href="{{ path('web_library_read', {
                                                     bookSlug: note.book.slug,
                                                     chapterSlug: note.chapter.slug,
+                                                    focus: 'note',
+                                                    nid: note.id,
                                                     _fragment: note.blockId
                                                 }) }}"
                                             >{{ note.book.title }}</a>
