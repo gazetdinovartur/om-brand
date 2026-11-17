@@ -59,6 +59,11 @@ final class LibraryBookImporter
         bool $allowReplace = false,
         ?string $sourceName = null,
     ): LibraryBookImportResult {
+        // PDF parse can exceed default FCGI/PHP timeouts on shared hosting.
+        if (\function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
         $preview = $this->preview($path, $title, $author, $slug, $sourceName);
         $parsed = $preview->parsed;
         $book = $this->books->findOneBy(['slug' => $preview->slug]);

@@ -6,7 +6,8 @@ namespace App\Library;
 
 final class LibrarySourceReader
 {
-    private const MAX_SOURCE_BYTES = 10_000_000;
+    /** Keep in sync with LibraryBookImportType / LibraryImportUploadStorage (20 МБ). */
+    private const MAX_SOURCE_BYTES = 20_000_000;
 
     /** @var list<string> */
     private const DIRECT_EXTENSIONS = ['txt', 'md', 'markdown', 'fb2', 'epub', 'pdf'];

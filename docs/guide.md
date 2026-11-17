@@ -436,7 +436,17 @@ DEFAULT_URI=https://arturlun.ru
 
 Форматы: **TXT**, **MD**, **FB2**, **EPUB**, **PDF**, **ZIP** (крупнейший txt/md/fb2 внутри). Парсер устойчивый: без жёсткого «Введение»; если глав не видно — одна глава «Книга»; пустые title/author → из файла или «Без названия» / «Без автора».
 
-**PDF:** сначала извлекаем текст в главы/блоки. Если качество низкое (мало символов на страницу / «мусор») — `renderMode=pdf_fallback`, исходник сохраняется в private uploads, на сайте открывается просмотр PDF.
+**PDF:** сначала извлекаем текст в главы/блоки (название — из имени файла/полей формы; чистим номера страниц и глиф-шум). Если качество низкое — `renderMode=pdf_fallback`, исходник в private uploads, на сайте — просмотр PDF.
+
+Лимит файла: **20 МБ**. На хостинге с `mod_fcgid` разбор PDF может упереться в таймаут (`Broken pipe` / `ap_pass_brigade` в error_log) — поднимите в Apache/Plesk, например:
+
+```apache
+FcgidIOTimeout 180
+FcgidBusyTimeout 300
+FcgidMaxRequestLen 20971520
+```
+
+И в PHP: `upload_max_filesize=20M`, `post_max_size=22M`, `max_execution_time≥120`. Альтернатива без веба: `php bin/console app:library:import /path/to/book.pdf`.
 
 **Ридер (`/library/{slug}/read/...`):**
 - На странице книги: компактная sticky-панель в шапке (без аватара и кнопки «Написать мне»), меню сайта остаётся.

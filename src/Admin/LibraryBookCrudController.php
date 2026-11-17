@@ -189,7 +189,10 @@ final class LibraryBookCrudController extends AbstractCrudController
         } catch (FileException|\InvalidArgumentException|\RuntimeException $exception) {
             $this->addFlash('danger', $exception->getMessage());
         } catch (\Throwable $exception) {
-            $this->addFlash('danger', 'Не удалось импортировать книгу.');
+            $this->addFlash(
+                'danger',
+                'Не удалось импортировать книгу: '.$exception->getMessage(),
+            );
         } finally {
             $this->uploadStorage->remove($storedPath);
         }
