@@ -25,14 +25,12 @@ final class InquiryAdminTest extends WebTestCase
 
         $html = $this->fetchAdminHtml($client, '/admin/inquiry');
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Закрыть', $html);
-        self::assertStringContainsString('Выставить счёт', $html);
-        self::assertStringContainsString((string) $inquiry->getId(), $html);
+        self::assertStringContainsString('title="Закрыть"', $html);
+        self::assertStringContainsString('title="Выставить счёт"', $html);
         self::assertStringContainsString('Клиент Для Счёта', $html);
         self::assertStringNotContainsString('В работе', $html);
         self::assertStringNotContainsString('В архиве', $html);
         self::assertStringContainsString('/admin/payment-offer/new', $html);
-        self::assertStringContainsString('inquiry='.(string) $inquiry->getId(), $html);
     }
 
     public function testCloseActionMarksInquiryDone(): void

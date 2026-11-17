@@ -57,11 +57,11 @@ final class LibraryBookCrudController extends AbstractCrudController
             ->createAsGlobalAction()
             ->setCssClass('btn btn-primary');
 
-        $replace = Action::new('replaceBook', 'Заменить файл', 'fa fa-sync')
+        $replace = Action::new('replaceBook', false, 'fa fa-sync')
             ->linkToCrudAction('replaceBook')
             ->setHtmlAttributes(['title' => 'Заменить файл', 'aria-label' => 'Заменить файл']);
 
-        $openSite = Action::new('openSite', 'Открыть', 'fa fa-external-link-alt')
+        $openSite = Action::new('openSite', false, 'fa fa-external-link-alt')
             ->linkToRoute('web_library_continue', static fn (LibraryBook $book): array => [
                 'bookSlug' => $book->getSlug(),
             ])

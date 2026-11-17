@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Admin\Concern\CompactIndexActionsTrait;
 use App\Admin\Concern\RequiresMutatingPostCsrfTrait;
 use App\Entity\Inquiry;
 use App\Enum\ContactType;
@@ -26,6 +27,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class InquiryCrudController extends AbstractCrudController
 {
+    use CompactIndexActionsTrait;
     use RequiresMutatingPostCsrfTrait;
 
     public function __construct(
@@ -63,10 +65,11 @@ class InquiryCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        $close = Action::new('close', 'Закрыть')
+        $close = Action::new('close', 'Закрыть', 'fa fa-check')
             ->linkToCrudAction('closeInquiry')
             ->renderAsForm()
             ->setTemplatePath('admin/action_post_csrf.html.twig')
+            ->setHtmlAttributes(['title' => 'Закрыть', 'aria-label' => 'Закрыть'])
             ->displayIf(static fn (Inquiry $inquiry): bool => InquiryStatus::New === $inquiry->getStatus());
 
         $invoice = Action::new('invoice', 'Выставить счёт', 'fa fa-ruble-sign')
@@ -77,16 +80,17 @@ class InquiryCrudController extends AbstractCrudController
                     ->setAction(Action::NEW)
                     ->set('inquiry', (string) $inquiry->getId())
                     ->generateUrl();
-            });
+            })
+            ->setHtmlAttributes(['title' => 'Выставить счёт', 'aria-label' => 'Выставить счёт']);
 
-        return $actions
+        return $this->compactBuiltinIndexActions($actions
             ->add(Crud::PAGE_INDEX, $close)
             ->add(Crud::PAGE_DETAIL, $close)
             ->add(Crud::PAGE_INDEX, $invoice)
             ->add(Crud::PAGE_DETAIL, $invoice)
             ->add(Crud::PAGE_DETAIL, Action::new('attachment', 'Скачать файл', 'fa fa-paperclip')
                 ->linkToRoute('admin_inquiry_attachment', static fn (Inquiry $inquiry): array => ['id' => $inquiry->getId()])
-                ->displayIf(static fn (Inquiry $inquiry): bool => $inquiry->hasAttachment()));
+                ->displayIf(static fn (Inquiry $inquiry): bool => $inquiry->hasAttachment())));
     }
 
     #[AdminRoute(path: '/{entityId}/close', name: 'close', options: ['methods' => ['POST']])]

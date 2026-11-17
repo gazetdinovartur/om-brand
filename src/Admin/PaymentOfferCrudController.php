@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Admin\Concern\CompactIndexActionsTrait;
 use App\Entity\Inquiry;
 use App\Entity\PaymentOffer;
 use App\Enum\PaymentOfferStatus;
@@ -27,6 +28,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 class PaymentOfferCrudController extends AbstractCrudController
 {
+    use CompactIndexActionsTrait;
+
     public function __construct(
         private readonly PaymentOfferService $paymentOfferService,
         private readonly AdminUrlGenerator $adminUrlGenerator,
@@ -60,9 +63,9 @@ class PaymentOfferCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        return $actions
+        return $this->compactBuiltinIndexActions($actions
             ->update(Crud::PAGE_INDEX, Action::NEW, static fn (Action $action) => $action->setLabel('Создать оплату'))
-            ->add(Crud::PAGE_INDEX, Action::DETAIL);
+            ->add(Crud::PAGE_INDEX, Action::DETAIL));
     }
 
     public function createEntity(string $entityFqcn): PaymentOffer

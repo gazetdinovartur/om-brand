@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Admin;
 
+use App\Admin\Concern\CompactIndexActionsTrait;
 use App\Admin\Concern\RequiresMutatingPostCsrfTrait;
 use App\Entity\SpeakMeeting;
 use App\Infrastructure\Kinescope\KinescopeSpeakJwt;
@@ -29,6 +30,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class SpeakMeetingCrudController extends AbstractCrudController
 {
+    use CompactIndexActionsTrait;
     use RequiresMutatingPostCsrfTrait;
 
     public function __construct(
@@ -69,26 +71,34 @@ class SpeakMeetingCrudController extends AbstractCrudController
     {
         $hostLink = Action::new('hostLink', 'Ведущий (JWT)', 'fa fa-user-tie')
             ->linkToUrl(fn (SpeakMeeting $meeting): string => $this->hostSpeakUrl($meeting) ?? '#')
-            ->setHtmlAttributes(['target' => '_blank', 'rel' => 'noopener'])
+            ->setHtmlAttributes([
+                'target' => '_blank',
+                'rel' => 'noopener',
+                'title' => 'Ведущий (JWT)',
+                'aria-label' => 'Ведущий (JWT)',
+            ])
             ->displayIf(static fn (SpeakMeeting $meeting): bool => null !== $meeting->getKinescopeRoomCode());
 
         $calls = Action::new('calls', 'Звонки', 'fa fa-list')
             ->linkToCrudAction('listCalls')
+            ->setHtmlAttributes(['title' => 'Звонки', 'aria-label' => 'Звонки'])
             ->displayIf(static fn (SpeakMeeting $meeting): bool => null !== $meeting->getKinescopeRoomId());
 
         $cancelRemote = Action::new('cancelRemote', 'Отменить комнату', 'fa fa-ban')
             ->linkToCrudAction('cancelRemote')
             ->renderAsForm()
             ->setTemplatePath('admin/action_post_csrf.html.twig')
+            ->setHtmlAttributes(['title' => 'Отменить комнату', 'aria-label' => 'Отменить комнату'])
             ->displayIf(static fn (SpeakMeeting $meeting): bool => null !== $meeting->getKinescopeRoomId());
 
         $createRemote = Action::new('createRemote', 'Создать комнату', 'fa fa-video')
             ->linkToCrudAction('createRemote')
             ->renderAsForm()
             ->setTemplatePath('admin/action_post_csrf.html.twig')
+            ->setHtmlAttributes(['title' => 'Создать комнату', 'aria-label' => 'Создать комнату'])
             ->displayIf(static fn (SpeakMeeting $meeting): bool => null === $meeting->getKinescopeRoomId());
 
-        return $actions
+        return $this->compactBuiltinIndexActions($actions
             ->update(Crud::PAGE_INDEX, Action::NEW, static fn (Action $a) => $a->setLabel('Новая встреча'))
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $hostLink)
@@ -100,7 +110,7 @@ class SpeakMeetingCrudController extends AbstractCrudController
             ->add(Crud::PAGE_INDEX, $cancelRemote)
             ->add(Crud::PAGE_DETAIL, $cancelRemote)
             ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, 'hostLink', 'createRemote', 'calls', 'cancelRemote', Action::EDIT, Action::DELETE])
-            ->reorder(Crud::PAGE_DETAIL, ['hostLink', 'createRemote', 'calls', 'cancelRemote', Action::EDIT, Action::DELETE]);
+            ->reorder(Crud::PAGE_DETAIL, ['hostLink', 'createRemote', 'calls', 'cancelRemote', Action::EDIT, Action::DELETE]));
     }
 
     public function configureFields(string $pageName): iterable

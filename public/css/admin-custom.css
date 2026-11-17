@@ -570,3 +570,53 @@ body.ea,
     padding-inline: 1.1rem;
     border-radius: 0.7rem;
 }
+
+/* Списки CRUD: действия одной строкой, только иконки; подпись — title */
+.ea-index .datagrid td.actions {
+    white-space: nowrap;
+    width: 1%;
+    vertical-align: middle;
+}
+
+.ea-index .datagrid td.actions .action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+    flex-wrap: nowrap;
+}
+
+.ea-index .datagrid td.actions .action-label {
+    display: none;
+}
+
+.ea-index .datagrid td.actions a,
+.ea-index .datagrid td.actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.2rem 0.35rem;
+    line-height: 1;
+}
+
+.ea-index .datagrid td.actions form,
+.ea-index .datagrid td.actions .ea-compact-action {
+    display: inline-flex;
+    margin: 0;
+}
+
+.ea-compact-action button {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+}
+
+.ea-detail .page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}

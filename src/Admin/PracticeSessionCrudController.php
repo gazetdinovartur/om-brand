@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Admin;
 
+use App\Admin\Concern\CompactIndexActionsTrait;
 use App\Admin\Concern\RequiresMutatingPostCsrfTrait;
 use App\Entity\PracticeSession;
 use App\Enum\PracticeSessionKind;
@@ -31,6 +32,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class PracticeSessionCrudController extends AbstractCrudController
 {
+    use CompactIndexActionsTrait;
     use RequiresMutatingPostCsrfTrait;
 
     public function __construct(
@@ -93,12 +95,18 @@ class PracticeSessionCrudController extends AbstractCrudController
 
         $hostLink = Action::new('hostLink', 'Ведущий (JWT)', 'fa fa-user-tie')
             ->linkToUrl(fn (PracticeSession $session): string => $this->hostSpeakUrl($session) ?? '#')
-            ->setHtmlAttributes(['target' => '_blank', 'rel' => 'noopener'])
+            ->setHtmlAttributes([
+                'target' => '_blank',
+                'rel' => 'noopener',
+                'title' => 'Ведущий (JWT)',
+                'aria-label' => 'Ведущий (JWT)',
+            ])
             ->displayIf(static fn (PracticeSession $session): bool => $session->isSpeak()
                 && null !== $session->getKinescopeRoomCode());
 
         $calls = Action::new('calls', 'Звонки', 'fa fa-list')
             ->linkToCrudAction('listCalls')
+            ->setHtmlAttributes(['title' => 'Звонки', 'aria-label' => 'Звонки'])
             ->displayIf(static fn (PracticeSession $session): bool => $session->isSpeak()
                 && null !== $session->getKinescopeRoomId());
 
@@ -107,7 +115,7 @@ class PracticeSessionCrudController extends AbstractCrudController
                 && null !== $session->getKinescopeRoomId()
                 && \in_array($session->getStatus(), [PracticeSessionStatus::Scheduled, PracticeSessionStatus::Live], true));
 
-        return $actions
+        return $this->compactBuiltinIndexActions($actions
             ->update(Crud::PAGE_INDEX, Action::NEW, static fn (Action $action) => $action->setLabel('Создать сессию'))
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $goLive)
@@ -146,7 +154,7 @@ class PracticeSessionCrudController extends AbstractCrudController
                 'archive',
                 Action::EDIT,
                 Action::DELETE,
-            ]);
+            ]));
     }
 
     public function configureFields(string $pageName): iterable
@@ -171,8 +179,18 @@ class PracticeSessionCrudController extends AbstractCrudController
                     PracticeSessionStatus::Completed->value => 'dark',
                 ])
                 ->hideOnForm();
-            yield TextField::new('kind', 'Формат')
-                ->formatValue(static fn ($_, PracticeSession $s): string => $s->getKind()->label())
+            yield ChoiceField::new('kind', 'Формат')
+                ->setChoices([
+                    PracticeSessionKind::Speak->label() => PracticeSessionKind::Speak,
+                    PracticeSessionKind::Live->label() => PracticeSessionKind::Live,
+                ])
+                ->formatValue(static function ($value, $entity): string {
+                    if ($entity instanceof PracticeSession) {
+                        return $entity->getKind()->label();
+                    }
+
+                    return $value instanceof PracticeSessionKind ? $value->label() : '';
+                })
                 ->hideOnForm();
         }
 
@@ -496,6 +514,7 @@ class PracticeSessionCrudController extends AbstractCrudController
         return Action::new($name, $label, $icon)
             ->linkToCrudAction($crudAction)
             ->renderAsForm()
-            ->setTemplatePath('admin/action_post_csrf.html.twig');
+            ->setTemplatePath('admin/action_post_csrf.html.twig')
+            ->setHtmlAttributes(['title' => $label, 'aria-label' => $label]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Admin\Concern\CompactIndexActionsTrait;
 use App\Entity\AdminUser;
 use App\Entity\CaseStudy;
 use App\Entity\ChronicleEntry;
@@ -16,7 +17,9 @@ use App\Enum\InquiryStatus;
 use App\Repository\ChronicleEntryRepository;
 use App\Repository\InquiryRepository;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -25,6 +28,8 @@ use Symfony\Component\HttpFoundation\Response;
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 final class DashboardController extends AbstractDashboardController
 {
+    use CompactIndexActionsTrait;
+
     public function __construct(
         private readonly InquiryRepository $inquiries,
         private readonly ChronicleEntryRepository $chronicles,
@@ -45,6 +50,17 @@ final class DashboardController extends AbstractDashboardController
         return Dashboard::new()
             ->setTitle('Артур · админка')
             ->setFaviconPath('/icon.svg');
+    }
+
+    public function configureCrud(): Crud
+    {
+        return parent::configureCrud()
+            ->showEntityActionsInlined();
+    }
+
+    public function configureActions(): Actions
+    {
+        return $this->compactBuiltinIndexActions(parent::configureActions());
     }
 
     public function configureAssets(): Assets
