@@ -403,6 +403,58 @@ final class PaymentOfferServiceYookassaTest extends KernelTestCase
         self::assertSame(InquiryStatus::Done, $inquiry->getStatus());
     }
 
+    public function testRefundSucceededRevokesAccess(): void
+    {
+        $paymentId = $this->uniqueYookassaPaymentId('refund');
+        $this->wireYookassa($this->mockYookassaClient([
+            $this->yookassaVerifyResponse('succeeded', $paymentId),
+        ]));
+
+        $user = $this->createSiteUser($this->em);
+        $inquiry = $this->createInquiry($this->em, (string) $user->getEmail());
+        $offer = $this->createPendingOffer(
+            $this->em,
+            $inquiry,
+            $user,
+            amountKopecks: 222_00,
+            yookassaPaymentId: $paymentId,
+        );
+        $this->offers->markAsPaid($offer);
+        self::assertSame(1, $offer->getSessionsLeft());
+
+        $this->offers->handleYookassaWebhook([
+            'event' => 'refund.succeeded',
+            'object' => [
+                'payment_id' => $paymentId,
+                'amount' => ['value' => '222.00', 'currency' => 'RUB'],
+            ],
+        ]);
+
+        $this->em->refresh($offer);
+        self::assertSame(PaymentOfferStatus::Refunded, $offer->getStatus());
+        self::assertSame(0, $offer->getSessionsLeft());
+    }
+
+    public function testSyncRejectsAmountMismatch(): void
+    {
+        $paymentId = $this->uniqueYookassaPaymentId('amt-mismatch');
+        $this->wireYookassa($this->mockYookassaClient([
+            new MockResponse(json_encode([
+                'id' => $paymentId,
+                'status' => 'succeeded',
+                'amount' => ['value' => '999.00', 'currency' => 'RUB'],
+            ], \JSON_THROW_ON_ERROR), ['http_code' => 200]),
+        ]));
+
+        $user = $this->createSiteUser($this->em);
+        $inquiry = $this->createInquiry($this->em, (string) $user->getEmail());
+        $offer = $this->createPendingOffer($this->em, $inquiry, $user, yookassaPaymentId: $paymentId);
+
+        $this->offers->syncFromYookassa($paymentId);
+        $this->em->refresh($offer);
+        self::assertSame(PaymentOfferStatus::Pending, $offer->getStatus());
+    }
+
     private function wireYookassa(YookassaClient $client): void
     {
         $container = static::getContainer();

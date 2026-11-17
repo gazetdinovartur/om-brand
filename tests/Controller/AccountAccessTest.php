@@ -135,6 +135,34 @@ final class AccountAccessTest extends WebTestCase
         self::assertSelectorExists('#library-practice-title');
     }
 
+    public function testPracticeTabHiddenWhenPracticePageDisabled(): void
+    {
+        putenv('PRACTICE_PUBLIC_ENABLED=0');
+        $_ENV['PRACTICE_PUBLIC_ENABLED'] = '0';
+        $_SERVER['PRACTICE_PUBLIC_ENABLED'] = '0';
+
+        try {
+            $client = static::createClient();
+            $em = static::getContainer()->get(EntityManagerInterface::class);
+            $user = $this->createSiteUser($em);
+            $client->loginUser($user, 'app');
+
+            $client->request('GET', '/account');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorNotExists('.library-tabs__link[href*="tab=practice"]');
+            self::assertSelectorExists('.library-tabs__link.is-active[href*="tab=reading"]');
+
+            $client->request('GET', '/account?tab=practice');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorNotExists('#library-practice-title');
+            self::assertSelectorExists('.library-tabs__link.is-active[href*="tab=reading"]');
+        } finally {
+            putenv('PRACTICE_PUBLIC_ENABLED=1');
+            $_ENV['PRACTICE_PUBLIC_ENABLED'] = '1';
+            $_SERVER['PRACTICE_PUBLIC_ENABLED'] = '1';
+        }
+    }
+
     private function createSiteUser(EntityManagerInterface $em): SiteUser
     {
         $user = (new SiteUser())

@@ -38,6 +38,8 @@ final class KinescopeWebhookControllerTest extends WebTestCase
 
         $eventId = 'evt-http-'.bin2hex(random_bytes(3));
         $session = $this->createPracticeSession($em, status: PracticeSessionStatus::Live, eventId: $eventId);
+        static::getContainer()->get(\App\Service\PracticeSessionService::class)
+            ->registerAttendance($session, $offer);
 
         $client->request(
             'POST',
@@ -63,6 +65,18 @@ final class KinescopeWebhookControllerTest extends WebTestCase
         self::assertSame('video-http-1', $freshSession?->getKinescopeVideoId());
         self::assertNotNull($freshSession?->getDebitedAt());
         self::assertSame(3, $freshOffer?->getSessionsLeft());
+    }
+
+    public function testRejectsWhenWebhookCredentialsMissingInRequestEvenIfConfigured(): void
+    {
+        $client = static::createClient();
+        $client->request(
+            'POST',
+            '/webhooks/kinescope',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"event":"live.finished","data":{"event_id":"no-auth"}}',
+        );
+        self::assertResponseStatusCodeSame(401);
     }
 
     public function testUnknownEventStillOk(): void

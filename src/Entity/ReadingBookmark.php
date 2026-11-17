@@ -8,14 +8,10 @@ use App\Repository\ReadingBookmarkRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ReadingBookmarkRepository::class)]
-#[ORM\Table(
-    name: 'reading_bookmark',
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(
-            name: 'uniq_reading_bookmark_locator',
-            columns: ['site_user_id', 'book_id', 'chapter_id', 'block_id'],
-        ),
-    ],
+#[ORM\Table(name: 'reading_bookmark')]
+#[ORM\UniqueConstraint(
+    name: 'uniq_reading_bookmark_locator',
+    columns: ['site_user_id', 'book_id', 'chapter_id', 'block_id'],
 )]
 class ReadingBookmark
 {

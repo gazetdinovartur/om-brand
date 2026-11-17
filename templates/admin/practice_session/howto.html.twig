@@ -1,21 +1,14 @@
-{# @var field \EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto #}
 {# @var entity \EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto #}
 {% set session = entity.instance %}
 <div class="practice-session-howto">
     <ol class="mb-2" style="padding-left: 1.25rem; margin: 0;">
-        {% if session.speak %}
-            <li>Участники открывают <strong>Комната на сайте</strong> (ссылка выше).</li>
-            <li>Ты — через ту же комнату под админом (Speak host JWT) или кабинет Kinescope Speak.</li>
-            <li>Когда готовы — кнопка <strong>В эфир</strong> (статус на сайте), затем заходи в Speak.</li>
-        {% else %}
-            <li>Скопируй <strong>RTMP URL</strong> и <strong>Stream key</strong> ниже.</li>
-            <li>OBS → Settings → Stream → Service: Custom → Server = RTMP, Stream Key = ключ.</li>
-            <li>Нажми <strong>В эфир</strong> в этой карточке (плеер на сайте покажет эфир).</li>
-            <li>В OBS — <strong>Start Streaming</strong>.</li>
-            <li>Участники: ссылка <strong>Комната на сайте</strong> (нужен оплаченный доступ).</li>
-        {% endif %}
+        <li>Участники — <strong>Комната на сайте</strong>.</li>
+        <li><strong>В эфир</strong> → статус «эфир».</li>
+        <li>Ты — кнопка <strong>Ведущий (JWT)</strong> (host-токен в Speak).</li>
+        <li>После — <strong>Встреча завершена</strong> или webhook. Список звонков — <strong>Звонки</strong>.</li>
+        <li>Срыв без удаления карточки — <strong>Отменить комнату</strong>.</li>
     </ol>
-    {% if not session.kinescopeEventId and not session.kinescopeRoomId %}
-        <p class="text-danger mb-0">Сначала нужна связка с Kinescope — кнопка «Создать в Kinescope».</p>
+    {% if not session.kinescopeRoomId and not session.kinescopeEventId %}
+        <p class="text-danger mb-0">Сначала «Создать комнату».</p>
     {% endif %}
 </div>

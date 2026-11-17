@@ -9,13 +9,9 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: LibraryChapterRepository::class)]
-#[ORM\Table(
-    name: 'library_chapter',
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(name: 'uniq_library_chapter_book_slug', columns: ['book_id', 'slug']),
-        new ORM\UniqueConstraint(name: 'uniq_library_chapter_book_order', columns: ['book_id', 'sort_order']),
-    ],
-)]
+#[ORM\Table(name: 'library_chapter')]
+#[ORM\UniqueConstraint(name: 'uniq_library_chapter_book_slug', columns: ['book_id', 'slug'])]
+#[ORM\UniqueConstraint(name: 'uniq_library_chapter_book_order', columns: ['book_id', 'sort_order'])]
 class LibraryChapter
 {
     #[ORM\Id]

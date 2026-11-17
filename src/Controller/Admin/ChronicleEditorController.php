@@ -131,6 +131,10 @@ final class ChronicleEditorController extends AbstractController
     #[Route('/admin/chronicle/api/{id}/autosave', name: 'admin_chronicle_autosave', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function autosave(int $id, Request $request): JsonResponse
     {
+        if (!$this->isChronicleEditorCsrfValid($request)) {
+            return new JsonResponse(['error' => 'Invalid CSRF'], 400);
+        }
+
         $entry = $this->entries->findForEditor($id);
         if (!$entry instanceof ChronicleEntry) {
             return new JsonResponse(['error' => 'Not found'], 404);
@@ -155,6 +159,10 @@ final class ChronicleEditorController extends AbstractController
     #[Route('/admin/chronicle/api/{id}/publish', name: 'admin_chronicle_publish', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function publish(int $id, Request $request): JsonResponse
     {
+        if (!$this->isChronicleEditorCsrfValid($request)) {
+            return new JsonResponse(['error' => 'Invalid CSRF'], 400);
+        }
+
         $entry = $this->entries->findForEditor($id);
         if (!$entry instanceof ChronicleEntry) {
             return new JsonResponse(['error' => 'Not found'], 404);
@@ -188,6 +196,10 @@ final class ChronicleEditorController extends AbstractController
     #[Route('/admin/chronicle/api/tags', name: 'admin_chronicle_tag_create', methods: ['POST'])]
     public function createTag(Request $request): JsonResponse
     {
+        if (!$this->isChronicleEditorCsrfValid($request)) {
+            return new JsonResponse(['error' => 'Invalid CSRF'], 400);
+        }
+
         /** @var array<string, mixed> $payload */
         $payload = json_decode($request->getContent(), true) ?? [];
         $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
@@ -214,6 +226,10 @@ final class ChronicleEditorController extends AbstractController
     #[Route('/admin/chronicle/api/upload', name: 'admin_chronicle_upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
     {
+        if (!$this->isChronicleEditorCsrfValid($request)) {
+            return new JsonResponse(['error' => 'Invalid CSRF'], 400);
+        }
+
         $kind = (string) $request->request->get('kind', 'inline');
         /** @var UploadedFile|null $file */
         $file = $request->files->get('file');
@@ -221,11 +237,15 @@ final class ChronicleEditorController extends AbstractController
             return new JsonResponse(['error' => 'No file'], 400);
         }
 
-        $path = match ($kind) {
-            'cover', 'og' => $this->uploads->storeCover($file),
-            'gallery' => $this->uploads->storeGallery($file),
-            default => $this->uploads->storeInline($file),
-        };
+        try {
+            $path = match ($kind) {
+                'cover', 'og' => $this->uploads->storeCover($file),
+                'gallery' => $this->uploads->storeGallery($file),
+                default => $this->uploads->storeInline($file),
+            };
+        } catch (\InvalidArgumentException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], 400);
+        }
 
         return new JsonResponse([
             'ok' => true,
@@ -236,6 +256,25 @@ final class ChronicleEditorController extends AbstractController
                 default => '/uploads/chronicle/inline/'.$path,
             },
         ]);
+    }
+
+    private function isChronicleEditorCsrfValid(Request $request): bool
+    {
+        $token = (string) $request->headers->get(
+            'X-CSRF-TOKEN',
+            $request->request->getString('_token'),
+        );
+        if ('' === $token) {
+            try {
+                /** @var array<string, mixed> $payload */
+                $payload = json_decode($request->getContent(), true) ?? [];
+                $token = isset($payload['_token']) && \is_string($payload['_token']) ? $payload['_token'] : '';
+            } catch (\Throwable) {
+                $token = '';
+            }
+        }
+
+        return $this->isCsrfTokenValid('chronicle_editor', $token);
     }
 
     #[Route('/admin/chronicle/{id}/featured', name: 'admin_chronicle_toggle_featured', methods: ['POST'], requirements: ['id' => '\d+'])]

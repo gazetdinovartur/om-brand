@@ -287,8 +287,11 @@
         try {
             const res = await fetch(cfg.autosaveUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': cfg.csrfToken || '',
+                },
+                body: JSON.stringify({ ...payload, _token: cfg.csrfToken || '' }),
                 credentials: 'same-origin',
             });
             const json = await res.json();
@@ -314,8 +317,11 @@
         const payload = { ...collectMeta(), action };
         const res = await fetch(cfg.publishUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': cfg.csrfToken || '',
+            },
+            body: JSON.stringify({ ...payload, _token: cfg.csrfToken || '' }),
             credentials: 'same-origin',
         });
         const json = await res.json();
@@ -470,7 +476,13 @@
         const fd = new FormData();
         fd.append('file', file);
         fd.append('kind', kind);
-        const res = await fetch(cfg.uploadUrl, { method: 'POST', body: fd, credentials: 'same-origin' });
+        fd.append('_token', cfg.csrfToken || '');
+        const res = await fetch(cfg.uploadUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': cfg.csrfToken || '' },
+            body: fd,
+            credentials: 'same-origin',
+        });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || 'Upload failed');
 
@@ -976,8 +988,11 @@
         try {
             const res = await fetch(cfg.tagCreateUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': cfg.csrfToken || '',
+                },
+                body: JSON.stringify({ name, _token: cfg.csrfToken || '' }),
             });
             const data = await res.json();
             if (!res.ok || !data.tag) {

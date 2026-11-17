@@ -93,6 +93,44 @@ class PracticeSessionRepository extends ServiceEntityRepository
         return $session;
     }
 
+    /**
+     * Public landing schedule: current live (if any) + upcoming scheduled.
+     *
+     * @return list<PracticeSession>
+     */
+    public function findUpcomingForSchedule(int $limit = 8): array
+    {
+        $limit = max(1, min(20, $limit));
+        $out = [];
+
+        $live = $this->findLive();
+        if ($live instanceof PracticeSession) {
+            $out[] = $live;
+        }
+
+        $remaining = $limit - \count($out);
+        if ($remaining <= 0) {
+            return $out;
+        }
+
+        /** @var list<PracticeSession> $scheduled */
+        $scheduled = $this->createQueryBuilder('s')
+            ->andWhere('s.status = :scheduled')
+            ->andWhere('s.startsAt >= :now')
+            ->setParameter('scheduled', PracticeSessionStatus::Scheduled)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->orderBy('s.startsAt', 'ASC')
+            ->setMaxResults($remaining)
+            ->getQuery()
+            ->getResult();
+
+        foreach ($scheduled as $session) {
+            $out[] = $session;
+        }
+
+        return $out;
+    }
+
     /** Active room focus: live → latest replay. */
     public function findRoomFocus(): ?PracticeSession
     {

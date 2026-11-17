@@ -32,6 +32,7 @@ final class PracticeController extends AbstractController
         Request $request,
         PublicSiteContext $siteContext,
         PracticeEnrollmentService $enrollmentService,
+        PracticeSessionRepository $sessions,
         SiteUserResolver $siteUsers,
         #[Autowire('@limiter.inquiry_form')]
         RateLimiterFactory $inquiryLimiterFactory,
@@ -126,6 +127,7 @@ final class PracticeController extends AbstractController
             'settings' => $settings,
             'form' => $form,
             'content' => $this->pageContent(),
+            'upcomingSessions' => $sessions->findUpcomingForSchedule(),
             'practiceAuthenticated' => $authenticated,
             'practiceAccountHasEmail' => $accountHasEmail,
             'practiceAccountEmail' => $accountHasEmail ? $accountEmail : null,
@@ -161,6 +163,15 @@ final class PracticeController extends AbstractController
         $userOffers = $offers->findForSiteUser($user);
         $balance = $practiceSessions->remainingForUserOffers($userOffers);
         $focusSession = $sessions->findRoomFocus();
+        if (
+            null !== $focusSession
+            && \in_array($focusSession->getStatus(), [
+                \App\Enum\PracticeSessionStatus::Live,
+                \App\Enum\PracticeSessionStatus::Scheduled,
+            ], true)
+        ) {
+            $practiceSessions->registerAttendanceForUser($focusSession, $user);
+        }
         $nextSession = null;
         if (null === $focusSession || !$focusSession->hasPlayerEmbed()) {
             $nextSession = $sessions->findNextScheduled();

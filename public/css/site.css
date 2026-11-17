@@ -8116,6 +8116,63 @@ blockquote.reader-nav-item__body {
     color: var(--practice-cherry);
 }
 
+.practice-schedule {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.practice-schedule__item {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr) auto;
+    gap: 0.35rem 0.85rem;
+    align-items: baseline;
+    margin: 0;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--practice-brick) 22%, transparent);
+}
+
+.practice-schedule__item:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.practice-schedule__when {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--practice-root);
+    white-space: nowrap;
+}
+
+.practice-schedule__title {
+    color: var(--practice-ink);
+    line-height: 1.35;
+}
+
+.practice-schedule__badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: lowercase;
+    color: var(--practice-cherry);
+}
+
+.practice-schedule__item--live .practice-schedule__when {
+    color: var(--practice-cherry);
+}
+
+@media (max-width: 520px) {
+    .practice-schedule__item {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .practice-schedule__when {
+        grid-column: 1 / -1;
+    }
+}
+
 .practice-when {
     margin: 1.75rem 0 0;
     padding: 1.15rem 0 1.15rem 1.15rem;

@@ -8,12 +8,8 @@ use App\Repository\ReadingProgressRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ReadingProgressRepository::class)]
-#[ORM\Table(
-    name: 'reading_progress',
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(name: 'uniq_reading_progress_user_book', columns: ['site_user_id', 'book_id']),
-    ],
-)]
+#[ORM\Table(name: 'reading_progress')]
+#[ORM\UniqueConstraint(name: 'uniq_reading_progress_user_book', columns: ['site_user_id', 'book_id'])]
 #[ORM\HasLifecycleCallbacks]
 class ReadingProgress
 {

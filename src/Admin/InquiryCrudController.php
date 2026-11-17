@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Admin\Concern\RequiresMutatingPostCsrfTrait;
 use App\Entity\Inquiry;
 use App\Enum\ContactType;
 use App\Enum\InquiryStatus;
@@ -25,6 +26,8 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class InquiryCrudController extends AbstractCrudController
 {
+    use RequiresMutatingPostCsrfTrait;
+
     public function __construct(
         private readonly AdminUrlGenerator $adminUrlGenerator,
         private readonly EntityManagerInterface $entityManager,
@@ -62,6 +65,8 @@ class InquiryCrudController extends AbstractCrudController
     {
         $close = Action::new('close', 'Закрыть')
             ->linkToCrudAction('closeInquiry')
+            ->renderAsForm()
+            ->setTemplatePath('admin/action_post_csrf.html.twig')
             ->displayIf(static fn (Inquiry $inquiry): bool => InquiryStatus::New === $inquiry->getStatus());
 
         $invoice = Action::new('invoice', 'Выставить счёт', 'fa fa-ruble-sign')
@@ -84,9 +89,10 @@ class InquiryCrudController extends AbstractCrudController
                 ->displayIf(static fn (Inquiry $inquiry): bool => $inquiry->hasAttachment()));
     }
 
-    #[AdminRoute(path: '/{entityId}/close', name: 'close')]
+    #[AdminRoute(path: '/{entityId}/close', name: 'close', options: ['methods' => ['POST']])]
     public function closeInquiry(AdminContext $context): RedirectResponse
     {
+        $this->assertMutatingAdminPost($context, 'close');
         $inquiry = $context->getEntity()->getInstance();
         if (!$inquiry instanceof Inquiry) {
             throw $this->createNotFoundException();

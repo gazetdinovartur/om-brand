@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Редактор · {{ entry.title }}</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.svg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="{{ asset('css/admin-chronicle.css') }}" rel="stylesheet">
 </head>
@@ -196,6 +198,7 @@
             publishUrl: {{ path('admin_chronicle_publish', {id: entry.id})|json_encode|raw }},
             uploadUrl: {{ path('admin_chronicle_upload')|json_encode|raw }},
             tagCreateUrl: {{ path('admin_chronicle_tag_create')|json_encode|raw }},
+            csrfToken: {{ csrf_token('chronicle_editor')|json_encode|raw }},
             vkOwnerId: {{ vk_owner_id|json_encode|raw }},
             vkCrosspostEnabled: {{ vk_crosspost_enabled|json_encode|raw }},
             tgChannelEnabled: {{ tg_channel_enabled|json_encode|raw }},

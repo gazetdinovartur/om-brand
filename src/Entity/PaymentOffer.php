@@ -268,6 +268,25 @@ class PaymentOffer
         return null !== $this->note && str_contains($this->note, 'Практика /practice');
     }
 
+    /** Paid single/cycle (or legacy paid practice with amount) — archive/recordings. */
+    public function grantsPracticeRecordingsAccess(): bool
+    {
+        if (PaymentOfferStatus::Paid !== $this->status || !$this->isPracticeOffer()) {
+            return false;
+        }
+
+        $format = $this->getPracticeFormatEnum();
+        if (PracticeFormat::First === $format) {
+            return false;
+        }
+
+        if (PracticeFormat::Single === $format || PracticeFormat::Cycle === $format) {
+            return true;
+        }
+
+        return $this->amount > 0;
+    }
+
     public function getSessionsTotal(): int
     {
         return $this->sessionsTotal;

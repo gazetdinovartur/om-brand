@@ -234,6 +234,9 @@ final class KinescopeClient
         string $name,
         string $type = 'permanent_meeting',
         bool $autorecording = true,
+        bool $waitingRoom = false,
+        bool $waitForHost = true,
+        bool $transcriptionAutostart = false,
     ): SpeakRoomResult {
         $this->assertConfigured();
 
@@ -247,8 +250,9 @@ final class KinescopeClient
             'owner_id' => $ownerId,
             'type' => $type,
             'autorecording' => $autorecording,
-            'waiting_room' => false,
-            'wait_for_host' => true,
+            'waiting_room' => $waitingRoom,
+            'wait_for_host' => $waitForHost,
+            'transcription_autostart' => $transcriptionAutostart,
         ];
 
         $response = $this->request('POST', '/v1/speak/rooms', $payload);
@@ -273,6 +277,81 @@ final class KinescopeClient
         $response = $this->request('GET', '/v1/speak/rooms/'.$roomId);
 
         return \is_array($response['data'] ?? null) ? $response['data'] : $response;
+    }
+
+    /**
+     * PATCH room. Kinescope accepts name, autorecording, transcription_autostart
+     * (waiting_room / wait_for_host / type are create-time only).
+     *
+     * @param array{name?: string, autorecording?: bool, transcription_autostart?: bool} $fields
+     *
+     * @return array<string, mixed>
+     */
+    public function updateSpeakRoom(string $roomId, array $fields): array
+    {
+        $this->assertConfigured();
+        $payload = [];
+        if (\array_key_exists('name', $fields)) {
+            $payload['name'] = mb_substr((string) $fields['name'], 0, 200);
+        }
+        if (\array_key_exists('autorecording', $fields)) {
+            $payload['autorecording'] = (bool) $fields['autorecording'];
+        }
+        if (\array_key_exists('transcription_autostart', $fields)) {
+            $payload['transcription_autostart'] = (bool) $fields['transcription_autostart'];
+        }
+        if ([] === $payload) {
+            return [];
+        }
+
+        return $this->request('PATCH', '/v1/speak/rooms/'.$roomId, $payload);
+    }
+
+    public function deleteSpeakRoom(string $roomId): void
+    {
+        $this->assertConfigured();
+        $this->request('DELETE', '/v1/speak/rooms/'.$roomId);
+    }
+
+    /**
+     * Calls (meetings) for a Speak room. Soft-cancel API is not documented —
+     * cancel on our side deletes the room via {@see deleteSpeakRoom()}.
+     *
+     * @return list<array{id: string, transcript_id: ?string, created_at: ?string, updated_at: ?string}>
+     */
+    public function listSpeakCalls(string $roomId, int $perPage = 20): array
+    {
+        $this->assertConfigured();
+        $perPage = max(1, min(100, $perPage));
+        $response = $this->request(
+            'GET',
+            '/v1/speak/rooms/'.$roomId.'/calls?page=1&per_page='.$perPage.'&order=created_at.desc',
+        );
+        $items = $response['data'] ?? [];
+        if (!\is_array($items)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($items as $item) {
+            if (!\is_array($item)) {
+                continue;
+            }
+            $id = self::stringifyField($item['id'] ?? null);
+            if ('' === $id) {
+                continue;
+            }
+            $transcriptId = self::stringifyField($item['transcript_id'] ?? null);
+
+            $out[] = [
+                'id' => $id,
+                'transcript_id' => '' !== $transcriptId ? $transcriptId : null,
+                'created_at' => self::stringifyField($item['created_at'] ?? null) ?: null,
+                'updated_at' => self::stringifyField($item['updated_at'] ?? null) ?: null,
+            ];
+        }
+
+        return $out;
     }
 
     /**

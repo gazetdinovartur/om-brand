@@ -126,6 +126,7 @@ class PaymentOfferService
                 'offer_token' => $offer->getToken(),
                 'offer_id' => (string) ($offer->getId() ?? ''),
             ],
+            idempotenceKey: 'offer-'.$offer->getToken(),
         );
 
         $offer
@@ -189,7 +190,10 @@ class PaymentOfferService
      */
     public function markAsPaid(PaymentOffer $offer): bool
     {
-        if (PaymentOfferStatus::Paid === $offer->getStatus()) {
+        if (
+            PaymentOfferStatus::Paid === $offer->getStatus()
+            || PaymentOfferStatus::Refunded === $offer->getStatus()
+        ) {
             return false;
         }
 
@@ -220,12 +224,34 @@ class PaymentOfferService
 
     public function markAsCancelled(PaymentOffer $offer): void
     {
-        if (PaymentOfferStatus::Paid === $offer->getStatus()) {
+        if (PaymentOfferStatus::Paid === $offer->getStatus() || PaymentOfferStatus::Refunded === $offer->getStatus()) {
             return;
         }
 
         $offer->setStatus(PaymentOfferStatus::Cancelled);
         $this->entityManager->flush();
+    }
+
+    /**
+     * Revoke access after a successful refund. Idempotent.
+     */
+    public function markAsRefunded(PaymentOffer $offer): bool
+    {
+        if (PaymentOfferStatus::Refunded === $offer->getStatus()) {
+            return false;
+        }
+
+        $offer
+            ->setStatus(PaymentOfferStatus::Refunded)
+            ->setSessionsLeft(0);
+        $this->entityManager->flush();
+
+        $this->logger->info('Payment offer refunded, access revoked.', [
+            'offer_id' => $offer->getId(),
+            'yookassa_payment_id' => $offer->getYookassaPaymentId(),
+        ]);
+
+        return true;
     }
 
     /** Убрать офер из кабинета пользователя (Inquiry в админке остаётся). */
@@ -246,7 +272,8 @@ class PaymentOfferService
         }
 
         $event = (string) ($webhookPayload['event'] ?? '');
-        $paymentId = str_contains($event, 'refund')
+        $isRefund = str_contains($event, 'refund');
+        $paymentId = $isRefund
             ? trim((string) ($object['payment_id'] ?? ''))
             : trim((string) ($object['id'] ?? ''));
 
@@ -254,7 +281,61 @@ class PaymentOfferService
             return;
         }
 
+        if ($isRefund && str_ends_with($event, 'succeeded')) {
+            $this->applyRefundFromYookassa($paymentId, $object);
+
+            return;
+        }
+
         $this->syncFromYookassa($paymentId);
+    }
+
+    /**
+     * @param array<string, mixed> $refundObject
+     */
+    public function applyRefundFromYookassa(string $yookassaPaymentId, array $refundObject = []): ?PaymentOffer
+    {
+        $offer = $this->offers->findOneByYookassaPaymentId($yookassaPaymentId);
+        if (!$offer instanceof PaymentOffer) {
+            $this->logger->info('YooKassa refund: payment not linked to local offer.', [
+                'yookassa_payment_id' => $yookassaPaymentId,
+            ]);
+
+            return null;
+        }
+
+        try {
+            $verified = $this->yookassaClient->verifyPayment($yookassaPaymentId);
+        } catch (\Throwable $exception) {
+            $this->logger->error('YooKassa verify failed on refund.', [
+                'yookassa_payment_id' => $yookassaPaymentId,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return $offer;
+        }
+
+        if (!$this->paymentMatchesOffer($offer, $verified)) {
+            return $offer;
+        }
+
+        $refundAmount = $refundObject['amount']['value'] ?? null;
+        if (\is_string($refundAmount) || is_numeric($refundAmount)) {
+            $refundKopecks = (int) round(((float) $refundAmount) * 100);
+            if ($refundKopecks > 0 && $refundKopecks < $offer->getAmount()) {
+                $this->logger->warning('YooKassa partial refund: access kept until full amount is returned.', [
+                    'offer_id' => $offer->getId(),
+                    'offer_amount' => $offer->getAmount(),
+                    'refund_kopecks' => $refundKopecks,
+                ]);
+
+                return $offer;
+            }
+        }
+
+        $this->markAsRefunded($offer);
+
+        return $offer;
     }
 
     public function syncFromYookassa(string $yookassaPaymentId): ?PaymentOffer
@@ -268,6 +349,10 @@ class PaymentOfferService
             return null;
         }
 
+        if (PaymentOfferStatus::Refunded === $offer->getStatus()) {
+            return $offer;
+        }
+
         try {
             $verified = $this->yookassaClient->verifyPayment($yookassaPaymentId);
         } catch (\Throwable $exception) {
@@ -279,6 +364,10 @@ class PaymentOfferService
             return $offer;
         }
 
+        if (!$this->paymentMatchesOffer($offer, $verified)) {
+            return $offer;
+        }
+
         $status = (string) ($verified['status'] ?? '');
         if ('succeeded' === $status) {
             $this->markAsPaid($offer);
@@ -287,6 +376,50 @@ class PaymentOfferService
         }
 
         return $offer;
+    }
+
+    /**
+     * @param array<string, mixed> $verified
+     */
+    private function paymentMatchesOffer(PaymentOffer $offer, array $verified): bool
+    {
+        $amountValue = $verified['amount']['value'] ?? null;
+        if (\is_string($amountValue) || is_numeric($amountValue)) {
+            $verifiedKopecks = (int) round(((float) $amountValue) * 100);
+            if ($verifiedKopecks !== $offer->getAmount()) {
+                $this->logger->error('YooKassa amount mismatch — ignoring status change.', [
+                    'offer_id' => $offer->getId(),
+                    'offer_amount' => $offer->getAmount(),
+                    'yookassa_amount' => $verifiedKopecks,
+                ]);
+
+                return false;
+            }
+        }
+
+        $currency = strtoupper(trim((string) ($verified['amount']['currency'] ?? 'RUB')));
+        if ('' !== $currency && 'RUB' !== $currency) {
+            $this->logger->error('YooKassa currency mismatch — ignoring status change.', [
+                'offer_id' => $offer->getId(),
+                'currency' => $currency,
+            ]);
+
+            return false;
+        }
+
+        $meta = $verified['metadata'] ?? null;
+        if (\is_array($meta) && isset($meta['offer_token'])) {
+            $metaToken = trim((string) $meta['offer_token']);
+            if ('' !== $metaToken && !hash_equals($offer->getToken(), $metaToken)) {
+                $this->logger->error('YooKassa offer_token mismatch — ignoring status change.', [
+                    'offer_id' => $offer->getId(),
+                ]);
+
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function syncOfferFromYookassaIfPending(PaymentOffer $offer): PaymentOffer

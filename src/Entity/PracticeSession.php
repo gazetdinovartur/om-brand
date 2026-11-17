@@ -27,8 +27,8 @@ class PracticeSession
     #[ORM\Column]
     private \DateTimeImmutable $startsAt;
 
-    #[ORM\Column(enumType: PracticeSessionKind::class, options: ['default' => 'live'])]
-    private PracticeSessionKind $kind = PracticeSessionKind::Live;
+    #[ORM\Column(enumType: PracticeSessionKind::class, options: ['default' => 'speak'])]
+    private PracticeSessionKind $kind = PracticeSessionKind::Speak;
 
     #[ORM\Column(enumType: PracticeSessionStatus::class)]
     private PracticeSessionStatus $status = PracticeSessionStatus::Scheduled;

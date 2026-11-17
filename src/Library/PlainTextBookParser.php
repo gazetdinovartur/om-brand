@@ -131,6 +131,7 @@ final class PlainTextBookParser
                 '' === $line
                 || str_contains($line, '://')
                 || $this->isPromoLine($line)
+                || BookParseSupport::looksLikeBodyExcerpt($line)
             ) {
                 continue;
             }

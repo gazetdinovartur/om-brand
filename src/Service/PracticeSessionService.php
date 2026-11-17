@@ -6,9 +6,12 @@ namespace App\Service;
 
 use App\Entity\PaymentOffer;
 use App\Entity\PracticeSession;
+use App\Entity\PracticeSessionAttendance;
+use App\Entity\SiteUser;
 use App\Enum\PaymentOfferStatus;
 use App\Enum\PracticeSessionStatus;
 use App\Repository\PaymentOfferRepository;
+use App\Repository\PracticeSessionAttendanceRepository;
 use App\Repository\PracticeSessionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -19,12 +22,13 @@ final class PracticeSessionService
         private readonly EntityManagerInterface $entityManager,
         private readonly PracticeSessionRepository $sessions,
         private readonly PaymentOfferRepository $offers,
+        private readonly PracticeSessionAttendanceRepository $attendances,
         private readonly LoggerInterface $logger,
     ) {
     }
 
     /**
-     * End of stream: replay + video id + one debit. Idempotent.
+     * End of stream: replay + video id + debit attendees once. Idempotent.
      *
      * @return array{session: PracticeSession, debited: bool, changed: bool}
      */
@@ -74,7 +78,47 @@ final class PracticeSessionService
     }
 
     /**
-     * Debit 1 from every paid practice offer with sessionsLeft > 0. Once per session.
+     * Mark that this offer's holder entered the room for the session (idempotent).
+     */
+    public function registerAttendance(PracticeSession $session, PaymentOffer $offer): bool
+    {
+        if (!$offer->isPracticeOffer() || PaymentOfferStatus::Paid !== $offer->getStatus()) {
+            return false;
+        }
+        if ($offer->getSessionsLeft() <= 0) {
+            return false;
+        }
+        if ($this->attendances->findOneBySessionAndOffer($session, $offer) instanceof PracticeSessionAttendance) {
+            return false;
+        }
+
+        $row = (new PracticeSessionAttendance())
+            ->setSession($session)
+            ->setPaymentOffer($offer);
+        $this->entityManager->persist($row);
+        $this->entityManager->flush();
+
+        $this->logger->info('Practice attendance registered.', [
+            'session_id' => $session->getId(),
+            'offer_id' => $offer->getId(),
+        ]);
+
+        return true;
+    }
+
+    public function registerAttendanceForUser(PracticeSession $session, SiteUser $user): bool
+    {
+        $offer = $this->offers->findBestDebitableOfferForUser($user);
+        if (!$offer instanceof PaymentOffer) {
+            return false;
+        }
+
+        return $this->registerAttendance($session, $offer);
+    }
+
+    /**
+     * Debit 1 from each offer that attended this session. Once per session.
+     * Offers without attendance are never touched.
      */
     public function debitOnce(PracticeSession $session): bool
     {
@@ -82,7 +126,18 @@ final class PracticeSessionService
             return false;
         }
 
-        $targets = $this->offers->findPaidPracticeWithRemainingSessions();
+        $targets = [];
+        foreach ($this->attendances->findForSession($session) as $attendance) {
+            $offer = $attendance->getPaymentOffer();
+            if (!$offer instanceof PaymentOffer) {
+                continue;
+            }
+            if (PaymentOfferStatus::Paid !== $offer->getStatus() || $offer->getSessionsLeft() <= 0) {
+                continue;
+            }
+            $targets[$offer->getId() ?? spl_object_id($offer)] = $offer;
+        }
+
         foreach ($targets as $offer) {
             $offer->setSessionsLeft(max(0, $offer->getSessionsLeft() - 1));
         }
@@ -92,7 +147,7 @@ final class PracticeSessionService
 
         $this->logger->info('Practice session debited.', [
             'session_id' => $session->getId(),
-            'offers' => count($targets),
+            'offers' => \count($targets),
         ]);
 
         return true;

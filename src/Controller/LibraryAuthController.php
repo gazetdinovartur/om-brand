@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Content\HouseContent;
 use App\Entity\AdminUser;
 use App\Entity\PaymentOffer;
 use App\Entity\SiteUser;
@@ -209,25 +210,33 @@ final class LibraryAuthController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $accountTab = $request->query->getString('tab', 'practice');
-        if (!\in_array($accountTab, ['practice', 'reading', 'keys'], true)) {
-            $accountTab = 'practice';
+        $practiceTabEnabled = HouseContent::isPracticePublicEnabled();
+        $defaultTab = $practiceTabEnabled ? 'practice' : 'reading';
+        $allowedTabs = $practiceTabEnabled ? ['practice', 'reading', 'keys'] : ['reading', 'keys'];
+        $accountTab = $request->query->getString('tab', $defaultTab);
+        if (!\in_array($accountTab, $allowedTabs, true)) {
+            $accountTab = $defaultTab;
         }
 
         if (
             $request->isMethod('GET')
             && '1' === $request->query->getString('yk_return')
-            && 'practice' === $accountTab
         ) {
+            // Return URL historically uses tab=practice; still sync payment if tab was remapped.
             $this->handleYookassaReturn($request, $user);
 
-            return $this->redirectToRoute('web_account', ['tab' => 'practice']);
+            return $this->redirectToRoute('web_account', [
+                'tab' => $practiceTabEnabled ? 'practice' : 'reading',
+            ]);
         }
 
         if ($request->isMethod('POST')) {
             $action = $request->request->getString('action');
 
             if (\in_array($action, ['cancel_offer', 'delete_offer'], true)) {
+                if (!$practiceTabEnabled) {
+                    return $this->redirectToRoute('web_account', ['tab' => 'reading']);
+                }
                 $this->handlePracticeOfferAction($request, $user, $action);
 
                 return $this->redirectToRoute('web_account', ['tab' => 'practice']);
@@ -281,13 +290,16 @@ final class LibraryAuthController extends AbstractController
         $practiceRecordings = [];
         $practiceBalance = ['total' => 0, 'left' => 0, 'offer' => null];
         if ('practice' === $accountTab && $this->paymentOffers->userHasPaidPracticeAccess($user)) {
-            $practiceRecordings = $this->practiceSessions->findRecordings();
             $practiceBalance = $this->practiceSessionService->remainingForUserOffers($practiceOffers);
+            if ($this->paymentOffers->userHasPracticeRecordingsAccess($user)) {
+                $practiceRecordings = $this->practiceSessions->findRecordings();
+            }
         }
 
         $response = $this->render('web/library/account.html.twig', [
             'siteUser' => $user,
             'accountTab' => $accountTab,
+            'practiceTabEnabled' => $practiceTabEnabled,
             'credentials' => $this->credentials->findForSiteUser($user),
             'recentBookmarks' => $this->bookmarks->findRecentForUser($user, 20),
             'recentQuotes' => $this->quotes->findRecentForUser($user, 20),

@@ -40,6 +40,18 @@ class SpeakMeeting
     #[ORM\Column]
     private bool $autorecording = true;
 
+    /** Waiting room: guests wait until host/admin admits them. Set at create only. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $waitingRoom = false;
+
+    /** Guests wait until host joins, then enter automatically. Set at create only. */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $waitForHost = true;
+
+    /** Auto-start call transcription. Synced to Kinescope on create/update. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $transcriptionAutostart = false;
+
     #[ORM\Column(length: 32)]
     private string $roomType = 'permanent_meeting';
 
@@ -159,6 +171,42 @@ class SpeakMeeting
     public function setAutorecording(bool $autorecording): static
     {
         $this->autorecording = $autorecording;
+
+        return $this;
+    }
+
+    public function isWaitingRoom(): bool
+    {
+        return $this->waitingRoom;
+    }
+
+    public function setWaitingRoom(bool $waitingRoom): static
+    {
+        $this->waitingRoom = $waitingRoom;
+
+        return $this;
+    }
+
+    public function isWaitForHost(): bool
+    {
+        return $this->waitForHost;
+    }
+
+    public function setWaitForHost(bool $waitForHost): static
+    {
+        $this->waitForHost = $waitForHost;
+
+        return $this;
+    }
+
+    public function isTranscriptionAutostart(): bool
+    {
+        return $this->transcriptionAutostart;
+    }
+
+    public function setTranscriptionAutostart(bool $transcriptionAutostart): static
+    {
+        $this->transcriptionAutostart = $transcriptionAutostart;
 
         return $this;
     }

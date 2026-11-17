@@ -8,6 +8,7 @@ enum PaymentOfferStatus: string
     case Paid = 'paid';
     case Cancelled = 'cancelled';
     case Expired = 'expired';
+    case Refunded = 'refunded';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum PaymentOfferStatus: string
             self::Paid => 'Оплачено',
             self::Cancelled => 'Отменено',
             self::Expired => 'Истекло',
+            self::Refunded => 'Возврат',
         };
     }
 }

@@ -69,7 +69,14 @@ final class PracticeKinescopeService
             return $session;
         }
 
-        $result = $this->kinescope->createSpeakRoom($session->getTitle(), 'scheduled_meeting', true);
+        $result = $this->kinescope->createSpeakRoom(
+            $session->getTitle(),
+            'scheduled_meeting',
+            true,
+            false,
+            true,
+            false,
+        );
         $session
             ->setKind(PracticeSessionKind::Speak)
             ->setKinescopeRoomId($result->roomId)
@@ -78,6 +85,18 @@ final class PracticeKinescopeService
         $this->entityManager->flush();
 
         return $session;
+    }
+
+    public function syncSpeakSessionToRemote(PracticeSession $session): void
+    {
+        $roomId = $session->getKinescopeRoomId();
+        if (null === $roomId || !$session->isSpeak() || !$this->kinescope->isConfigured()) {
+            return;
+        }
+
+        $this->kinescope->updateSpeakRoom($roomId, [
+            'name' => $session->getTitle(),
+        ]);
     }
 
     /**
@@ -133,6 +152,9 @@ final class PracticeKinescopeService
             $meeting->getTitle(),
             $meeting->getRoomType(),
             $meeting->isAutorecording(),
+            $meeting->isWaitingRoom(),
+            $meeting->isWaitForHost(),
+            $meeting->isTranscriptionAutostart(),
         );
         $meeting
             ->setKinescopeRoomId($result->roomId)
@@ -142,6 +164,121 @@ final class PracticeKinescopeService
         $this->entityManager->flush();
 
         return $meeting;
+    }
+
+    public function syncSpeakMeetingToRemote(SpeakMeeting $meeting): void
+    {
+        $roomId = $meeting->getKinescopeRoomId();
+        if (null === $roomId || !$this->kinescope->isConfigured()) {
+            return;
+        }
+
+        $this->kinescope->updateSpeakRoom($roomId, [
+            'name' => $meeting->getTitle(),
+            'autorecording' => $meeting->isAutorecording(),
+            'transcription_autostart' => $meeting->isTranscriptionAutostart(),
+        ]);
+    }
+
+    public function deleteSpeakMeetingRemote(SpeakMeeting $meeting): void
+    {
+        $roomId = $meeting->getKinescopeRoomId();
+        if (null === $roomId || !$this->kinescope->isConfigured()) {
+            return;
+        }
+
+        $this->kinescope->deleteSpeakRoom($roomId);
+    }
+
+    /**
+     * Delete Speak room (or ignore if none). Used when the local card is deleted.
+     */
+    public function deleteSessionRemote(PracticeSession $session): void
+    {
+        if (!$this->kinescope->isConfigured()) {
+            return;
+        }
+
+        $roomId = $session->getKinescopeRoomId();
+        if (null !== $roomId && $session->isSpeak()) {
+            $this->kinescope->deleteSpeakRoom($roomId);
+        }
+    }
+
+    /**
+     * Cancel remote Speak room, keep the practice card. Speak has no soft-cancel API —
+     * we DELETE the room and clear room ids; video/notes stay.
+     */
+    public function cancelSpeakSessionRemote(PracticeSession $session): void
+    {
+        $roomId = $session->getKinescopeRoomId();
+        if (null === $roomId || !$session->isSpeak()) {
+            throw new \RuntimeException('Нет комнаты Speak для отмены.');
+        }
+
+        if ($this->kinescope->isConfigured()) {
+            $this->kinescope->deleteSpeakRoom($roomId);
+        }
+
+        $session
+            ->setKinescopeRoomId(null)
+            ->setKinescopeRoomCode(null);
+
+        if (!\in_array($session->getStatus(), [PracticeSessionStatus::Replay, PracticeSessionStatus::Completed], true)) {
+            $session->setStatus(PracticeSessionStatus::Completed);
+        } else {
+            $session->touch();
+        }
+
+        $this->entityManager->flush();
+    }
+
+    /**
+     * @return list<array{id: string, transcript_id: ?string, created_at: ?string, updated_at: ?string}>
+     */
+    public function listCallsForSession(PracticeSession $session): array
+    {
+        $roomId = $session->getKinescopeRoomId();
+        if (null === $roomId || !$session->isSpeak() || !$this->kinescope->isConfigured()) {
+            return [];
+        }
+
+        return $this->kinescope->listSpeakCalls($roomId);
+    }
+
+    /**
+     * Cancel SpeakMeeting remote room, keep the card (clear room ids).
+     */
+    public function cancelSpeakMeetingRemote(SpeakMeeting $meeting): void
+    {
+        $roomId = $meeting->getKinescopeRoomId();
+        if (null === $roomId) {
+            throw new \RuntimeException('Нет комнаты Speak для отмены.');
+        }
+
+        if ($this->kinescope->isConfigured()) {
+            $this->kinescope->deleteSpeakRoom($roomId);
+        }
+
+        $meeting
+            ->setKinescopeRoomId(null)
+            ->setKinescopeRoomCode(null)
+            ->setSpeakEmbedUrl(null)
+            ->touch();
+        $this->entityManager->flush();
+    }
+
+    /**
+     * @return list<array{id: string, transcript_id: ?string, created_at: ?string, updated_at: ?string}>
+     */
+    public function listCallsForMeeting(SpeakMeeting $meeting): array
+    {
+        $roomId = $meeting->getKinescopeRoomId();
+        if (null === $roomId || !$this->kinescope->isConfigured()) {
+            return [];
+        }
+
+        return $this->kinescope->listSpeakCalls($roomId);
     }
 
     public function goLive(PracticeSession $session): void
@@ -251,6 +388,10 @@ final class PracticeKinescopeService
             return;
         }
 
+        if (!$this->confirmLiveEventExists($eventId)) {
+            return;
+        }
+
         if ('' !== $videoId && $this->kinescope->isConfigured()) {
             try {
                 $this->enrichFromVideo($session, $videoId);
@@ -339,6 +480,10 @@ final class PracticeKinescopeService
             return;
         }
 
+        if (!$this->confirmSpeakRoomExists($roomId)) {
+            return;
+        }
+
         // Speak record.finished has record.id, not always catalog video id yet.
         $recordId = '';
         if (isset($data['record']) && \is_array($data['record'])) {
@@ -359,6 +504,50 @@ final class PracticeKinescopeService
         }
 
         $this->practiceSessions->finishWithRecording($session, $session->getKinescopeVideoId());
+    }
+
+    /**
+     * When API is configured, confirm the remote event still exists before debiting.
+     * When not configured (local/tests), trust Basic Auth + local session match.
+     */
+    private function confirmLiveEventExists(string $eventId): bool
+    {
+        if (!$this->kinescope->isConfigured()) {
+            return true;
+        }
+
+        try {
+            $this->kinescope->getLiveEvent($eventId);
+
+            return true;
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Kinescope live.finished rejected: event not confirmed via API.', [
+                'event_id' => $eventId,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    private function confirmSpeakRoomExists(string $roomId): bool
+    {
+        if (!$this->kinescope->isConfigured()) {
+            return true;
+        }
+
+        try {
+            $this->kinescope->listSpeakCalls($roomId);
+
+            return true;
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Kinescope speak finished rejected: room not confirmed via API.', [
+                'room_id' => $roomId,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     private function enrichFromVideo(PracticeSession $session, string $videoId): void

@@ -42,11 +42,34 @@ final class InquiryAdminTest extends WebTestCase
         $inquiry = $this->createInquiry($em, 'close-'.bin2hex(random_bytes(3)).'@example.test');
         self::assertSame(InquiryStatus::New, $inquiry->getStatus());
 
-        $client->request('GET', '/admin/inquiry/'.$inquiry->getId().'/close');
+        $indexHtml = $this->fetchAdminHtml($client, '/admin/inquiry');
+        self::assertMatchesRegularExpression(
+            '/name="_token" value="([^"]+)"/',
+            $indexHtml,
+        );
+        preg_match(
+            '/action="[^"]*\\/admin\\/inquiry\\/'.$inquiry->getId().'\\/close"[^>]*>\\s*<input type="hidden" name="_token" value="([^"]+)"/',
+            $indexHtml,
+            $matches,
+        );
+        if ([] === $matches) {
+            // Fallback: any admin_mutating_close token on the page.
+            preg_match('/name="_token" value="([^"]+)"/', $indexHtml, $matches);
+        }
+        self::assertNotEmpty($matches[1] ?? null, 'CSRF token for close action not found');
+
+        $client->request(
+            'POST',
+            '/admin/inquiry/'.$inquiry->getId().'/close',
+            ['_token' => $matches[1]],
+        );
         while ($client->getResponse()->isRedirection()) {
             $client->followRedirect();
         }
         self::assertResponseIsSuccessful();
+
+        $client->request('GET', '/admin/inquiry/'.$inquiry->getId().'/close');
+        self::assertResponseStatusCodeSame(405);
 
         $em->clear();
         $fresh = $em->find(Inquiry::class, $inquiry->getId());

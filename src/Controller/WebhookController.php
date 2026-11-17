@@ -86,8 +86,11 @@ final class WebhookController extends AbstractController
         $user = trim($this->kinescopeWebhookUser);
         $password = $this->kinescopeWebhookPassword;
 
-        if ('' === $user && '' === $password) {
-            return true;
+        // Fail closed: empty credentials must never accept the request.
+        if ('' === $user || '' === $password) {
+            $this->logger->error('Kinescope webhook rejected: KINESCOPE_WEBHOOK_USER/PASSWORD are not both set.');
+
+            return false;
         }
 
         $providedUser = (string) $request->server->get('PHP_AUTH_USER', '');

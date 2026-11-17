@@ -35,6 +35,7 @@ final class YookassaClient
         string $description,
         string $returnUrl,
         array $metadata = [],
+        ?string $idempotenceKey = null,
     ): CreatePaymentResult {
         if (!$this->isConfigured()) {
             throw new \RuntimeException('YooKassa is not configured.');
@@ -74,9 +75,13 @@ final class YookassaClient
             $payload['metadata'] = $metadata;
         }
 
+        $key = null !== $idempotenceKey && '' !== trim($idempotenceKey)
+            ? trim($idempotenceKey)
+            : Uuid::v4()->toRfc4122();
+
         $response = $this->httpClient->request('POST', self::API_BASE.'/payments', [
             'headers' => $this->authHeaders([
-                'Idempotence-Key' => Uuid::v4()->toRfc4122(),
+                'Idempotence-Key' => $key,
             ]),
             'json' => $payload,
             'timeout' => 20,

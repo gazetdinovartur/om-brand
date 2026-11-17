@@ -1,0 +1,10 @@
+{# Mutating EasyAdmin action: always POST + CSRF (SameSite=Lax alone is not enough for same-site threats). #}
+{# @var action \EasyCorp\Bundle\EasyAdminBundle\Dto\ActionDto #}
+<form action="{{ action.linkUrl }}" method="POST" class="{{ action.cssClass }}">
+    <input type="hidden" name="_token" value="{{ csrf_token('admin_mutating_' ~ action.name) }}">
+    <button type="submit" class="action-{{ action.name }} btn btn-link">
+        {% if action.icon %}<i class="action-icon {{ action.icon }}"></i>{% endif %}
+        {% set action_label = action.label|trans %}
+        {%- if action_label is not empty -%}<span class="action-label">{{ action_label|raw }}</span>{%- endif -%}
+    </button>
+</form>

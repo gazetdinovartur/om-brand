@@ -16,17 +16,50 @@ final class BookParseSupport
         ?string $detectedAuthor,
         string $sourceName,
     ): array {
-        $title = trim((string) ($titleOverride ?? $detectedTitle ?? ''));
-        $author = trim((string) ($authorOverride ?? $detectedAuthor ?? ''));
+        $title = self::clampField(trim((string) ($titleOverride ?? '')), 255);
+        $author = self::clampField(trim((string) ($authorOverride ?? '')), 180);
 
         if ('' === $title) {
-            $title = self::humanizeSourceName($sourceName);
+            $title = self::clampField(trim((string) ($detectedTitle ?? '')), 255);
         }
         if ('' === $author) {
+            $author = self::clampField(trim((string) ($detectedAuthor ?? '')), 180);
+        }
+
+        if ('' === $title || self::looksLikeBodyExcerpt($title)) {
+            $title = self::humanizeSourceName($sourceName);
+        }
+        if ('' === $author || self::looksLikeBodyExcerpt($author)) {
             $author = 'Без автора';
         }
 
-        return [$title, $author];
+        return [
+            self::clampField($title, 255),
+            self::clampField($author, 180),
+        ];
+    }
+
+    /** Reject preamble lines that are clearly body text, not metadata. */
+    public static function looksLikeBodyExcerpt(string $value): bool
+    {
+        $length = self::length($value);
+        if ($length > 160) {
+            return true;
+        }
+        if ($length > 80 && str_contains($value, '. ')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function clampField(string $value, int $maxLength): string
+    {
+        if (self::length($value) <= $maxLength) {
+            return $value;
+        }
+
+        return rtrim(mb_substr($value, 0, $maxLength));
     }
 
     public static function humanizeSourceName(string $sourceName): string
@@ -171,7 +204,7 @@ final class BookParseSupport
                 continue;
             }
             $chapters[] = new ParsedLibraryChapter(
-                $title,
+                self::clampField($title, 255),
                 $slug,
                 (\count($chapters) + 1) * 10,
                 $blocks,

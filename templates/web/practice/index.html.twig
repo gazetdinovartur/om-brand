@@ -4,7 +4,7 @@
 <div class="practice-page">
     <section class="practice-hero" aria-labelledby="practice-title">
         <div class="container practice-container practice-hero__inner">
-            <p class="practice-hero__eyebrow">Практика</p>
+            <p class="practice-hero__eyebrow">РИТМ</p>
             <h1 class="practice-hero__title" id="practice-title">{{ content.title }}</h1>
             <p class="practice-hero__lead">{{ content.heroLead }}</p>
             <p class="practice-hero__body">{{ content.heroBody }}</p>
@@ -89,7 +89,21 @@
                 <div class="practice-steps">
                     <div class="practice-steps__block">
                         <h3 class="practice-subhead">{{ content.scheduleTitle }}</h3>
-                        <p>{{ content.scheduleBody }}</p>
+                        {% if upcomingSessions is not empty %}
+                            <ul class="practice-schedule">
+                                {% for session in upcomingSessions %}
+                                    <li class="practice-schedule__item{% if session.status.value == 'live' %} practice-schedule__item--live{% endif %}">
+                                        <time class="practice-schedule__when" datetime="{{ session.startsAt|date('c') }}">{{ session.startsAt|date('d.m.Y H:i') }}</time>
+                                        <span class="practice-schedule__title">{{ session.title }}</span>
+                                        {% if session.status.value == 'live' %}
+                                            <span class="practice-schedule__badge">сейчас</span>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>{{ content.scheduleBody }}</p>
+                        {% endif %}
                     </div>
                     <div class="practice-steps__block">
                         <h3 class="practice-subhead">{{ content.enterTitle }}</h3>

@@ -93,6 +93,110 @@ final class PracticeKinescopeServiceLifecycleTest extends KernelTestCase
         self::assertSame('https://speak.kinescope.io/meet-code-1', $meeting->getSpeakEmbedUrl());
     }
 
+    public function testCancelSpeakSessionRemoteDeletesRoomAndClearsIds(): void
+    {
+        self::bootKernel();
+        $container = static::getContainer();
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $session = $this->createPracticeSession(
+            $em,
+            title: 'Отмена Speak',
+            kind: PracticeSessionKind::Speak,
+            roomId: 'room-cancel-1',
+            roomCode: 'cancel-code',
+        );
+
+        $methods = [];
+        $container->set(KinescopeClient::class, new KinescopeClient(
+            new MockHttpClient(static function (string $method, string $url) use (&$methods): MockResponse {
+                $methods[] = $method.' '.$url;
+
+                return new MockResponse(json_encode(['data' => ['success' => true]], \JSON_THROW_ON_ERROR));
+            }),
+            'token',
+        ));
+
+        /** @var PracticeKinescopeService $service */
+        $service = $container->get(PracticeKinescopeService::class);
+        $service->cancelSpeakSessionRemote($session);
+
+        $em->refresh($session);
+        self::assertNull($session->getKinescopeRoomId());
+        self::assertNull($session->getKinescopeRoomCode());
+        self::assertSame(PracticeSessionStatus::Completed, $session->getStatus());
+        self::assertNotEmpty($methods);
+        self::assertStringContainsString('DELETE', $methods[0]);
+        self::assertStringContainsString('/v1/speak/rooms/room-cancel-1', $methods[0]);
+    }
+
+    public function testDeleteSessionRemoteDeletesSpeakRoom(): void
+    {
+        self::bootKernel();
+        $container = static::getContainer();
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $session = $this->createPracticeSession(
+            $em,
+            kind: PracticeSessionKind::Speak,
+            roomId: 'room-del-sess',
+            roomCode: 'del-code',
+        );
+
+        $methods = [];
+        $container->set(KinescopeClient::class, new KinescopeClient(
+            new MockHttpClient(static function (string $method, string $url) use (&$methods): MockResponse {
+                $methods[] = $method.' '.$url;
+
+                return new MockResponse(json_encode(['data' => ['success' => true]], \JSON_THROW_ON_ERROR));
+            }),
+            'token',
+        ));
+
+        /** @var PracticeKinescopeService $service */
+        $service = $container->get(PracticeKinescopeService::class);
+        $service->deleteSessionRemote($session);
+
+        self::assertCount(1, $methods);
+        self::assertStringStartsWith('DELETE', $methods[0]);
+    }
+
+    public function testListCallsForSessionReturnsApiItems(): void
+    {
+        self::bootKernel();
+        $container = static::getContainer();
+        /** @var EntityManagerInterface $em */
+        $em = $container->get(EntityManagerInterface::class);
+
+        $session = $this->createPracticeSession(
+            $em,
+            kind: PracticeSessionKind::Speak,
+            roomId: 'room-list-1',
+            roomCode: 'list-code',
+        );
+
+        $container->set(KinescopeClient::class, new KinescopeClient(
+            new MockHttpClient([
+                new MockResponse(json_encode([
+                    'data' => [
+                        ['id' => 'c1', 'transcript_id' => 't1', 'created_at' => '2025-01-01T00:00:00Z'],
+                    ],
+                ], \JSON_THROW_ON_ERROR)),
+            ]),
+            'token',
+        ));
+
+        /** @var PracticeKinescopeService $service */
+        $service = $container->get(PracticeKinescopeService::class);
+        $calls = $service->listCallsForSession($session);
+
+        self::assertCount(1, $calls);
+        self::assertSame('c1', $calls[0]['id']);
+        self::assertSame('t1', $calls[0]['transcript_id']);
+    }
+
     public function testFinishLiveViaApiCompletesAndDebits(): void
     {
         self::bootKernel();

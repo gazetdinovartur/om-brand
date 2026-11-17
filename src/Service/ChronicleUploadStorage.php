@@ -10,6 +10,19 @@ use Symfony\Component\Uid\Uuid;
 
 final class ChronicleUploadStorage
 {
+    private const ALLOWED_MIME = [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+    ];
+
+    private const ALLOWED_EXTENSIONS = [
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+    ];
+
     public function __construct(
         private readonly ImageOptimizer $imageOptimizer,
         private readonly string $projectDir,
@@ -61,7 +74,14 @@ final class ChronicleUploadStorage
 
     private function storeImage(UploadedFile $file, string $subdir, int $maxWidth, ?int $thumbWidth): string
     {
-        $filename = Uuid::v7()->toRfc4122().'.'.$file->guessExtension();
+        $this->assertAllowedImage($file);
+
+        $extension = strtolower((string) ($file->guessExtension() ?: $file->getClientOriginalExtension()));
+        if (!\in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            $extension = 'jpg';
+        }
+
+        $filename = Uuid::v7()->toRfc4122().'.'.$extension;
         $dir = $this->projectDir.'/public/uploads/'.$subdir;
         if (!is_dir($dir)) {
             mkdir($dir, 0775, true);
@@ -75,6 +95,14 @@ final class ChronicleUploadStorage
         );
 
         return basename($result['path']);
+    }
+
+    private function assertAllowedImage(UploadedFile $file): void
+    {
+        $mime = strtolower((string) ($file->getMimeType() ?: ''));
+        if (!\in_array($mime, self::ALLOWED_MIME, true)) {
+            throw new \InvalidArgumentException('Разрешены только JPEG, PNG и WebP.');
+        }
     }
 
     private function optimizePath(?string $path, string $subdir, int $maxWidth, ?int $thumbWidth): ?string

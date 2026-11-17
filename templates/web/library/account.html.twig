@@ -1,6 +1,7 @@
 {% extends 'web/layout.html.twig' %}
 
-{% set accountTab = accountTab|default('practice') %}
+{% set practiceTabEnabled = practiceTabEnabled|default(false) %}
+{% set accountTab = accountTab|default(practiceTabEnabled ? 'practice' : 'reading') %}
 {% block title %}Своё место{% endblock %}
 
 {% block body %}
@@ -36,11 +37,13 @@
         {% endfor %}
 
         <nav class="library-tabs" aria-label="Разделы своего места">
-            <a
-                class="library-tabs__link{% if accountTab == 'practice' %} is-active{% endif %}"
-                href="{{ path('web_account', {tab: 'practice'}) }}"
-                {% if accountTab == 'practice' %}aria-current="page"{% endif %}
-            >Практика</a>
+            {% if practiceTabEnabled %}
+                <a
+                    class="library-tabs__link{% if accountTab == 'practice' %} is-active{% endif %}"
+                    href="{{ path('web_account', {tab: 'practice'}) }}"
+                    {% if accountTab == 'practice' %}aria-current="page"{% endif %}
+                >Практика</a>
+            {% endif %}
             <a
                 class="library-tabs__link{% if accountTab == 'reading' %} is-active{% endif %}"
                 href="{{ path('web_account', {tab: 'reading'}) }}"
