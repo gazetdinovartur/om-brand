@@ -1,17 +1,29 @@
 /* Service worker: Web Push (chronicle) + library offline packs */
-const LIBRARY_OFFLINE_CACHE = 'om-library-offline-v1';
+const LIBRARY_OFFLINE_CACHE = 'om-library-offline-v2';
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
+    event.waitUntil((async () => {
+        const keys = await caches.keys();
+        await Promise.all(
+            keys
+                .filter((key) => key.startsWith('om-library-offline-') && key !== LIBRARY_OFFLINE_CACHE)
+                .map((key) => caches.delete(key)),
+        );
+        await self.clients.claim();
+    })());
 });
 
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
+    // Никогда не трогаем POST (progress/bookmarks) и статику js/css — только offline-pack.
     if (event.request.method !== 'GET') {
+        return;
+    }
+    if (url.pathname.startsWith('/js/') || url.pathname.startsWith('/css/')) {
         return;
     }
     if (!url.pathname.match(/^\/library\/[^/]+\/offline-pack$/)) {

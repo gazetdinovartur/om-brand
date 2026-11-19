@@ -2500,6 +2500,8 @@ function initPageBack() {
 const READER_PREFERENCES_KEY = 'om.reader.preferences.v1';
 const READER_OFFLINE_PREFIX = 'om.reader.offline.v1:';
 const READER_PROGRESS_PREFIX = 'om.reader.progress.v1:';
+const LIBRARY_OFFLINE_CACHE = 'om-library-offline-v2';
+const LIBRARY_OFFLINE_CACHE_LEGACY = 'om-library-offline-v1';
 
 function initLibraryReader() {
     const reader = document.querySelector('[data-reader]');
@@ -2558,6 +2560,8 @@ function initLibraryReader() {
     let lastSavedBlock = '';
     let restoringPosition = false;
     let positionReady = false;
+    /** После restore/закладки не даём viewport-sync сразу откатить прогресс на «первый блок страницы». */
+    let restoreGraceUntil = 0;
     let pageIndex = 0;
     let pageCount = 1;
     let columnWidth = 0;
@@ -2718,13 +2722,105 @@ function initLibraryReader() {
         return false;
     };
 
+    const applyProgressState = ({
+        blockId,
+        progressPercent = null,
+        savedAt = null,
+        synced = true,
+    } = {}) => {
+        if (!blockId) {
+            return;
+        }
+        lastSavedBlock = blockId;
+        if (progressLabel instanceof HTMLElement && typeof progressPercent === 'number') {
+            progressLabel.textContent = `${Math.round(progressPercent)}%`;
+        }
+        if (savedAt) {
+            serverProgress.updatedAt = savedAt;
+        }
+        serverProgress.chapter = chapter;
+        serverProgress.block = blockId;
+        if (typeof progressPercent === 'number') {
+            serverProgress.progressPercent = progressPercent;
+        }
+        writeProgressDraft({
+            blockId,
+            progressPercent: typeof progressPercent === 'number' ? progressPercent : null,
+            synced,
+            updatedAt: savedAt || new Date().toISOString(),
+        });
+        // Offline-pack держит снимок прогресса — обновляем, иначе «Продолжить» из кэша врёт.
+        void patchOfflinePackProgress({
+            chapterSlug: chapter,
+            blockId,
+            progressPercent: typeof progressPercent === 'number' ? progressPercent : serverProgress.progressPercent,
+        });
+    };
+
+    const openOfflinePackCache = async () => {
+        if (!('caches' in window)) {
+            return null;
+        }
+        const primary = await caches.open(LIBRARY_OFFLINE_CACHE);
+        if (await primary.match(offlineUrl)) {
+            return primary;
+        }
+        // Старый кэш до обновления SW — читаем и мигрируем запись в v2.
+        try {
+            const legacy = await caches.open(LIBRARY_OFFLINE_CACHE_LEGACY);
+            const legacyHit = await legacy.match(offlineUrl);
+            if (legacyHit) {
+                await primary.put(offlineUrl, legacyHit.clone());
+                return primary;
+            }
+        } catch {
+            // ignore
+        }
+        return primary;
+    };
+
+    const patchOfflinePackProgress = async ({ chapterSlug, blockId, progressPercent }) => {
+        if (!bookSlug || !offlineUrl || !('caches' in window)) {
+            return;
+        }
+        try {
+            const cache = await openOfflinePackCache();
+            if (!cache) {
+                return;
+            }
+            const cached = await cache.match(offlineUrl);
+            if (!cached) {
+                return;
+            }
+            const pack = await cached.json();
+            if (!pack || typeof pack !== 'object') {
+                return;
+            }
+            pack.progress = {
+                chapter: chapterSlug,
+                block: blockId,
+                progressPercent: Number(progressPercent || 0),
+            };
+            pack.generatedAt = new Date().toISOString();
+            await cache.put(offlineUrl, new Response(JSON.stringify(pack), {
+                headers: { 'Content-Type': 'application/json' },
+            }));
+            localStorage.setItem(READER_OFFLINE_PREFIX + bookSlug, JSON.stringify({
+                savedAt: pack.generatedAt,
+                title: pack.book?.title || bookSlug,
+            }));
+        } catch {
+            // Офлайн-кэш — best effort.
+        }
+    };
+
     const selectActiveBlock = (block, force = false) => {
         if (!(block instanceof HTMLElement) || (!force && block === activeBlock)) {
             return;
         }
         activeBlock = block;
         updateActionButtons();
-        if (!restoringPosition && positionReady) {
+        if (!restoringPosition && positionReady && Date.now() >= restoreGraceUntil) {
             writeProgressDraft({ blockId: block.id, synced: false });
             scheduleProgressSave();
         }
@@ -2738,6 +2834,9 @@ function initLibraryReader() {
         }
         // Не затираем сервер «началом главы», пока реальная позиция ещё не готова.
         if (!force && !positionReady) {
+            return;
+        }
+        if (!force && Date.now() < restoreGraceUntil) {
             return;
         }
 
@@ -2762,23 +2861,11 @@ function initLibraryReader() {
             if (!response.ok || !data?.ok) {
                 throw new Error(data?.message || 'save failed');
             }
-            lastSavedBlock = blockId;
-            if (progressLabel instanceof HTMLElement && typeof data.progressPercent === 'number') {
-                progressLabel.textContent = `${Math.round(data.progressPercent)}%`;
-            }
-            if (data.savedAt) {
-                serverProgress.updatedAt = data.savedAt;
-                serverProgress.chapter = chapter;
-                serverProgress.block = blockId;
-                if (typeof data.progressPercent === 'number') {
-                    serverProgress.progressPercent = data.progressPercent;
-                }
-            }
-            writeProgressDraft({
+            applyProgressState({
                 blockId,
                 progressPercent: typeof data.progressPercent === 'number' ? data.progressPercent : null,
+                savedAt: data.savedAt || null,
                 synced: true,
-                updatedAt: data.savedAt || serverProgress.updatedAt || new Date().toISOString(),
             });
             if (!quiet) {
                 setStatus('Место сохранено');
@@ -2791,7 +2878,7 @@ function initLibraryReader() {
     };
 
     const scheduleProgressSave = () => {
-        if (!positionReady || restoringPosition) {
+        if (!positionReady || restoringPosition || Date.now() < restoreGraceUntil) {
             return;
         }
         window.clearTimeout(saveTimer);
@@ -3449,26 +3536,15 @@ function initLibraryReader() {
                 if (data.bookmarked) {
                     appendListItem(bookmarksList, bookmarksEmpty, '[data-reader-bookmark-item]', data, 'bookmark');
                     upsertInlineMark(target.id, 'bookmark', data.excerpt || '', data.bookmarkId);
-                    // Сервер уже сохранил прогресс вместе с закладкой — синхронизируем UI/draft.
-                    lastSavedBlock = target.id;
-                    if (progressLabel instanceof HTMLElement && typeof data.progressPercent === 'number') {
-                        progressLabel.textContent = `${Math.round(data.progressPercent)}%`;
-                    }
-                    if (data.savedAt) {
-                        serverProgress.updatedAt = data.savedAt;
-                        serverProgress.chapter = chapter;
-                        serverProgress.block = target.id;
-                        if (typeof data.progressPercent === 'number') {
-                            serverProgress.progressPercent = data.progressPercent;
-                        }
-                    }
-                    writeProgressDraft({
+                    // Сервер уже сохранил прогресс вместе с закладкой — синхронизируем UI/draft/offline.
+                    window.clearTimeout(saveTimer);
+                    restoreGraceUntil = Date.now() + 2500;
+                    applyProgressState({
                         blockId: target.id,
                         progressPercent: typeof data.progressPercent === 'number' ? data.progressPercent : null,
+                        savedAt: data.savedAt || null,
                         synced: true,
-                        updatedAt: data.savedAt || new Date().toISOString(),
                     });
-                    window.clearTimeout(saveTimer);
                     setStatus('Закладка добавлена');
                 } else {
                     bookmarksList?.querySelector(`[data-reader-bookmark-item][data-block="${CSS.escape(target.id)}"]`)?.remove();
@@ -3945,8 +4021,8 @@ function initLibraryReader() {
         try {
             cached = Boolean(localStorage.getItem(READER_OFFLINE_PREFIX + bookSlug));
             if ('caches' in window) {
-                const cache = await caches.open('om-library-offline-v1');
-                cached = cached && Boolean(await cache.match(offlineUrl));
+                const cache = await openOfflinePackCache();
+                cached = cached && Boolean(cache && await cache.match(offlineUrl));
             }
         } catch {
             cached = false;
@@ -3982,12 +4058,12 @@ function initLibraryReader() {
                     title: data.book?.title || bookSlug,
                 }));
                 if ('caches' in window) {
-                    const cache = await caches.open('om-library-offline-v1');
+                    const cache = await caches.open(LIBRARY_OFFLINE_CACHE);
                     await cache.put(offlineUrl, new Response(JSON.stringify(data), {
                         headers: { 'Content-Type': 'application/json' },
                     }));
                     if ('serviceWorker' in navigator) {
-                        await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+                        await navigator.serviceWorker.register(`/sw.js?v=${LIBRARY_OFFLINE_CACHE}`, { scope: '/' });
                     }
                 }
                 await refreshOfflineButton();
@@ -4059,9 +4135,11 @@ function initLibraryReader() {
         }
     }
 
-    const markPositionReady = () => {
+    const markPositionReady = ({ syncViewport = false } = {}) => {
         positionReady = true;
-        syncActiveFromViewport();
+        if (syncViewport) {
+            syncActiveFromViewport();
+        }
         armProgressHeartbeat();
     };
 
@@ -4081,13 +4159,15 @@ function initLibraryReader() {
                     : (serverProgress.updatedAt || new Date().toISOString()),
             });
             restoringPosition = false;
-            markPositionReady();
+            // Не зовём syncActiveFromViewport: он ставит «первый блок колонки» и откатывает прогресс.
+            restoreGraceUntil = Date.now() + 2500;
+            markPositionReady({ syncViewport: false });
             if (restoreFromDraft) {
                 flushProgressNow({ block: restoreBlock, keepalive: false });
             }
             return;
         }
-        markPositionReady();
+        markPositionReady({ syncViewport: true });
     };
 
     const focusParams = new URLSearchParams(window.location.search);
