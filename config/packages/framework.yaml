@@ -15,7 +15,7 @@ framework:
     #fragments: true
 
 parameters:
-    assets_version_fallback: '20261119r'
+    assets_version_fallback: '20261119t'
     # Fallback when SYMFONY_TRUSTED_PROXIES is unset (nginx on same host).
     trusted_proxies_default: '127.0.0.1'
 

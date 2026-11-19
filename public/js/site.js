@@ -2893,10 +2893,48 @@ function initLibraryReader() {
         void saveProgress({ keepalive: true, quiet: true, force: true, ...opts });
     };
 
+    const blockOrderIndex = (blockId) => {
+        if (!blockId) {
+            return -1;
+        }
+        return blocks.findIndex((block) => block instanceof HTMLElement && block.id === blockId);
+    };
+
+    /**
+     * Уход со страницы (reload/закрытие): НЕ перечитывать viewport.
+     * При unload layout часто врёт и отдаёт начало главы — force-save затирал нормальный прогресс.
+     */
+    const flushOnLeave = () => {
+        window.clearTimeout(saveTimer);
+        if (!positionReady || restoringPosition) {
+            return;
+        }
+        const activeId = activeBlock instanceof HTMLElement ? activeBlock.id : '';
+        const knownId = lastSavedBlock || serverProgress.block || '';
+        let blockId = activeId || knownId;
+        const activeIdx = blockOrderIndex(activeId);
+        const knownIdx = blockOrderIndex(knownId);
+        // Если «активный» внезапно раньше уже сохранённого в этой главе — это артефакт unload, не откатываем.
+        if (knownIdx >= 0 && (activeIdx < 0 || activeIdx < knownIdx)) {
+            blockId = knownId;
+        }
+        if (!blockId) {
+            return;
+        }
+        const block = reader.querySelector(`#${CSS.escape(blockId)}`);
+        if (!(block instanceof HTMLElement)) {
+            return;
+        }
+        void saveProgress({ keepalive: true, quiet: true, force: true, block });
+    };
+
     const armProgressHeartbeat = () => {
         window.clearInterval(heartbeatTimer);
         heartbeatTimer = window.setInterval(() => {
             if (document.visibilityState !== 'visible' || restoringPosition || !positionReady) {
+                return;
+            }
+            if (Date.now() < restoreGraceUntil) {
                 return;
             }
             flushProgressNow({ keepalive: false });
@@ -3178,23 +3216,20 @@ function initLibraryReader() {
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            syncActiveFromViewport({ persist: false });
-            flushProgressNow();
+            flushOnLeave();
         } else if (document.visibilityState === 'visible') {
             armProgressHeartbeat();
         }
     });
-    // pagehide надёжнее visibilitychange на iOS при свайпе «закрыть вкладку» / уходе в фон.
+    // pagehide надёжнее visibilitychange на iOS при свайпе «закрыть вкладку» / reload.
     window.addEventListener('pagehide', () => {
-        syncActiveFromViewport({ persist: false });
-        flushProgressNow();
+        flushOnLeave();
     });
     document.addEventListener('freeze', () => {
-        syncActiveFromViewport({ persist: false });
-        flushProgressNow();
+        flushOnLeave();
     });
 
-    // Перед уходом в другую главу — сразу зафиксировать место.
+    // Перед уходом в другую главу — страница ещё жива, viewport можно синхронизировать.
     reader.querySelectorAll('.reader-toc a, .reader-chapter-nav a').forEach((link) => {
         if (!(link instanceof HTMLAnchorElement)) {
             return;
