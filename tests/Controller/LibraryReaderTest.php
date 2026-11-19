@@ -40,6 +40,8 @@ final class LibraryReaderTest extends WebTestCase
         $bookmarkToken = (string) $reader->attr('data-reader-bookmark-token');
         $blockId = $chapter->getBlocks()[0]['id'];
 
+        $secondBlockId = $chapter->getBlocks()[1]['id'];
+
         $client->jsonRequest('POST', '/library/'.$book->getSlug().'/progress', [
             '_token' => $progressToken,
             'chapter' => $chapter->getSlug(),
@@ -47,12 +49,17 @@ final class LibraryReaderTest extends WebTestCase
         ]);
         self::assertResponseIsSuccessful();
 
+        // Закладка на другой блок должна сама сдвинуть прогресс (без отдельного /progress).
         $client->jsonRequest('POST', '/library/'.$book->getSlug().'/bookmarks', [
             '_token' => $bookmarkToken,
             'chapter' => $chapter->getSlug(),
-            'block' => $blockId,
+            'block' => $secondBlockId,
         ]);
         self::assertResponseIsSuccessful();
+        $bookmarkPayload = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertTrue($bookmarkPayload['bookmarked'] ?? false);
+        self::assertArrayHasKey('progressPercent', $bookmarkPayload);
+        self::assertArrayHasKey('savedAt', $bookmarkPayload);
         $em->clear();
 
         $siteUser = $em->getRepository(SiteUser::class)->findOneBy(['email' => $admin->getEmail()]);
@@ -63,7 +70,7 @@ final class LibraryReaderTest extends WebTestCase
             'book' => $book->getId(),
         ]);
         self::assertInstanceOf(ReadingProgress::class, $progress);
-        self::assertSame($blockId, $progress->getBlockId());
+        self::assertSame($secondBlockId, $progress->getBlockId());
         self::assertCount(1, $em->getRepository(ReadingBookmark::class)->findBy([
             'siteUser' => $siteUser->getId(),
             'book' => $book->getId(),

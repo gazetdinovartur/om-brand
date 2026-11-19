@@ -284,17 +284,7 @@ final class LibraryController extends AbstractController
             return $this->privateJson(['ok' => false, 'message' => 'Место чтения не найдено.'], 422);
         }
 
-        $readingProgress = $this->progress->findForUserAndBook($user, $book) ?? new ReadingProgress();
-        $readingProgress
-            ->setSiteUser($user)
-            ->setBook($book)
-            ->setChapter($chapter)
-            ->setBlockId($blockId)
-            ->setProgressBasisPoints($this->progressCalculator->calculateBasisPoints($book, $chapter, $blockId))
-            ->markOpened();
-
-        $this->entityManager->persist($readingProgress);
-        $this->entityManager->flush();
+        $readingProgress = $this->syncReadingProgress($user, $book, $chapter, $blockId);
 
         return $this->privateJson([
             'ok' => true,
@@ -352,6 +342,8 @@ final class LibraryController extends AbstractController
             ->setBlockId($blockId)
             ->setExcerpt($this->excerpt($block['text']));
         $this->entityManager->persist($bookmark);
+        // Прогресс пишем в том же запросе — иначе клиентский flush часто не успевает / молча падает.
+        $readingProgress = $this->syncReadingProgress($user, $book, $chapter, $blockId, flush: false);
         $this->entityManager->flush();
 
         return $this->privateJson([
@@ -360,6 +352,8 @@ final class LibraryController extends AbstractController
             'bookmarkId' => $bookmark->getId(),
             'block' => $blockId,
             'excerpt' => $bookmark->getExcerpt(),
+            'progressPercent' => $readingProgress->getProgressPercent(),
+            'savedAt' => $readingProgress->getUpdatedAt()->format(\DATE_ATOM),
         ]);
     }
 
@@ -477,6 +471,33 @@ final class LibraryController extends AbstractController
             'block' => $blockId,
             'body' => $note->getBody(),
         ]);
+    }
+
+    private function syncReadingProgress(
+        SiteUser $user,
+        LibraryBook $book,
+        LibraryChapter $chapter,
+        string $blockId,
+        bool $flush = true,
+    ): ReadingProgress {
+        $readingProgress = $this->progress->findForUserAndBook($user, $book) ?? new ReadingProgress();
+        $readingProgress
+            ->setSiteUser($user)
+            ->setBook($book)
+            ->setChapter($chapter)
+            ->setBlockId($blockId)
+            ->setProgressBasisPoints($this->progressCalculator->calculateBasisPoints($book, $chapter, $blockId))
+            ->markOpened();
+
+        // PreUpdate не сработает на «том же» blockId без явного touch — updatedAt нужен для draft-compare.
+        $readingProgress->touchUpdatedAt();
+
+        $this->entityManager->persist($readingProgress);
+        if ($flush) {
+            $this->entityManager->flush();
+        }
+
+        return $readingProgress;
     }
 
     private function isValidProgressBlock(LibraryBook $book, LibraryChapter $chapter, string $blockId): bool

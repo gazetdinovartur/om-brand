@@ -3449,7 +3449,26 @@ function initLibraryReader() {
                 if (data.bookmarked) {
                     appendListItem(bookmarksList, bookmarksEmpty, '[data-reader-bookmark-item]', data, 'bookmark');
                     upsertInlineMark(target.id, 'bookmark', data.excerpt || '', data.bookmarkId);
-                    flushProgressNow({ block: target, keepalive: false });
+                    // Сервер уже сохранил прогресс вместе с закладкой — синхронизируем UI/draft.
+                    lastSavedBlock = target.id;
+                    if (progressLabel instanceof HTMLElement && typeof data.progressPercent === 'number') {
+                        progressLabel.textContent = `${Math.round(data.progressPercent)}%`;
+                    }
+                    if (data.savedAt) {
+                        serverProgress.updatedAt = data.savedAt;
+                        serverProgress.chapter = chapter;
+                        serverProgress.block = target.id;
+                        if (typeof data.progressPercent === 'number') {
+                            serverProgress.progressPercent = data.progressPercent;
+                        }
+                    }
+                    writeProgressDraft({
+                        blockId: target.id,
+                        progressPercent: typeof data.progressPercent === 'number' ? data.progressPercent : null,
+                        synced: true,
+                        updatedAt: data.savedAt || new Date().toISOString(),
+                    });
+                    window.clearTimeout(saveTimer);
                     setStatus('Закладка добавлена');
                 } else {
                     bookmarksList?.querySelector(`[data-reader-bookmark-item][data-block="${CSS.escape(target.id)}"]`)?.remove();
