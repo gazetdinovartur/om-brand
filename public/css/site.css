@@ -6741,6 +6741,7 @@ blockquote.library-account__mark-body {
 .reader {
     --reader-bg: var(--bg);
     --reader-surface: rgba(255, 253, 249, 0.88);
+    --reader-surface-solid: #faf6ef;
     --reader-text: var(--text);
     --reader-muted: var(--muted);
     --reader-border: var(--border);
@@ -6763,6 +6764,7 @@ blockquote.library-account__mark-body {
 .reader[data-reader-theme="dark"] {
     --reader-bg: #1c1915;
     --reader-surface: rgba(43, 38, 32, 0.96);
+    --reader-surface-solid: #2b2620;
     --reader-text: #f3ede3;
     --reader-muted: #b8ac9d;
     --reader-border: rgba(255, 255, 255, 0.11);
@@ -6988,7 +6990,8 @@ blockquote.library-account__mark-body {
     z-index: 55;
     margin: 0;
     overflow: auto;
-    background: var(--reader-surface, #faf6ef);
+    /* Непрозрачный фон: --reader-surface полупрозрачный и на мобиле просвечивает текст. */
+    background: var(--reader-surface-solid, #faf6ef);
     border-top: 1px solid var(--reader-border, rgba(80, 60, 40, 0.14));
     -webkit-overflow-scrolling: touch;
 }
@@ -7309,17 +7312,6 @@ blockquote.library-account__mark-body {
     font-size: 0.72rem;
 }
 
-.reader-bookmarks button {
-    width: 1.8rem;
-    height: 1.8rem;
-    padding: 0;
-    border: 0;
-    color: var(--reader-muted);
-    background: transparent;
-    font-size: 1.1rem;
-    cursor: pointer;
-}
-
 .reader-text {
     width: min(100%, 70ch);
     margin-inline: auto;
@@ -7559,6 +7551,10 @@ blockquote.library-account__mark-body {
     .reader-navigation__content {
         grid-template-columns: 1fr;
         gap: 0.75rem;
+    }
+
+    .reader-navigation {
+        background: var(--reader-surface-solid, #faf6ef);
     }
 
     .reader-block {

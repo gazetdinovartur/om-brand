@@ -2499,6 +2499,7 @@ function initPageBack() {
 
 const READER_PREFERENCES_KEY = 'om.reader.preferences.v1';
 const READER_OFFLINE_PREFIX = 'om.reader.offline.v1:';
+const READER_PROGRESS_PREFIX = 'om.reader.progress.v1:';
 
 function initLibraryReader() {
     const reader = document.querySelector('[data-reader]');
@@ -2543,9 +2544,17 @@ function initLibraryReader() {
     const notesList = reader.querySelector('[data-reader-notes-list]');
     const notesEmpty = reader.querySelector('[data-reader-notes-empty]');
     const content = reader.querySelector('[data-reader-content]');
+    const progressStorageKey = bookSlug ? `${READER_PROGRESS_PREFIX}${bookSlug}` : '';
+    const serverProgress = {
+        chapter: reader.dataset.readerServerChapter || '',
+        block: reader.dataset.readerServerBlock || '',
+        updatedAt: reader.dataset.readerServerUpdatedAt || '',
+        progressPercent: Number(reader.dataset.readerServerPercent || 0),
+    };
     let activeBlock = blocks[0] || null;
     let saveTimer = 0;
     let statusTimer = 0;
+    let heartbeatTimer = 0;
     let lastSavedBlock = '';
     let restoringPosition = false;
     let pageIndex = 0;
@@ -2640,20 +2649,94 @@ function initLibraryReader() {
         }
     };
 
+    const readProgressDraft = () => {
+        if (!progressStorageKey) {
+            return null;
+        }
+        try {
+            const raw = localStorage.getItem(progressStorageKey);
+            if (!raw) {
+                return null;
+            }
+            const draft = JSON.parse(raw);
+            if (!draft || typeof draft !== 'object' || !draft.chapter || !draft.block || !draft.updatedAt) {
+                return null;
+            }
+            return draft;
+        } catch {
+            return null;
+        }
+    };
+
+    const writeProgressDraft = ({
+        blockId = '',
+        progressPercent = null,
+        synced = false,
+        updatedAt = null,
+    } = {}) => {
+        if (!progressStorageKey || !blockId || !chapter) {
+            return;
+        }
+        const previous = readProgressDraft();
+        const percent = typeof progressPercent === 'number'
+            ? progressPercent
+            : (typeof previous?.progressPercent === 'number' ? previous.progressPercent : serverProgress.progressPercent);
+        try {
+            localStorage.setItem(progressStorageKey, JSON.stringify({
+                chapter,
+                block: blockId,
+                updatedAt: updatedAt || new Date().toISOString(),
+                progressPercent: percent,
+                synced: Boolean(synced),
+            }));
+        } catch {
+            // localStorage может быть недоступен — серверный слой всё равно работает.
+        }
+    };
+
+    const draftIsFresher = (draft, server) => {
+        if (!draft?.updatedAt) {
+            return false;
+        }
+        if (!server?.updatedAt) {
+            return true;
+        }
+        const draftMs = Date.parse(draft.updatedAt);
+        const serverMs = Date.parse(server.updatedAt);
+        if (!Number.isFinite(draftMs)) {
+            return false;
+        }
+        if (!Number.isFinite(serverMs) || draftMs > serverMs) {
+            return true;
+        }
+        if (draftMs === serverMs) {
+            const draftPercent = Number(draft.progressPercent || 0);
+            const serverPercent = Number(server.progressPercent || 0);
+            return draftPercent > serverPercent;
+        }
+        return false;
+    };
+
     const selectActiveBlock = (block, force = false) => {
         if (!(block instanceof HTMLElement) || (!force && block === activeBlock)) {
             return;
         }
         activeBlock = block;
         updateActionButtons();
-        scheduleProgressSave();
+        if (!restoringPosition) {
+            writeProgressDraft({ blockId: block.id, synced: false });
+            scheduleProgressSave();
+        }
     };
 
-    const saveProgress = async ({ keepalive = false, quiet = false } = {}) => {
-        const blockId = activeBlock instanceof HTMLElement ? activeBlock.id : '';
-        if (!blockId || !progressUrl || !progressToken || blockId === lastSavedBlock) {
+    const saveProgress = async ({ keepalive = false, quiet = false, force = false, block = null } = {}) => {
+        const target = block instanceof HTMLElement ? block : activeBlock;
+        const blockId = target instanceof HTMLElement ? target.id : '';
+        if (!blockId || !progressUrl || !progressToken || (!force && blockId === lastSavedBlock)) {
             return;
         }
+
+        writeProgressDraft({ blockId, synced: false });
 
         try {
             const response = await fetch(progressUrl, {
@@ -2678,6 +2761,20 @@ function initLibraryReader() {
             if (progressLabel instanceof HTMLElement && typeof data.progressPercent === 'number') {
                 progressLabel.textContent = `${Math.round(data.progressPercent)}%`;
             }
+            if (data.savedAt) {
+                serverProgress.updatedAt = data.savedAt;
+                serverProgress.chapter = chapter;
+                serverProgress.block = blockId;
+                if (typeof data.progressPercent === 'number') {
+                    serverProgress.progressPercent = data.progressPercent;
+                }
+            }
+            writeProgressDraft({
+                blockId,
+                progressPercent: typeof data.progressPercent === 'number' ? data.progressPercent : null,
+                synced: true,
+                updatedAt: data.savedAt || serverProgress.updatedAt || new Date().toISOString(),
+            });
             if (!quiet) {
                 setStatus('Место сохранено');
             }
@@ -2693,7 +2790,22 @@ function initLibraryReader() {
         saveTimer = window.setTimeout(() => {
             // Автосохранение без тоста — иначе на каждой смене абзаца мелькает «Место сохранено».
             void saveProgress({ quiet: true });
-        }, 1800);
+        }, 700);
+    };
+
+    const flushProgressNow = (opts = {}) => {
+        window.clearTimeout(saveTimer);
+        void saveProgress({ keepalive: true, quiet: true, force: true, ...opts });
+    };
+
+    const armProgressHeartbeat = () => {
+        window.clearInterval(heartbeatTimer);
+        heartbeatTimer = window.setInterval(() => {
+            if (document.visibilityState !== 'visible' || restoringPosition) {
+                return;
+            }
+            flushProgressNow({ keepalive: false });
+        }, 50000);
     };
 
     const firstVisibleBlockOnPage = () => {
@@ -2919,32 +3031,88 @@ function initLibraryReader() {
         window.addEventListener('scroll', currentFromViewport, { passive: true });
     }
 
-    const fragmentBlock = location.hash ? reader.querySelector(location.hash) : null;
-    if (fragmentBlock instanceof HTMLElement && fragmentBlock.hasAttribute('data-reader-block')) {
-        restoringPosition = true;
-        window.setTimeout(() => {
-            jumpToBlock(fragmentBlock);
-            lastSavedBlock = fragmentBlock.id;
-            restoringPosition = false;
-        }, 50);
+    const focusParamsEarly = new URLSearchParams(window.location.search);
+    const hasIntentionalFocus = Boolean(focusParamsEarly.get('focus'));
+    const progressDraft = readProgressDraft();
+    let restoreBlock = null;
+
+    if (hasIntentionalFocus) {
+        // Переход к закладке/цитате/заметке важнее черновика.
     } else if (reader.dataset.readerOpenAt === 'end' && blocks.length) {
+        restoreBlock = blocks[blocks.length - 1];
+    } else if (
+        progressDraft
+        && progressDraft.chapter === chapter
+        && draftIsFresher(progressDraft, serverProgress)
+    ) {
+        const draftBlock = reader.querySelector(`#${CSS.escape(progressDraft.block)}`);
+        if (draftBlock instanceof HTMLElement && draftBlock.hasAttribute('data-reader-block')) {
+            restoreBlock = draftBlock;
+        }
+    }
+
+    if (!restoreBlock) {
+        const fragmentBlock = location.hash ? reader.querySelector(location.hash) : null;
+        if (fragmentBlock instanceof HTMLElement && fragmentBlock.hasAttribute('data-reader-block')) {
+            restoreBlock = fragmentBlock;
+        }
+    }
+
+    if (restoreBlock instanceof HTMLElement) {
         restoringPosition = true;
         window.setTimeout(() => {
-            jumpToBlock(blocks[blocks.length - 1]);
+            jumpToBlock(restoreBlock);
+            lastSavedBlock = restoreBlock.id;
+            const fromFresherDraft = draftIsFresher(progressDraft, serverProgress)
+                && progressDraft?.chapter === chapter;
+            writeProgressDraft({
+                blockId: restoreBlock.id,
+                progressPercent: fromFresherDraft
+                    ? Number(progressDraft.progressPercent || serverProgress.progressPercent || 0)
+                    : serverProgress.progressPercent,
+                synced: !fromFresherDraft,
+                updatedAt: fromFresherDraft
+                    ? progressDraft.updatedAt
+                    : (serverProgress.updatedAt || new Date().toISOString()),
+            });
             restoringPosition = false;
+            // Если восстановили из более свежего черновика — сразу догоняем сервер.
+            if (fromFresherDraft) {
+                flushProgressNow({ block: restoreBlock, keepalive: false });
+            }
         }, 50);
     }
 
     updateActionButtons();
     if (!restoringPosition && activeBlock) {
+        writeProgressDraft({ blockId: activeBlock.id, synced: false });
         scheduleProgressSave();
     }
+    armProgressHeartbeat();
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            window.clearTimeout(saveTimer);
-            void saveProgress({ keepalive: true, quiet: true });
+            flushProgressNow();
+        } else if (document.visibilityState === 'visible') {
+            armProgressHeartbeat();
         }
+    });
+    // pagehide надёжнее visibilitychange на iOS при свайпе «закрыть вкладку» / уходе в фон.
+    window.addEventListener('pagehide', () => {
+        flushProgressNow();
+    });
+    document.addEventListener('freeze', () => {
+        flushProgressNow();
+    });
+
+    // Перед уходом в другую главу — сразу зафиксировать место.
+    reader.querySelectorAll('.reader-toc a, .reader-chapter-nav a').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.addEventListener('click', () => {
+            flushProgressNow({ keepalive: true });
+        });
     });
 
     const postJson = async (url, token, payload) => {
@@ -3275,6 +3443,7 @@ function initLibraryReader() {
                 if (data.bookmarked) {
                     appendListItem(bookmarksList, bookmarksEmpty, '[data-reader-bookmark-item]', data, 'bookmark');
                     upsertInlineMark(target.id, 'bookmark', data.excerpt || '', data.bookmarkId);
+                    flushProgressNow({ block: target, keepalive: false });
                     setStatus('Закладка добавлена');
                 } else {
                     bookmarksList?.querySelector(`[data-reader-bookmark-item][data-block="${CSS.escape(target.id)}"]`)?.remove();
@@ -3338,6 +3507,7 @@ function initLibraryReader() {
                 if (reader.dataset.readerFlow === 'paginated') {
                     measurePages();
                 }
+                flushProgressNow({ block: selected.block, keepalive: false });
                 setStatus('Цитата сохранена');
             } catch {
                 setStatus('Не удалось сохранить цитату', true);
@@ -3372,6 +3542,7 @@ function initLibraryReader() {
                 activeBlock.classList.add('is-noted');
                 appendListItem(notesList, notesEmpty, '[data-reader-note-item]', data, 'note');
                 upsertInlineMark(activeBlock.id, 'note', data.body || trimmed, data.noteId);
+                flushProgressNow({ block: activeBlock, keepalive: false });
                 setStatus('Заметка сохранена');
             } catch {
                 setStatus('Не удалось сохранить заметку', true);

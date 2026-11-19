@@ -79,6 +79,12 @@
     data-reader-offline-url="{{ path('web_library_offline_pack', {bookSlug: book.slug}) }}"
     data-reader-render-mode="{{ book.renderMode }}"
     data-reader-open-at="{{ openAtEnd|default(false) ? 'end' : 'start' }}"
+    {% if readingProgress %}
+        data-reader-server-chapter="{{ readingProgress.chapter.slug }}"
+        data-reader-server-block="{{ readingProgress.blockId }}"
+        data-reader-server-updated-at="{{ readingProgress.updatedAt|date('c') }}"
+        data-reader-server-percent="{{ readingProgress.progressPercent }}"
+    {% endif %}
     {% if book.isPdfFallback and book.sourcePath %}
         data-reader-pdf-url="{{ path('web_library_pdf', {bookSlug: book.slug}) }}"
     {% endif %}
