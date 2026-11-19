@@ -2557,6 +2557,7 @@ function initLibraryReader() {
     let heartbeatTimer = 0;
     let lastSavedBlock = '';
     let restoringPosition = false;
+    let positionReady = false;
     let pageIndex = 0;
     let pageCount = 1;
     let columnWidth = 0;
@@ -2723,7 +2724,7 @@ function initLibraryReader() {
         }
         activeBlock = block;
         updateActionButtons();
-        if (!restoringPosition) {
+        if (!restoringPosition && positionReady) {
             writeProgressDraft({ blockId: block.id, synced: false });
             scheduleProgressSave();
         }
@@ -2733,6 +2734,10 @@ function initLibraryReader() {
         const target = block instanceof HTMLElement ? block : activeBlock;
         const blockId = target instanceof HTMLElement ? target.id : '';
         if (!blockId || !progressUrl || !progressToken || (!force && blockId === lastSavedBlock)) {
+            return;
+        }
+        // Не затираем сервер «началом главы», пока реальная позиция ещё не готова.
+        if (!force && !positionReady) {
             return;
         }
 
@@ -2786,6 +2791,9 @@ function initLibraryReader() {
     };
 
     const scheduleProgressSave = () => {
+        if (!positionReady || restoringPosition) {
+            return;
+        }
         window.clearTimeout(saveTimer);
         saveTimer = window.setTimeout(() => {
             // Автосохранение без тоста — иначе на каждой смене абзаца мелькает «Место сохранено».
@@ -2801,27 +2809,89 @@ function initLibraryReader() {
     const armProgressHeartbeat = () => {
         window.clearInterval(heartbeatTimer);
         heartbeatTimer = window.setInterval(() => {
-            if (document.visibilityState !== 'visible' || restoringPosition) {
+            if (document.visibilityState !== 'visible' || restoringPosition || !positionReady) {
                 return;
             }
             flushProgressNow({ keepalive: false });
         }, 50000);
     };
 
-    const firstVisibleBlockOnPage = () => {
+    /** Горизонтальный старт блока в координатах колонок (не bounding box — он лжёт при column-break). */
+    const blockColumnOffset = (el) => {
+        if (!(el instanceof Element) || !(content instanceof HTMLElement)) {
+            return 0;
+        }
+        const contentRect = content.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(true);
+        const rects = range.getClientRects();
+        const rect = rects.length > 0 ? rects[0] : el.getBoundingClientRect();
+        return rect.left - contentRect.left + content.scrollLeft;
+    };
+
+    /**
+     * Якорь чтения на текущей «странице» (колонке).
+     * Нельзя использовать element.getBoundingClientRect(): у абзаца с column-break
+     * box тянется через несколько страниц и всегда «виден» — activeBlock залипает на первом блоке.
+     */
+    const readingAnchorBlock = () => {
         if (!(content instanceof HTMLElement) || blocks.length === 0) {
             return blocks[0] || null;
         }
-        const contentRect = content.getBoundingClientRect();
-        let found = blocks[0];
-        for (const block of blocks) {
-            const rect = block.getBoundingClientRect();
-            if (rect.bottom > contentRect.top + 8 && rect.left < contentRect.right - 8 && rect.right > contentRect.left + 8) {
-                found = block;
-                break;
-            }
+        if (reader.dataset.readerFlow !== 'paginated' || columnWidth <= 0) {
+            const targetY = window.innerHeight * 0.3;
+            let closest = blocks[0];
+            let closestDistance = Number.POSITIVE_INFINITY;
+            blocks.forEach((block) => {
+                const rect = block.getBoundingClientRect();
+                if (rect.bottom < 0 || rect.top > window.innerHeight) {
+                    return;
+                }
+                const distance = Math.abs(rect.top - targetY);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closest = block;
+                }
+            });
+            return closest;
         }
-        return found;
+
+        const pageLeft = pageIndex * columnWidth;
+        const pageRight = pageLeft + columnWidth;
+        let continuing = blocks[0];
+        for (const block of blocks) {
+            const start = blockColumnOffset(block);
+            if (start < pageLeft - 0.5) {
+                continuing = block;
+                continue;
+            }
+            if (start < pageRight - 0.5) {
+                return block;
+            }
+            break;
+        }
+        return continuing;
+    };
+
+    const syncActiveFromViewport = ({ persist = true } = {}) => {
+        if (restoringPosition || isPdfFallback) {
+            return activeBlock;
+        }
+        if (reader.dataset.readerFlow === 'paginated') {
+            lockPageScroll();
+        }
+        const block = readingAnchorBlock();
+        if (!(block instanceof HTMLElement)) {
+            return activeBlock;
+        }
+        if (!persist) {
+            activeBlock = block;
+            updateActionButtons();
+            return block;
+        }
+        selectActiveBlock(block);
+        return activeBlock;
     };
 
     const isReaderSelection = () => {
@@ -2870,32 +2940,10 @@ function initLibraryReader() {
     };
 
     const currentFromViewport = () => {
-        if (restoringPosition || isPdfFallback || selectionActive) {
+        if (selectionActive) {
             return;
         }
-        if (reader.dataset.readerFlow === 'paginated') {
-            lockPageScroll();
-            const block = firstVisibleBlockOnPage();
-            if (block) {
-                selectActiveBlock(block);
-            }
-            return;
-        }
-        const targetY = window.innerHeight * 0.3;
-        let closest = blocks[0];
-        let closestDistance = Number.POSITIVE_INFINITY;
-        blocks.forEach((block) => {
-            const rect = block.getBoundingClientRect();
-            if (rect.bottom < 0 || rect.top > window.innerHeight) {
-                return;
-            }
-            const distance = Math.abs(rect.top - targetY);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closest = block;
-            }
-        });
-        selectActiveBlock(closest);
+        syncActiveFromViewport();
     };
 
     const updatePageUi = () => {
@@ -2964,35 +3012,33 @@ function initLibraryReader() {
         pageIndex = Math.min(pageIndex, pageCount - 1);
         content.scrollLeft = pageIndex * columnWidth;
         updatePageUi();
-        currentFromViewport();
+        if (!restoringPosition) {
+            currentFromViewport();
+        }
     };
 
-    const goToPage = (index) => {
+    const goToPage = (index, { syncActive = true } = {}) => {
         if (!(content instanceof HTMLElement)) {
             return;
         }
         window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
         pageIndex = Math.max(0, Math.min(pageCount - 1, index));
         content.scrollLeft = pageIndex * columnWidth;
-        // Подстраховка от субпиксельного «плывущего» столбца.
+        updatePageUi();
+        // После scrollLeft client rects колонок стабилизируются на следующем кадре.
         window.requestAnimationFrame(() => {
             lockPageScroll();
+            if (syncActive && !restoringPosition) {
+                currentFromViewport();
+            }
         });
-        updatePageUi();
-        currentFromViewport();
     };
 
     const pageIndexForElement = (el) => {
         if (!(el instanceof Element) || !(content instanceof HTMLElement) || columnWidth <= 0) {
             return 0;
         }
-        const contentRect = content.getBoundingClientRect();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(true);
-        const rects = range.getClientRects();
-        const rect = rects.length > 0 ? rects[0] : el.getBoundingClientRect();
-        const left = rect.left - contentRect.left + content.scrollLeft;
+        const left = blockColumnOffset(el);
         return Math.max(0, Math.min(pageCount - 1, Math.floor((left + 0.5) / columnWidth)));
     };
 
@@ -3001,13 +3047,17 @@ function initLibraryReader() {
             return;
         }
         const block = el.closest('[data-reader-block]');
-        if (block instanceof HTMLElement) {
-            selectActiveBlock(block, true);
-        }
         if (reader.dataset.readerFlow === 'paginated' && content instanceof HTMLElement) {
             measurePages();
-            goToPage(pageIndexForElement(el));
+            // Без auto-sync: иначе rAF перебьёт целевой блок якорем «первый на странице».
+            goToPage(pageIndexForElement(el), { syncActive: false });
+            if (block instanceof HTMLElement) {
+                selectActiveBlock(block, true);
+            }
         } else if (el instanceof HTMLElement) {
+            if (block instanceof HTMLElement) {
+                selectActiveBlock(block, true);
+            }
             el.scrollIntoView({ block: 'center', inline: 'nearest' });
         }
     };
@@ -3019,79 +3069,29 @@ function initLibraryReader() {
         jumpToElement(block);
     };
 
-    if (!isPdfFallback && 'IntersectionObserver' in window) {
-        const observer = new IntersectionObserver(
-            () => {
-                currentFromViewport();
-            },
-            { rootMargin: '-18% 0px -58% 0px', threshold: [0, 0.25, 0.75] },
-        );
-        blocks.forEach((block) => observer.observe(block));
-    } else if (!isPdfFallback) {
+    // Лента: IntersectionObserver по вертикали. Страницы: якорь только через goToPage + readingAnchorBlock
+    // (IO по Y в колонках бесполезен и раньше цеплялся к первому «видимому» bounding box).
+    if (!isPdfFallback) {
         window.addEventListener('scroll', currentFromViewport, { passive: true });
-    }
-
-    const focusParamsEarly = new URLSearchParams(window.location.search);
-    const hasIntentionalFocus = Boolean(focusParamsEarly.get('focus'));
-    const progressDraft = readProgressDraft();
-    let restoreBlock = null;
-
-    if (hasIntentionalFocus) {
-        // Переход к закладке/цитате/заметке важнее черновика.
-    } else if (reader.dataset.readerOpenAt === 'end' && blocks.length) {
-        restoreBlock = blocks[blocks.length - 1];
-    } else if (
-        progressDraft
-        && progressDraft.chapter === chapter
-        && draftIsFresher(progressDraft, serverProgress)
-    ) {
-        const draftBlock = reader.querySelector(`#${CSS.escape(progressDraft.block)}`);
-        if (draftBlock instanceof HTMLElement && draftBlock.hasAttribute('data-reader-block')) {
-            restoreBlock = draftBlock;
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(
+                () => {
+                    if (reader.dataset.readerFlow === 'paginated') {
+                        return;
+                    }
+                    currentFromViewport();
+                },
+                { rootMargin: '-18% 0px -58% 0px', threshold: [0, 0.25, 0.75] },
+            );
+            blocks.forEach((block) => observer.observe(block));
         }
-    }
-
-    if (!restoreBlock) {
-        const fragmentBlock = location.hash ? reader.querySelector(location.hash) : null;
-        if (fragmentBlock instanceof HTMLElement && fragmentBlock.hasAttribute('data-reader-block')) {
-            restoreBlock = fragmentBlock;
-        }
-    }
-
-    if (restoreBlock instanceof HTMLElement) {
-        restoringPosition = true;
-        window.setTimeout(() => {
-            jumpToBlock(restoreBlock);
-            lastSavedBlock = restoreBlock.id;
-            const fromFresherDraft = draftIsFresher(progressDraft, serverProgress)
-                && progressDraft?.chapter === chapter;
-            writeProgressDraft({
-                blockId: restoreBlock.id,
-                progressPercent: fromFresherDraft
-                    ? Number(progressDraft.progressPercent || serverProgress.progressPercent || 0)
-                    : serverProgress.progressPercent,
-                synced: !fromFresherDraft,
-                updatedAt: fromFresherDraft
-                    ? progressDraft.updatedAt
-                    : (serverProgress.updatedAt || new Date().toISOString()),
-            });
-            restoringPosition = false;
-            // Если восстановили из более свежего черновика — сразу догоняем сервер.
-            if (fromFresherDraft) {
-                flushProgressNow({ block: restoreBlock, keepalive: false });
-            }
-        }, 50);
     }
 
     updateActionButtons();
-    if (!restoringPosition && activeBlock) {
-        writeProgressDraft({ blockId: activeBlock.id, synced: false });
-        scheduleProgressSave();
-    }
-    armProgressHeartbeat();
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
+            syncActiveFromViewport({ persist: false });
             flushProgressNow();
         } else if (document.visibilityState === 'visible') {
             armProgressHeartbeat();
@@ -3099,9 +3099,11 @@ function initLibraryReader() {
     });
     // pagehide надёжнее visibilitychange на iOS при свайпе «закрыть вкладку» / уходе в фон.
     window.addEventListener('pagehide', () => {
+        syncActiveFromViewport({ persist: false });
         flushProgressNow();
     });
     document.addEventListener('freeze', () => {
+        syncActiveFromViewport({ persist: false });
         flushProgressNow();
     });
 
@@ -3111,6 +3113,7 @@ function initLibraryReader() {
             return;
         }
         link.addEventListener('click', () => {
+            syncActiveFromViewport({ persist: false });
             flushProgressNow({ keepalive: true });
         });
     });
@@ -3427,7 +3430,10 @@ function initLibraryReader() {
     if (bookmarkButton instanceof HTMLButtonElement && bookmarkUrl && bookmarkToken) {
         bookmarkButton.addEventListener('click', async () => {
             const selected = selectionInReader();
-            const target = selected?.block instanceof HTMLElement ? selected.block : activeBlock;
+            // Без выделения — якорь с текущей страницы/viewport, не устаревший activeBlock.
+            const target = selected?.block instanceof HTMLElement
+                ? selected.block
+                : syncActiveFromViewport({ persist: false });
             if (!(target instanceof HTMLElement)) {
                 return;
             }
@@ -3519,7 +3525,11 @@ function initLibraryReader() {
 
     if (noteButton instanceof HTMLButtonElement && noteUrl && noteToken) {
         noteButton.addEventListener('click', async () => {
-            if (!(activeBlock instanceof HTMLElement)) {
+            const selected = selectionInReader();
+            const target = selected?.block instanceof HTMLElement
+                ? selected.block
+                : syncActiveFromViewport({ persist: false });
+            if (!(target instanceof HTMLElement)) {
                 return;
             }
             const body = window.prompt('Заметка к этому месту:');
@@ -3535,14 +3545,15 @@ function initLibraryReader() {
             try {
                 const data = await postJson(noteUrl, noteToken, {
                     chapter,
-                    block: activeBlock.id,
+                    block: target.id,
                     body: trimmed,
                 });
-                activeBlock.dataset.noted = '1';
-                activeBlock.classList.add('is-noted');
+                target.dataset.noted = '1';
+                target.classList.add('is-noted');
+                selectActiveBlock(target, true);
                 appendListItem(notesList, notesEmpty, '[data-reader-note-item]', data, 'note');
-                upsertInlineMark(activeBlock.id, 'note', data.body || trimmed, data.noteId);
-                flushProgressNow({ block: activeBlock, keepalive: false });
+                upsertInlineMark(target.id, 'note', data.body || trimmed, data.noteId);
+                flushProgressNow({ block: target, keepalive: false });
                 setStatus('Заметка сохранена');
             } catch {
                 setStatus('Не удалось сохранить заметку', true);
@@ -3994,6 +4005,72 @@ function initLibraryReader() {
         measurePages,
     });
 
+    // Restore строго после preferences/measurePages: иначе rAF с page=0 перебивает позицию.
+    const focusParamsEarly = new URLSearchParams(window.location.search);
+    const hasIntentionalFocus = Boolean(focusParamsEarly.get('focus'));
+    const progressDraft = readProgressDraft();
+    const hashBlockId = (location.hash || '').replace(/^#/, '');
+    let restoreBlock = null;
+    let restoreFromDraft = false;
+
+    if (hasIntentionalFocus) {
+        // focusMark ниже важнее авто-restore.
+    } else if (reader.dataset.readerOpenAt === 'end' && blocks.length) {
+        restoreBlock = blocks[blocks.length - 1];
+    } else if (hashBlockId) {
+        // Hash с /continue важнее localStorage — битый draft начала главы больше не откатывает прогресс.
+        const fragmentBlock = reader.querySelector(`#${CSS.escape(hashBlockId)}`);
+        if (fragmentBlock instanceof HTMLElement && fragmentBlock.hasAttribute('data-reader-block')) {
+            restoreBlock = fragmentBlock;
+        }
+    } else if (
+        progressDraft
+        && progressDraft.chapter === chapter
+        && draftIsFresher(progressDraft, serverProgress)
+    ) {
+        const draftBlock = reader.querySelector(`#${CSS.escape(progressDraft.block)}`);
+        if (draftBlock instanceof HTMLElement && draftBlock.hasAttribute('data-reader-block')) {
+            restoreBlock = draftBlock;
+            restoreFromDraft = true;
+        }
+    } else if (serverProgress.chapter === chapter && serverProgress.block) {
+        const serverBlock = reader.querySelector(`#${CSS.escape(serverProgress.block)}`);
+        if (serverBlock instanceof HTMLElement && serverBlock.hasAttribute('data-reader-block')) {
+            restoreBlock = serverBlock;
+        }
+    }
+
+    const markPositionReady = () => {
+        positionReady = true;
+        syncActiveFromViewport();
+        armProgressHeartbeat();
+    };
+
+    const runPositionRestore = () => {
+        if (restoreBlock instanceof HTMLElement) {
+            restoringPosition = true;
+            jumpToBlock(restoreBlock);
+            lastSavedBlock = restoreBlock.id;
+            writeProgressDraft({
+                blockId: restoreBlock.id,
+                progressPercent: restoreFromDraft
+                    ? Number(progressDraft.progressPercent || serverProgress.progressPercent || 0)
+                    : serverProgress.progressPercent,
+                synced: !restoreFromDraft,
+                updatedAt: restoreFromDraft
+                    ? progressDraft.updatedAt
+                    : (serverProgress.updatedAt || new Date().toISOString()),
+            });
+            restoringPosition = false;
+            markPositionReady();
+            if (restoreFromDraft) {
+                flushProgressNow({ block: restoreBlock, keepalive: false });
+            }
+            return;
+        }
+        markPositionReady();
+    };
+
     const focusParams = new URLSearchParams(window.location.search);
     const focusKind = focusParams.get('focus') || '';
     const focusId = focusParams.get('qid') || focusParams.get('bid') || focusParams.get('nid') || '';
@@ -4040,7 +4117,13 @@ function initLibraryReader() {
             const next = focusParams.toString();
             const url = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`;
             window.history.replaceState({}, '', url);
+            markPositionReady();
         }, 180);
+    } else {
+        // Два rAF — дождаться measurePages из preferences.render().
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(runPositionRestore);
+        });
     }
 }
 
